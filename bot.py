@@ -44,23 +44,50 @@ def main_menu():
     return {
         "inline_keyboard": [
             [
-                {"text": "🏠 Недвижимость", "callback_data": "cat_realestate"},
-                {"text": "🚗 Авто", "callback_data": "cat_auto"}
+                {
+                    "text": "🏠 Недвижимость",
+                    "callback_data": "cat_realestate"
+                },
+                {
+                    "text": "🚗 Авто",
+                    "callback_data": "cat_auto"
+                }
             ],
             [
-                {"text": "📱 Техника", "callback_data": "cat_tech"},
-                {"text": "🛋 Дом и мебель", "callback_data": "cat_home"}
+                {
+                    "text": "📱 Техника",
+                    "callback_data": "cat_tech"
+                },
+                {
+                    "text": "🛋 Дом и мебель",
+                    "callback_data": "cat_home"
+                }
             ],
             [
-                {"text": "👶 Детское", "callback_data": "cat_kids"},
-                {"text": "💼 Работа и услуги", "callback_data": "cat_work"}
+                {
+                    "text": "👶 Детское",
+                    "callback_data": "cat_kids"
+                },
+                {
+                    "text": "💼 Работа и услуги",
+                    "callback_data": "cat_work"
+                }
             ],
             [
-                {"text": "🎁 Отдам", "callback_data": "cat_give"},
-                {"text": "🔎 Ищу", "callback_data": "cat_search"}
+                {
+                    "text": "🎁 Отдам",
+                    "callback_data": "cat_give"
+                },
+                {
+                    "text": "🔎 Ищу",
+                    "callback_data": "cat_search"
+                }
             ],
             [
-                {"text": "➕ Разместить объявление", "callback_data": "post"}
+                {
+                    "text": "➕ Разместить объявление",
+                    "callback_data": "post"
+                }
             ]
         ]
     }
@@ -71,18 +98,36 @@ def category_menu(category):
         return {
             "inline_keyboard": [
                 [
-                    {"text": "Все", "callback_data": "realestate_all"},
-                    {"text": "Сдам", "callback_data": "realestate_rent"}
+                    {
+                        "text": "Все",
+                        "callback_data": "realestate_all"
+                    },
+                    {
+                        "text": "Сдам",
+                        "callback_data": "realestate_rent"
+                    }
                 ],
                 [
-                    {"text": "Сниму", "callback_data": "realestate_wanted"},
-                    {"text": "Продам", "callback_data": "realestate_sale"}
+                    {
+                        "text": "Сниму",
+                        "callback_data": "realestate_wanted"
+                    },
+                    {
+                        "text": "Продам",
+                        "callback_data": "realestate_sale"
+                    }
                 ],
                 [
-                    {"text": "Куплю", "callback_data": "realestate_buy"}
+                    {
+                        "text": "Куплю",
+                        "callback_data": "realestate_buy"
+                    }
                 ],
                 [
-                    {"text": "⬅️ Назад", "callback_data": "back"}
+                    {
+                        "text": "⬅️ Назад",
+                        "callback_data": "back"
+                    }
                 ]
             ]
         }
@@ -90,19 +135,25 @@ def category_menu(category):
     return {
         "inline_keyboard": [
             [
-                {"text": "⬅️ Назад", "callback_data": "back"}
+                {
+                    "text": "⬅️ Назад",
+                    "callback_data": "back"
+                }
             ]
         ]
     }
 
 
 def process_update(update):
+
     if "message" in update:
+
         message = update["message"]
         chat_id = message["chat"]["id"]
         text = message.get("text", "")
 
         if text == "/start":
+
             send_message(
                 chat_id,
                 "🛒 MADLOBA MARKET | БАТУМИ\n\n"
@@ -112,6 +163,7 @@ def process_update(update):
             )
 
         elif text == "/categories":
+
             send_message(
                 chat_id,
                 "📂 Выберите категорию:",
@@ -119,14 +171,16 @@ def process_update(update):
             )
 
         elif text == "/post":
+
             send_message(
                 chat_id,
-                "➕ Размещение объявления\n\n"
+                "➕ Разместить объявление\n\n"
                 "Пока это тестовый режим.\n"
                 "Скоро здесь появится пошаговая форма подачи объявления."
             )
 
         elif text == "/rules":
+
             send_message(
                 chat_id,
                 "📋 Правила MADLOBA MARKET\n\n"
@@ -138,6 +192,7 @@ def process_update(update):
             )
 
         elif text == "/help":
+
             send_message(
                 chat_id,
                 "ℹ️ Помощь\n\n"
@@ -148,8 +203,11 @@ def process_update(update):
                 "/help — помощь"
             )
 
+
     elif "callback_query" in update:
+
         callback = update["callback_query"]
+
         callback_id = callback["id"]
         chat_id = callback["message"]["chat"]["id"]
         data = callback.get("data", "")
@@ -157,6 +215,7 @@ def process_update(update):
         answer_callback(callback_id)
 
         if data == "back":
+
             send_message(
                 chat_id,
                 "📂 Выберите категорию:",
@@ -164,13 +223,16 @@ def process_update(update):
             )
 
         elif data == "cat_realestate":
+
             send_message(
                 chat_id,
-                "🏠 Недвижимость\n\nВыберите раздел:",
+                "🏠 Недвижимость\n\n"
+                "Выберите раздел:",
                 category_menu("realestate")
             )
 
         elif data == "post":
+
             send_message(
                 chat_id,
                 "➕ Разместить объявление\n\n"
@@ -178,6 +240,7 @@ def process_update(update):
             )
 
         else:
+
             send_message(
                 chat_id,
                 f"Вы выбрали: {data}\n\n"
@@ -197,6 +260,7 @@ def healthz():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
+
     update = request.get_json(silent=True)
 
     if update:
@@ -207,20 +271,24 @@ def webhook():
 
 
 def setup_webhook():
+
     print("===== MADLOBA MARKET BOT STARTING =====")
 
     if not BOT_TOKEN:
+
         print("ERROR: BOT_TOKEN is missing")
         return
 
     # Проверяем токен
     me = telegram("getMe")
+
     print("BOT INFO:", me)
 
     # Получаем адрес Render
     render_url = os.environ.get("RENDER_EXTERNAL_URL")
 
     if not render_url:
+
         print("ERROR: RENDER_EXTERNAL_URL is missing")
         return
 
@@ -231,7 +299,9 @@ def setup_webhook():
     # Устанавливаем webhook
     result = telegram(
         "setWebhook",
-        {"url": webhook_url}
+        {
+            "url": webhook_url
+        }
     )
 
     print("SET WEBHOOK RESULT:", result)
@@ -250,7 +320,14 @@ setup_webhook()
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+
+    port = int(
+        os.environ.get(
+            "PORT",
+            10000
+        )
+    )
+
     app.run(
         host="0.0.0.0",
         port=port
