@@ -463,20 +463,30 @@ def post_sub_menu(key):
 
 def post_type_menu(key):
 
-    rows = pair_buttons(
-        CATEGORIES[
-            key
-        ]["types"],
-        "posttype_"
-    )
+    types = CATEGORIES[key]["types"]
+
+    rows = []
+
+    for i in range(0, len(types), 2):
+
+        row = []
+
+        for label, type_key in types[i:i + 2]:
+
+            row.append(
+                {
+                    "text": label,
+                    "callback_data": f"posttype_{type_key}"
+                }
+            )
+
+        rows.append(row)
 
     rows.append(
         [
             {
-                "text":
-                    "⬅️ Назад",
-                "callback_data":
-                    f"postcat_{key}"
+                "text": "⬅️ Назад",
+                "callback_data": f"postcat_{key}"
             }
         ]
     )
