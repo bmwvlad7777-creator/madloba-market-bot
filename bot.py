@@ -5,107 +5,13 @@ import requests
 from flask import Flask, request
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
-TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
-
-# Optional. If empty, the bot will prepare the listing but will not publish it.
+API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 CHANNEL_USERNAME = os.environ.get("CHANNEL_USERNAME", "").strip()
-
-app = Flask(__name__)
-
-# Temporary storage for active listing forms.
-# Later this can be replaced with a database.
-user_states = {}
 
 MAX_PHOTOS = 8
 
-
-# ============================================================
-# TELEGRAM API
-# ============================================================
-
-def telegram(method, data=None):
-    try:
-        response = requests.post(
-            f"{TELEGRAM_API}/{method}",
-            json=data or {},
-            timeout=25
-        )
-
-        result = response.json()
-
-        print(f"TELEGRAM {method}: {result}")
-
-        return result
-
-    except Exception as e:
-        print(f"TELEGRAM ERROR {method}: {e}")
-
-        return {
-            "ok": False,
-            "error": str(e)
-        }
-
-
-def send_message(chat_id, text, keyboard=None):
-    data = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML"
-    }
-
-    if keyboard:
-        data["reply_markup"] = {
-            "inline_keyboard": keyboard
-        }
-
-    return telegram("sendMessage", data)
-
-
-def send_photo(chat_id, photo, caption=None):
-    data = {
-        "chat_id": chat_id,
-        "photo": photo
-    }
-
-    if caption:
-        data["caption"] = caption
-        data["parse_mode"] = "HTML"
-
-    return telegram("sendPhoto", data)
-
-
-def answer_callback(callback_id):
-    return telegram(
-        "answerCallbackQuery",
-        {"callback_query_id": callback_id}
-    )
-
-
-# ============================================================
-# HELPERS
-# ============================================================
-
-def esc(value):
-    return html.escape(str(value or ""))
-
-
-def slug(value):
-    value = str(value or "").lower()
-
-    replacements = {
-        " ": "",
-        "-": "",
-        ",": "",
-        ".": "",
-        "/": "",
-        "\\": "",
-        "ё": "е"
-    }
-
-    for old, new in replacements.items():
-        value = value.replace(old, new)
-
-    return value
+app = Flask(__name__)
+states = {}
 
 
 # ============================================================
@@ -113,11 +19,9 @@ def slug(value):
 # ============================================================
 
 CATEGORIES = {
-
     "realestate": {
         "name": "🏠 Недвижимость",
-
-        "subcategories": {
+        "subs": {
             "apartment": "🏢 Квартиры",
             "house": "🏡 Дома",
             "room": "🛏 Комнаты",
@@ -125,7 +29,6 @@ CATEGORIES = {
             "land": "🌳 Земля",
             "garage": "🚗 Гаражи и парковки"
         },
-
         "types": [
             ("🔑 Сдам", "rent"),
             ("🔎 Сниму", "seek"),
@@ -136,8 +39,7 @@ CATEGORIES = {
 
     "auto": {
         "name": "🚗 Авто",
-
-        "subcategories": {
+        "subs": {
             "cars": "🚘 Легковые",
             "suv": "🚙 Кроссоверы и SUV",
             "commercial": "🚚 Коммерческий транспорт",
@@ -145,7 +47,6 @@ CATEGORIES = {
             "parts": "⚙️ Запчасти",
             "rental": "🔑 Аренда"
         },
-
         "types": [
             ("💰 Продам", "sell"),
             ("🔎 Куплю", "buy"),
@@ -156,8 +57,7 @@ CATEGORIES = {
 
     "tech": {
         "name": "📱 Техника",
-
-        "subcategories": {
+        "subs": {
             "phones": "📱 Телефоны и планшеты",
             "computers": "💻 Компьютеры",
             "tv": "📺 ТВ и аудио",
@@ -165,7 +65,6 @@ CATEGORIES = {
             "photo": "📷 Фото и видео",
             "other": "🔌 Другая техника"
         },
-
         "types": [
             ("💰 Продам", "sell"),
             ("🔎 Куплю", "buy")
@@ -174,8 +73,7 @@ CATEGORIES = {
 
     "home": {
         "name": "🛋 Дом и мебель",
-
-        "subcategories": {
+        "subs": {
             "furniture": "🛋 Мебель",
             "household": "🏠 Для дома",
             "repair": "🔨 Ремонт",
@@ -183,7 +81,6 @@ CATEGORIES = {
             "garden": "🌿 Сад и дача",
             "other": "📦 Другое"
         },
-
         "types": [
             ("💰 Продам", "sell"),
             ("🔎 Куплю", "buy")
@@ -192,8 +89,7 @@ CATEGORIES = {
 
     "kids": {
         "name": "👶 Детское",
-
-        "subcategories": {
+        "subs": {
             "clothes": "👕 Одежда и обувь",
             "toys": "🧸 Игрушки",
             "strollers": "🍼 Коляски и автокресла",
@@ -201,7 +97,6 @@ CATEGORIES = {
             "sports": "⚽️ Спорт",
             "other": "🎈 Другое"
         },
-
         "types": [
             ("💰 Продам", "sell"),
             ("🔎 Куплю", "buy"),
@@ -211,8 +106,7 @@ CATEGORIES = {
 
     "work": {
         "name": "💼 Работа и услуги",
-
-        "subcategories": {
+        "subs": {
             "jobs": "💼 Вакансии",
             "services": "🛠 Услуги",
             "construction": "🔨 Ремонт и строительство",
@@ -222,7 +116,6 @@ CATEGORIES = {
             "it": "💻 IT",
             "other": "📌 Другое"
         },
-
         "types": [
             ("💼 Предлагаю", "offer"),
             ("🔎 Ищу", "seek")
@@ -231,15 +124,13 @@ CATEGORIES = {
 
     "give": {
         "name": "🎁 Отдам",
-
-        "subcategories": {
+        "subs": {
             "home": "🏠 Для дома",
             "clothes": "👕 Одежда",
             "kids": "👶 Детское",
             "tech": "📱 Техника",
             "other": "📦 Другое"
         },
-
         "types": [
             ("🎁 Отдам бесплатно", "give")
         ]
@@ -247,8 +138,7 @@ CATEGORIES = {
 
     "search": {
         "name": "🔎 Ищу",
-
-        "subcategories": {
+        "subs": {
             "realestate": "🏠 Недвижимость",
             "auto": "🚗 Авто",
             "tech": "📱 Техника",
@@ -257,7 +147,6 @@ CATEGORIES = {
             "services": "🛠 Услуги",
             "other": "📦 Другое"
         },
-
         "types": [
             ("🔎 Ищу", "seek")
         ]
@@ -276,12 +165,146 @@ TYPE_NAMES = {
 
 
 # ============================================================
-# MAIN MENU
+# CATEGORY-SPECIFIC CHARACTERISTICS
+# ============================================================
+
+DETAIL_FIELDS = {
+
+    "realestate": [
+        ("rooms", "🛏 Количество комнат"),
+        ("area", "📐 Площадь, м²"),
+        ("floor", "🏢 Этаж")
+    ],
+
+    "auto": [
+        ("make_model", "🚗 Марка и модель"),
+        ("year", "📅 Год"),
+        ("mileage", "🛣 Пробег")
+    ],
+
+    "tech": [
+        ("brand_model", "📱 Марка и модель"),
+        ("condition", "✨ Состояние"),
+        ("warranty", "🛡 Гарантия")
+    ],
+
+    "home": [
+        ("condition", "✨ Состояние"),
+        ("dimensions", "📏 Размеры / габариты")
+    ],
+
+    "kids": [
+        ("condition", "✨ Состояние"),
+        ("age", "👶 Возраст ребёнка")
+    ],
+
+    "work": [
+        ("service", "🛠 Что предлагаете / ищете"),
+        ("experience", "⭐ Опыт")
+    ],
+
+    "give": [
+        ("condition", "✨ Состояние")
+    ],
+
+    "search": [
+        ("requirements", "📋 Что именно ищете")
+    ]
+}
+
+
+# ============================================================
+# TELEGRAM API
+# ============================================================
+
+def api(method, data=None):
+
+    try:
+
+        response = requests.post(
+            f"{API}/{method}",
+            json=data or {},
+            timeout=25
+        )
+
+        result = response.json()
+
+        print(method, result)
+
+        return result
+
+    except Exception as e:
+
+        print(method, e)
+
+        return {
+            "ok": False,
+            "error": str(e)
+        }
+
+
+def send(chat_id, text, keyboard=None):
+
+    data = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML"
+    }
+
+    if keyboard:
+
+        data["reply_markup"] = {
+            "inline_keyboard": keyboard
+        }
+
+    return api(
+        "sendMessage",
+        data
+    )
+
+
+def answer(callback_id):
+
+    return api(
+        "answerCallbackQuery",
+        {
+            "callback_query_id": callback_id
+        }
+    )
+
+
+def esc(value):
+
+    return html.escape(
+        str(value or "")
+    )
+
+
+def slug(value):
+
+    value = str(
+        value or ""
+    ).lower()
+
+    value = value.replace(
+        "ё",
+        "е"
+    )
+
+    return "".join(
+        c for c in value
+        if c.isalnum()
+    )
+
+
+# ============================================================
+# MENUS
 # ============================================================
 
 def main_menu():
 
     return [
+
         [
             {
                 "text": "🏠 Недвижимость",
@@ -335,29 +358,42 @@ def main_menu():
     ]
 
 
-def category_menu(category_key):
-
-    category = CATEGORIES[category_key]
+def pair_buttons(items, prefix):
 
     rows = []
 
-    items = list(category["subcategories"].items())
+    for i in range(
+        0,
+        len(items),
+        2
+    ):
 
-    for i in range(0, len(items), 2):
-
-        row = []
-
-        for key, label in items[i:i + 2]:
-
-            row.append(
+        rows.append(
+            [
                 {
-                    "text": label,
+                    "text": value,
                     "callback_data":
-                        f"browse_{category_key}_{key}"
+                        f"{prefix}{key}"
                 }
-            )
 
-        rows.append(row)
+                for key, value
+                in items[i:i + 2]
+            ]
+        )
+
+    return rows
+
+
+def category_menu(category_key):
+
+    rows = pair_buttons(
+        list(
+            CATEGORIES[
+                category_key
+            ]["subs"].items()
+        ),
+        f"browse_{category_key}_"
+    )
 
     rows.append(
         [
@@ -381,31 +417,20 @@ def category_menu(category_key):
     return rows
 
 
-# ============================================================
-# POST MENUS
-# ============================================================
-
 def post_category_menu():
 
-    rows = []
-
-    items = list(CATEGORIES.items())
-
-    for i in range(0, len(items), 2):
-
-        row = []
-
-        for key, category in items[i:i + 2]:
-
-            row.append(
-                {
-                    "text": category["name"],
-                    "callback_data":
-                        f"postcat_{key}"
-                }
+    rows = pair_buttons(
+        [
+            (
+                key,
+                value["name"]
             )
 
-        rows.append(row)
+            for key, value
+            in CATEGORIES.items()
+        ],
+        "postcat_"
+    )
 
     rows.append(
         [
@@ -419,29 +444,16 @@ def post_category_menu():
     return rows
 
 
-def post_subcategory_menu(category_key):
+def post_sub_menu(category_key):
 
-    category = CATEGORIES[category_key]
-
-    rows = []
-
-    items = list(category["subcategories"].items())
-
-    for i in range(0, len(items), 2):
-
-        row = []
-
-        for key, label in items[i:i + 2]:
-
-            row.append(
-                {
-                    "text": label,
-                    "callback_data":
-                        f"postsub_{category_key}_{key}"
-                }
-            )
-
-        rows.append(row)
+    rows = pair_buttons(
+        list(
+            CATEGORIES[
+                category_key
+            ]["subs"].items()
+        ),
+        f"postsub_{category_key}_"
+    )
 
     rows.append(
         [
@@ -457,25 +469,12 @@ def post_subcategory_menu(category_key):
 
 def post_type_menu(category_key):
 
-    rows = []
-
-    types = CATEGORIES[category_key]["types"]
-
-    for i in range(0, len(types), 2):
-
-        row = []
-
-        for label, type_key in types[i:i + 2]:
-
-            row.append(
-                {
-                    "text": label,
-                    "callback_data":
-                        f"posttype_{type_key}"
-                }
-            )
-
-        rows.append(row)
+    rows = pair_buttons(
+        CATEGORIES[
+            category_key
+        ]["types"],
+        "posttype_"
+    )
 
     rows.append(
         [
@@ -491,12 +490,12 @@ def post_type_menu(category_key):
 
 
 # ============================================================
-# LISTING FORM
+# CREATE LISTING
 # ============================================================
 
-def start_post(chat_id):
+def new_state(chat_id):
 
-    user_states[chat_id] = {
+    states[chat_id] = {
 
         "step": "category",
 
@@ -514,6 +513,9 @@ def start_post(chat_id):
             "title": "",
             "price": "",
             "district": "",
+
+            "details": {},
+
             "description": "",
 
             "photos": [],
@@ -522,7 +524,12 @@ def start_post(chat_id):
         }
     }
 
-    send_message(
+
+def start_post(chat_id):
+
+    new_state(chat_id)
+
+    send(
         chat_id,
 
         "<b>➕ НОВОЕ ОБЪЯВЛЕНИЕ</b>\n\n"
@@ -532,42 +539,113 @@ def start_post(chat_id):
     )
 
 
-def ask_title(chat_id):
+def ask(chat_id, step, text, keyboard=None):
 
-    user_states[chat_id]["step"] = "title"
+    states[
+        chat_id
+    ]["step"] = step
 
-    send_message(
+    send(
         chat_id,
-
-        "<b>3 · Заголовок</b>\n\n"
-        "Напишите короткий и понятный заголовок.\n\n"
-        "<i>Например: Сдам 3-комнатную квартиру у моря</i>"
+        text,
+        keyboard
     )
+
+
+def next_after_type(chat_id):
+
+    data = states[
+        chat_id
+    ]["data"]
+
+    fields = DETAIL_FIELDS.get(
+        data["category_key"],
+        []
+    )
+
+    if fields:
+
+        ask(
+            chat_id,
+
+            "detail_0",
+
+            f"<b>3 · {esc(fields[0][1])}</b>\n\n"
+            "Введите значение."
+        )
+
+    else:
+
+        ask(
+            chat_id,
+
+            "title",
+
+            "<b>3 · Заголовок</b>\n\n"
+            "Напишите короткий и понятный заголовок.\n\n"
+            "<i>Например: Сдам квартиру у моря</i>"
+        )
+
+
+def next_detail(chat_id, index):
+
+    data = states[
+        chat_id
+    ]["data"]
+
+    fields = DETAIL_FIELDS.get(
+        data["category_key"],
+        []
+    )
+
+    if index < len(fields):
+
+        ask(
+            chat_id,
+
+            f"detail_{index}",
+
+            f"<b>{index + 3} · "
+            f"{esc(fields[index][1])}</b>\n\n"
+            "Введите значение."
+        )
+
+    else:
+
+        ask(
+            chat_id,
+
+            "title",
+
+            f"<b>{len(fields) + 3} · Заголовок</b>\n\n"
+            "Напишите короткий и понятный заголовок."
+        )
 
 
 def ask_price(chat_id):
 
-    user_states[chat_id]["step"] = "price"
-
-    send_message(
+    ask(
         chat_id,
 
-        "<b>4 · Цена</b>\n\n"
+        "price",
+
+        "<b>Цена</b>\n\n"
         "Укажите цену и валюту.\n\n"
         "<i>Например: 550 $ / месяц</i>\n"
-        "<i>Или: Договорная</i>\n"
-        "<i>Или: Бесплатно</i>"
+        "<i>20 000 $</i>\n"
+        "<i>Договорная</i>\n"
+        "<i>Бесплатно</i>"
     )
 
 
 def ask_district(chat_id):
 
-    user_states[chat_id]["step"] = "district"
-
-    send_message(
+    ask(
         chat_id,
 
-        "<b>5 · Локация</b>\n\n"
+        "district",
+
+        "<b>Локация</b>\n\n"
         "Укажите район или ориентир в Батуми.\n\n"
         "<i>Например: Пиросмани</i>"
     )
@@ -575,34 +653,35 @@ def ask_district(chat_id):
 
 def ask_description(chat_id):
 
-    user_states[chat_id]["step"] = "description"
-
-    send_message(
+    ask(
         chat_id,
 
-        "<b>6 · Описание</b>\n\n"
-        "Расскажите о предложении.\n\n"
-        "Укажите характеристики, состояние, комплектацию "
-        "и другие важные детали."
+        "description",
+
+        "<b>Описание</b>\n\n"
+        "Расскажите о предложении: "
+        "состояние, комплектация и другие "
+        "важные детали."
     )
 
 
 def ask_photos(chat_id):
 
-    user_states[chat_id]["step"] = "photos"
-
     count = len(
-        user_states[chat_id]["data"]["photos"]
+        states[
+            chat_id
+        ]["data"]["photos"]
     )
 
-    send_message(
+    ask(
         chat_id,
 
-        f"<b>7 · Фотографии</b>\n\n"
+        "photos",
+
+        f"<b>📷 Фотографии</b>\n\n"
         f"Добавлено: <b>{count}/{MAX_PHOTOS}</b>\n\n"
         "Отправляйте фотографии по одной.\n"
-        "Когда закончите — нажмите кнопку <b>Готово</b>.\n\n"
-        "Можно также написать <b>Пропустить</b>.",
+        "Когда закончите — нажмите <b>Готово</b>.",
 
         [
             [
@@ -624,47 +703,19 @@ def ask_photos(chat_id):
 
 def ask_contact(chat_id):
 
-    user_states[chat_id]["step"] = "contact"
-
-    send_message(
+    ask(
         chat_id,
 
-        "<b>8 · Контакт</b>\n\n"
-        "Укажите телефон, Telegram или WhatsApp.\n\n"
-        "<i>Например: +995 599 024 723</i>"
+        "contact",
+
+        "<b>📞 Контакт</b>\n\n"
+        "Укажите телефон, Telegram или WhatsApp."
     )
 
 
 # ============================================================
-# PREVIEW
+# EDIT MENU
 # ============================================================
-
-def preview_keyboard():
-
-    return [
-
-        [
-            {
-                "text": "✅ Опубликовать объявление",
-                "callback_data": "publish_post"
-            }
-        ],
-
-        [
-            {
-                "text": "✏️ Изменить данные",
-                "callback_data": "edit_menu"
-            }
-        ],
-
-        [
-            {
-                "text": "❌ Отмена",
-                "callback_data": "cancel_post"
-            }
-        ]
-    ]
-
 
 def edit_menu():
 
@@ -694,9 +745,16 @@ def edit_menu():
 
         [
             {
+                "text": "📋 Характеристики",
+                "callback_data": "edit_details"
+            },
+            {
                 "text": "📷 Фотографии",
                 "callback_data": "edit_photos"
-            },
+            }
+        ],
+
+        [
             {
                 "text": "📞 Контакт",
                 "callback_data": "edit_contact"
@@ -719,63 +777,30 @@ def edit_menu():
     ]
 
 
-def build_hashtags(data):
+# ============================================================
+# LISTING TEXT
+# ============================================================
 
-    tags = []
+def hashtags(data):
 
-    category_key = data.get(
-        "category_key",
-        ""
-    )
+    tags = [
 
-    subcategory_key = data.get(
-        "subcategory_key",
-        ""
-    )
+        "#" + slug(
+            data["category"].split(
+                " ",
+                1
+            )[-1]
+        ),
 
-    type_key = data.get(
-        "type_key",
-        ""
-    )
-
-    district = data.get(
-        "district",
-        ""
-    )
-
-    if category_key:
-
-        tags.append(
-            "#"
-            +
-            slug(
-                data.get(
-                    "category",
-                    ""
-                ).split(
-                    " ",
-                    1
-                )[-1]
-            )
+        "#" + slug(
+            data["subcategory"].split(
+                " ",
+                1
+            )[-1]
         )
+    ]
 
-    if subcategory_key:
-
-        tags.append(
-            "#"
-            +
-            slug(
-                data.get(
-                    "subcategory",
-                    ""
-                ).split(
-                    " ",
-                    1
-                )[-1]
-            )
-        )
-
-    type_map = {
+    type_tags = {
 
         "rent": "#сдам",
         "seek": "#ищу",
@@ -785,86 +810,164 @@ def build_hashtags(data):
         "offer": "#услуги"
     }
 
-    if type_key in type_map:
+    tags.append(
+        type_tags.get(
+            data["type_key"],
+            ""
+        )
+    )
+
+    if data["district"]:
 
         tags.append(
-            type_map[type_key]
+            "#" + slug(
+                data["district"]
+            )
         )
 
-    if district:
+    tags.append(
+        "#батум"
+    )
 
-        tags.append(
-            "#"
-            +
-            slug(district)
+    return " ".join(
+        dict.fromkeys(
+            tag
+            for tag in tags
+            if tag
         )
-
-    tags.append("#батум")
-
-    result = []
-
-    for tag in tags:
-
-        if tag and tag not in result:
-
-            result.append(tag)
-
-    return " ".join(result[:7])
+    )
 
 
 def build_listing(data):
 
-    category = esc(data.get("category"))
-    subcategory = esc(data.get("subcategory"))
-    post_type = esc(data.get("type"))
+    lines = [
 
-    title = esc(data.get("title"))
-    price = esc(data.get("price"))
-    district = esc(data.get("district"))
-    description = esc(data.get("description"))
-    contact = esc(data.get("contact"))
+        f"<b>{esc(data['category'])} · "
+        f"{esc(data['type'])}</b>",
 
-    hashtags = build_hashtags(data)
+        f"<i>{esc(data['subcategory'])}</i>",
 
-    return (
-        f"<b>{category} · {post_type}</b>\n"
-        f"<i>{subcategory}</i>\n\n"
+        ""
+    ]
 
-        f"<b>{title}</b>\n\n"
+    fields = DETAIL_FIELDS.get(
+        data["category_key"],
+        []
+    )
 
-        f"💰 <b>{price}</b>\n"
-        f"📍 <b>{district}</b>\n\n"
+    if data["details"]:
 
-        f"{description}\n\n"
+        for key, label in fields:
 
-        f"📞 <b>{contact}</b>\n"
-        f"<i>Связаться · WhatsApp / Telegram</i>\n\n"
+            value = data[
+                "details"
+            ].get(
+                key
+            )
 
-        f"{hashtags}"
+            if value:
+
+                lines.append(
+                    f"{esc(label)}: "
+                    f"<b>{esc(value)}</b>"
+                )
+
+        lines.append("")
+
+    lines += [
+
+        f"<b>{esc(data['title'])}</b>",
+
+        "",
+
+        f"💰 <b>{esc(data['price'])}</b>",
+
+        f"📍 <b>{esc(data['district'])}</b>",
+
+        "",
+
+        esc(
+            data["description"]
+        ),
+
+        "",
+
+        f"📞 <b>{esc(data['contact'])}</b>",
+
+        "<i>Связаться · WhatsApp / Telegram</i>",
+
+        "",
+
+        hashtags(data)
+    ]
+
+    return "\n".join(
+        lines
     )
 
 
-def show_preview(chat_id):
+# ============================================================
+# PREVIEW
+# ============================================================
 
-    if chat_id not in user_states:
+def preview_keyboard():
 
-        send_message(
+    return [
+
+        [
+            {
+                "text":
+                    "✅ Опубликовать объявление",
+                "callback_data":
+                    "publish_post"
+            }
+        ],
+
+        [
+            {
+                "text":
+                    "✏️ Изменить данные",
+                "callback_data":
+                    "edit_menu"
+            }
+        ],
+
+        [
+            {
+                "text":
+                    "❌ Отмена",
+                "callback_data":
+                    "cancel_post"
+            }
+        ]
+    ]
+
+
+def preview(chat_id):
+
+    if chat_id not in states:
+
+        return send(
             chat_id,
             "Сессия закончилась. "
             "Начните новое объявление."
         )
 
-        return
+    data = states[
+        chat_id
+    ]["data"]
 
-    data = user_states[chat_id]["data"]
+    text = build_listing(
+        data
+    )
 
-    listing = build_listing(data)
+    photos = data[
+        "photos"
+    ]
 
-    photos = data.get("photos", [])
+    if len(text) > 1000:
 
-    if len(listing) > 1000:
-
-        listing = listing[:997] + "..."
+        text = text[:997] + "..."
 
     if photos:
 
@@ -875,18 +978,27 @@ def show_preview(chat_id):
         ):
 
             item = {
+
                 "type": "photo",
+
                 "media": photo
             }
 
             if index == 0:
 
-                item["caption"] = listing
-                item["parse_mode"] = "HTML"
+                item[
+                    "caption"
+                ] = text
 
-            media.append(item)
+                item[
+                    "parse_mode"
+                ] = "HTML"
 
-        album_result = telegram(
+            media.append(
+                item
+            )
+
+        result = api(
             "sendMediaGroup",
             {
                 "chat_id": chat_id,
@@ -894,130 +1006,78 @@ def show_preview(chat_id):
             }
         )
 
-        if not album_result.get("ok"):
+        if not result.get("ok"):
 
-            print(
-                "PREVIEW ALBUM ERROR:",
-                album_result
+            api(
+                "sendPhoto",
+                {
+                    "chat_id":
+                        chat_id,
+
+                    "photo":
+                        photos[0],
+
+                    "caption":
+                        text,
+
+                    "parse_mode":
+                        "HTML"
+                }
             )
 
-            send_photo(
-                chat_id,
-                photos[0],
-                listing
-            )
+        send(
 
-        send_message(
             chat_id,
 
-            f"<b>📋 ПРЕДПРОСМОТР ОБЪЯВЛЕНИЯ</b>\n\n"
-            f"📷 Фотографий: <b>{len(photos)}</b>\n\n"
-            "Проверьте объявление "
-            "и выберите действие:",
+            "<b>📋 ПРЕДПРОСМОТР</b>\n\n"
+            f"📷 Фотографий: "
+            f"<b>{len(photos)}</b>\n\n"
+            "Проверьте объявление:",
 
             preview_keyboard()
         )
 
     else:
 
-        send_message(
+        send(
             chat_id,
-            listing,
+            text,
             preview_keyboard()
         )
-
-
-# ============================================================
-# EDITING
-# ============================================================
-
-def start_edit(chat_id, field):
-
-    if chat_id not in user_states:
-
-        start_post(chat_id)
-
-        return
-
-    user_states[chat_id]["step"] = field
-
-    prompts = {
-
-        "title":
-            "<b>✏️ Заголовок</b>\n\n"
-            "Введите новый заголовок.",
-
-        "price":
-            "<b>💰 Цена</b>\n\n"
-            "Введите новую цену.",
-
-        "district":
-            "<b>📍 Локация</b>\n\n"
-            "Введите новый район.",
-
-        "description":
-            "<b>📝 Описание</b>\n\n"
-            "Введите новое описание.",
-
-        "contact":
-            "<b>📞 Контакт</b>\n\n"
-            "Введите новый контакт."
-    }
-
-    if field == "photos":
-
-        user_states[chat_id]["data"]["photos"] = []
-
-        ask_photos(chat_id)
-
-        return
-
-    send_message(
-        chat_id,
-        prompts.get(
-            field,
-            "Введите новое значение."
-        )
-    )
 
 
 # ============================================================
 # PUBLISH
 # ============================================================
 
-def publish_post(chat_id):
+def publish(chat_id):
 
-    if chat_id not in user_states:
-
-        send_message(
-            chat_id,
-            "Сессия закончилась. "
-            "Начните новое объявление."
-        )
+    if chat_id not in states:
 
         return
 
-    data = user_states[chat_id]["data"]
+    data = states[
+        chat_id
+    ]["data"]
 
-    listing = build_listing(data)
+    text = build_listing(
+        data
+    )
 
-    photos = data.get("photos", [])
+    photos = data[
+        "photos"
+    ]
 
     if not CHANNEL_USERNAME:
 
-        send_message(
+        return send(
+
             chat_id,
 
             "⚠️ <b>Канал пока не подключён.</b>\n\n"
-            "Объявление готово, но "
-            "CHANNEL_USERNAME не указан в Render."
+            "Добавьте <b>CHANNEL_USERNAME</b> "
+            "в Render → Environment."
         )
-
-        print("CHANNEL_USERNAME is empty.")
-        print("LISTING READY:")
-        print(listing)
-
-        return
 
     if photos:
 
@@ -1028,66 +1088,75 @@ def publish_post(chat_id):
         ):
 
             item = {
+
                 "type": "photo",
+
                 "media": photo
             }
 
             if index == 0:
 
-                item["caption"] = listing
-                item["parse_mode"] = "HTML"
+                item[
+                    "caption"
+                ] = text
 
-            media.append(item)
+                item[
+                    "parse_mode"
+                ] = "HTML"
 
-        result = telegram(
+            media.append(
+                item
+            )
+
+        result = api(
+
             "sendMediaGroup",
+
             {
-                "chat_id": CHANNEL_USERNAME,
-                "media": media
+                "chat_id":
+                    CHANNEL_USERNAME,
+
+                "media":
+                    media
             }
         )
 
-        if not result.get("ok"):
-
-            print(
-                "PUBLISH ALBUM ERROR:",
-                result
-            )
-
-            send_message(
-                chat_id,
-
-                "⚠️ <b>Не удалось опубликовать объявление.</b>\n\n"
-                "Проверьте, что бот является "
-                "администратором канала."
-            )
-
-            return
-
     else:
 
-        result = send_message(
-            CHANNEL_USERNAME,
-            listing
+        result = api(
+
+            "sendMessage",
+
+            {
+                "chat_id":
+                    CHANNEL_USERNAME,
+
+                "text":
+                    text,
+
+                "parse_mode":
+                    "HTML"
+            }
         )
 
-        if not result.get("ok"):
+    if not result.get("ok"):
 
-            print(
-                "PUBLISH ERROR:",
-                result
-            )
+        return send(
 
-            send_message(
-                chat_id,
+            chat_id,
 
-                "⚠️ <b>Не удалось опубликовать объявление.</b>\n\n"
-                "Проверьте права бота в канале."
-            )
+            "⚠️ <b>Не удалось опубликовать.</b>\n\n"
+            "Проверьте, что бот является "
+            "администратором канала и "
+            "CHANNEL_USERNAME указан правильно."
+        )
 
-            return
+    del states[
+        chat_id
+    ]
 
-    send_message(
+    send(
+
         chat_id,
 
         "🎉 <b>Объявление опубликовано!</b>\n\n"
@@ -1097,30 +1166,41 @@ def publish_post(chat_id):
         main_menu()
     )
 
-    del user_states[chat_id]
-
 
 # ============================================================
-# FORM TEXT PROCESSING
+# TEXT PROCESSING
 # ============================================================
 
-def process_form_text(chat_id, text):
+def process_text(chat_id, text):
 
-    if chat_id not in user_states:
+    if chat_id not in states:
 
         return False
 
-    state = user_states[chat_id]
-    data = state["data"]
-    step = state["step"]
+    state = states[
+        chat_id
+    ]
 
-    clean = text.strip()
+    data = state[
+        "data"
+    ]
 
-    if clean.lower() in ["отмена", "cancel"]:
+    step = state[
+        "step"
+    ]
 
-        del user_states[chat_id]
+    text = text.strip()
 
-        send_message(
+    if text.lower() in [
+        "отмена",
+        "cancel"
+    ]:
+
+        del states[
+            chat_id
+        ]
+
+        send(
             chat_id,
 
             "❌ Объявление отменено.",
@@ -1130,58 +1210,161 @@ def process_form_text(chat_id, text):
 
         return True
 
+    # Category-specific characteristics
+    if step.startswith(
+        "detail_"
+    ):
+
+        index = int(
+            step.split("_")[1]
+        )
+
+        fields = DETAIL_FIELDS.get(
+            data["category_key"],
+            []
+        )
+
+        if index < len(fields):
+
+            key = fields[index][0]
+
+            data[
+                "details"
+            ][key] = text
+
+        next_detail(
+            chat_id,
+            index + 1
+        )
+
+        return True
+
+    # Edit category-specific characteristic
+    if step.startswith(
+        "edit_detail_"
+    ):
+
+        index = int(
+            step.split("_")[-1]
+        )
+
+        fields = DETAIL_FIELDS.get(
+            data["category_key"],
+            []
+        )
+
+        if index < len(fields):
+
+            key = fields[index][0]
+
+            data[
+                "details"
+            ][key] = text
+
+        preview(
+            chat_id
+        )
+
+        return True
+
     if step == "title":
 
-        data["title"] = clean
-        ask_price(chat_id)
+        data[
+            "title"
+        ] = text
+
+        ask_price(
+            chat_id
+        )
 
         return True
 
     if step == "price":
 
-        data["price"] = clean
-        ask_district(chat_id)
+        data[
+            "price"
+        ] = text
+
+        ask_district(
+            chat_id
+        )
 
         return True
 
     if step == "district":
 
-        data["district"] = clean
-        ask_description(chat_id)
+        data[
+            "district"
+        ] = text
+
+        ask_description(
+            chat_id
+        )
 
         return True
 
     if step == "description":
 
-        data["description"] = clean
-        ask_photos(chat_id)
+        data[
+            "description"
+        ] = text
+
+        ask_photos(
+            chat_id
+        )
 
         return True
 
     if step == "photos":
 
-        if clean.lower() in [
+        if text.lower() in [
             "пропустить",
             "skip"
         ]:
 
-            ask_contact(chat_id)
+            ask_contact(
+                chat_id
+            )
 
-            return True
+        else:
 
-        send_message(
-            chat_id,
+            send(
 
-            "📷 Отправьте фотографию "
-            "или нажмите <b>Готово</b>."
-        )
+                chat_id,
+
+                "📷 Отправьте фотографию "
+                "или нажмите <b>Готово</b>."
+            )
 
         return True
 
     if step == "contact":
 
-        data["contact"] = clean
-        show_preview(chat_id)
+        data[
+            "contact"
+        ] = text
+
+        preview(
+            chat_id
+        )
+
+        return True
+
+    if step.startswith(
+        "edit_"
+    ):
+
+        field = step[
+            5:
+        ]
+
+        data[
+            field
+        ] = text
+
+        preview(
+            chat_id
+        )
 
         return True
 
@@ -1189,102 +1372,103 @@ def process_form_text(chat_id, text):
 
 
 # ============================================================
-# PROCESS UPDATE
+# UPDATE HANDLER
 # ============================================================
 
-def process_update(update):
+def handle(update):
+
+    # ========================================================
+    # MESSAGE
+    # ========================================================
 
     if "message" in update:
 
-        message = update["message"]
+        message = update[
+            "message"
+        ]
 
-        chat_id = message["chat"]["id"]
+        chat_id = message[
+            "chat"
+        ]["id"]
 
-        text = message.get("text", "")
+        text = message.get(
+            "text",
+            ""
+        )
 
         # ----------------------------------------------------
-        # PHOTO
+        # PHOTOS
         # ----------------------------------------------------
 
         if "photo" in message:
 
-            if chat_id in user_states:
+            if (
+                chat_id in states
+                and
+                states[
+                    chat_id
+                ]["step"] == "photos"
+            ):
 
-                state = user_states[chat_id]
+                photos = states[
+                    chat_id
+                ]["data"]["photos"]
 
-                if state["step"] == "photos":
+                if len(photos) < MAX_PHOTOS:
 
-                    photos = state["data"]["photos"]
+                    photos.append(
+                        message[
+                            "photo"
+                        ][-1]["file_id"]
+                    )
 
-                    if len(photos) < MAX_PHOTOS:
+                count = len(
+                    photos
+                )
 
-                        photos.append(
-                            message["photo"][-1]["file_id"]
-                        )
+                send(
 
-                    count = len(photos)
+                    chat_id,
 
-                    if count >= MAX_PHOTOS:
+                    f"📷 Фото добавлено: "
+                    f"<b>{count}/{MAX_PHOTOS}</b>",
 
-                        send_message(
-                            chat_id,
+                    [
+                        [
+                            {
+                                "text":
+                                    "✅ Готово",
 
-                            f"📷 Добавлено "
-                            f"<b>{count}/{MAX_PHOTOS}</b> фото.\n\n"
-                            "Максимум достигнут. "
-                            "Нажмите <b>Готово</b>.",
-
-                            [
-                                [
-                                    {
-                                        "text": "✅ Готово",
-                                        "callback_data":
-                                            "photos_done"
-                                    }
-                                ]
-                            ]
-                        )
-
-                    else:
-
-                        send_message(
-                            chat_id,
-
-                            f"📷 Фото добавлено: "
-                            f"<b>{count}/{MAX_PHOTOS}</b>\n\n"
-                            "Можете отправить ещё "
-                            "фото или нажать <b>Готово</b>.",
-
-                            [
-                                [
-                                    {
-                                        "text": "✅ Готово",
-                                        "callback_data":
-                                            "photos_done"
-                                    }
-                                ]
-                            ]
-                        )
-
-                    return
+                                "callback_data":
+                                    "photos_done"
+                            }
+                        ]
+                    ]
+                )
 
             return
 
         # ----------------------------------------------------
-        # START / HOME
+        # START
         # ----------------------------------------------------
 
         if (
-            text.startswith("/start")
+            text.startswith(
+                "/start"
+            )
             or
-            text.strip() == "🏠 Главное меню"
+            text.strip()
+            ==
+            "🏠 Главное меню"
         ):
 
-            if chat_id in user_states:
+            states.pop(
+                chat_id,
+                None
+            )
 
-                del user_states[chat_id]
+            send(
 
-            send_message(
                 chat_id,
 
                 "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
@@ -1301,9 +1485,9 @@ def process_update(update):
         # ACTIVE FORM
         # ----------------------------------------------------
 
-        if chat_id in user_states:
+        if chat_id in states:
 
-            if process_form_text(
+            if process_text(
                 chat_id,
                 text
             ):
@@ -1314,9 +1498,11 @@ def process_update(update):
         # COMMANDS
         # ----------------------------------------------------
 
-        if text.startswith("/categories"):
+        if text.startswith(
+            "/categories"
+        ):
 
-            send_message(
+            send(
                 chat_id,
 
                 "📂 <b>Выберите категорию:</b>",
@@ -1326,15 +1512,22 @@ def process_update(update):
 
             return
 
-        if text.startswith("/post"):
+        if text.startswith(
+            "/post"
+        ):
 
-            start_post(chat_id)
+            start_post(
+                chat_id
+            )
 
             return
 
-        if text.startswith("/rules"):
+        if text.startswith(
+            "/rules"
+        ):
 
-            send_message(
+            send(
+
                 chat_id,
 
                 "<b>📋 Правила MADLOBA MARKET</b>\n\n"
@@ -1344,16 +1537,17 @@ def process_update(update):
                 "и незаконные товары.\n"
                 "• Не публикуйте чужие "
                 "персональные данные.\n"
-                "• Не размещайте спам.\n"
-                "• Администрация может удалить "
-                "объявление, нарушающее правила."
+                "• Не размещайте спам."
             )
 
             return
 
-        if text.startswith("/help"):
+        if text.startswith(
+            "/help"
+        ):
 
-            send_message(
+            send(
+
                 chat_id,
 
                 "<b>ℹ️ MADLOBA MARKET</b>\n\n"
@@ -1371,348 +1565,391 @@ def process_update(update):
     # CALLBACK
     # ========================================================
 
-    if "callback_query" in update:
+    if "callback_query" not in update:
 
-        callback = update["callback_query"]
+        return
 
-        chat_id = callback["message"]["chat"]["id"]
+    query = update[
+        "callback_query"
+    ]
 
-        data = callback.get("data", "")
+    chat_id = query[
+        "message"
+    ]["chat"]["id"]
 
-        answer_callback(callback["id"])
+    data = query.get(
+        "data",
+        ""
+    )
 
-        # ----------------------------------------------------
-        # MAIN MENU
-        # ----------------------------------------------------
+    answer(
+        query["id"]
+    )
 
-        if data == "back_main":
+    # --------------------------------------------------------
+    # MAIN MENU
+    # --------------------------------------------------------
 
-            send_message(
+    if data == "back_main":
+
+        send(
+
+            chat_id,
+
+            "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
+            "Выберите категорию:",
+
+            main_menu()
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # CATEGORY
+    # --------------------------------------------------------
+
+    if data.startswith(
+        "cat_"
+    ):
+
+        category_key = data[
+            4:
+        ]
+
+        if category_key in CATEGORIES:
+
+            send(
+
                 chat_id,
 
-                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
-                "Выберите категорию:",
-
-                main_menu()
-            )
-
-            return
-
-        # ----------------------------------------------------
-        # CATEGORY
-        # ----------------------------------------------------
-
-        if data.startswith("cat_"):
-
-            category_key = data.replace(
-                "cat_",
-                ""
-            )
-
-            if category_key not in CATEGORIES:
-
-                return
-
-            category = CATEGORIES[category_key]
-
-            send_message(
-                chat_id,
-
-                f"<b>{esc(category['name'])}</b>\n\n"
+                f"<b>"
+                f"{esc(CATEGORIES[category_key]['name'])}"
+                f"</b>\n\n"
                 "Выберите раздел:",
 
-                category_menu(category_key)
+                category_menu(
+                    category_key
+                )
             )
+
+        return
+
+    # --------------------------------------------------------
+    # BROWSE
+    # --------------------------------------------------------
+
+    if data.startswith(
+        "browse_"
+    ):
+
+        parts = data.split(
+            "_",
+            2
+        )
+
+        if len(parts) < 3:
 
             return
 
-        # ----------------------------------------------------
-        # BROWSE
-        # ----------------------------------------------------
+        category_key = parts[1]
 
-        if data.startswith("browse_"):
+        sub_key = parts[2]
 
-            parts = data.split("_", 2)
+        if category_key not in CATEGORIES:
 
-            if len(parts) < 3:
+            return
 
-                return
+        if sub_key == "all":
 
-            category_key = parts[1]
-            sub_key = parts[2]
+            label = (
+                "📋 Все объявления"
+            )
 
-            if category_key not in CATEGORIES:
+        else:
 
-                return
+            label = CATEGORIES[
+                category_key
+            ]["subs"].get(
+                sub_key,
+                "Раздел"
+            )
 
-            category = CATEGORIES[category_key]
+        send(
 
-            if sub_key == "all":
+            chat_id,
 
-                label = "📋 Все объявления"
+            f"<b>{esc(label)}</b>\n\n"
+            "Пока здесь нет опубликованных объявлений.",
 
-            else:
+            [
+                [
+                    {
+                        "text":
+                            "⬅️ Назад",
 
-                label = category[
-                    "subcategories"
-                ].get(
-                    sub_key,
-                    "Раздел"
-                )
-
-            send_message(
-                chat_id,
-
-                f"<b>{esc(label)}</b>\n\n"
-                "Пока здесь нет опубликованных объявлений.\n\n"
-                "Когда объявления появятся, "
-                "они будут показываться "
-                "в этом разделе.",
+                        "callback_data":
+                            f"cat_{category_key}"
+                    }
+                ],
 
                 [
-                    [
-                        {
-                            "text": "⬅️ Назад",
-                            "callback_data":
-                                f"cat_{category_key}"
-                        }
-                    ],
+                    {
+                        "text":
+                            "🏠 Главное меню",
 
-                    [
-                        {
-                            "text": "🏠 Главное меню",
-                            "callback_data":
-                                "back_main"
-                        }
-                    ]
+                        "callback_data":
+                            "back_main"
+                    }
                 ]
-            )
-
-            return
-
-        # ----------------------------------------------------
-        # START POST
-        # ----------------------------------------------------
-
-        if data == "post":
-
-            start_post(chat_id)
-
-            return
-
-        # ----------------------------------------------------
-        # POST CATEGORY
-        # ----------------------------------------------------
-
-        if data.startswith("postcat_"):
-
-            category_key = data.replace(
-                "postcat_",
-                ""
-            )
-
-            if category_key not in CATEGORIES:
-
-                return
-
-            user_states[chat_id] = {
-
-                "step": "subcategory",
-
-                "data": {
-
-                    "category_key": category_key,
-
-                    "category":
-                        CATEGORIES[
-                            category_key
-                        ]["name"],
-
-                    "subcategory_key": "",
-
-                    "subcategory": "",
-
-                    "type_key": "",
-
-                    "type": "",
-
-                    "title": "",
-
-                    "price": "",
-
-                    "district": "",
-
-                    "description": "",
-
-                    "photos": [],
-
-                    "contact": ""
-                }
-            }
-
-            send_message(
-                chat_id,
-
-                "<b>1 · Категория</b>\n\n"
-                f"{esc(CATEGORIES[category_key]['name'])}\n\n"
-                "Теперь выберите раздел:",
-
-                post_subcategory_menu(category_key)
-            )
-
-            return
-
-        # ----------------------------------------------------
-        # POST SUBCATEGORY
-        # ----------------------------------------------------
-
-        if data.startswith("postsub_"):
-
-            parts = data.split("_", 2)
-
-            if len(parts) < 3:
-
-                return
-
-            category_key = parts[1]
-            subcategory_key = parts[2]
-
-            if (
-                category_key not in CATEGORIES
-                or
-                subcategory_key
-                not in
-                CATEGORIES[
-                    category_key
-                ]["subcategories"]
-            ):
-
-                return
-
-            state = user_states.get(chat_id)
-
-            if not state:
-
-                start_post(chat_id)
-
-                return
-
-            state["step"] = "type"
-
-            state["data"][
-                "subcategory_key"
-            ] = subcategory_key
-
-            state["data"][
-                "subcategory"
-            ] = CATEGORIES[
-                category_key
-            ]["subcategories"][
-                subcategory_key
             ]
+        )
 
-            send_message(
-                chat_id,
+        return
 
-                "<b>2 · Тип объявления</b>\n\n"
-                f"{esc(state['data']['subcategory'])}\n\n"
-                "Что вы хотите сделать?",
+    # --------------------------------------------------------
+    # START POST
+    # --------------------------------------------------------
 
-                post_type_menu(category_key)
+    if data == "post":
+
+        start_post(
+            chat_id
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # POST CATEGORY
+    # --------------------------------------------------------
+
+    if data.startswith(
+        "postcat_"
+    ):
+
+        category_key = data[
+            8:
+        ]
+
+        if category_key not in CATEGORIES:
+
+            return
+
+        states[
+            chat_id
+        ] = {
+
+            "step":
+                "subcategory",
+
+            "data": {
+
+                "category_key":
+                    category_key,
+
+                "category":
+                    CATEGORIES[
+                        category_key
+                    ]["name"],
+
+                "subcategory_key":
+                    "",
+
+                "subcategory":
+                    "",
+
+                "type_key":
+                    "",
+
+                "type":
+                    "",
+
+                "title":
+                    "",
+
+                "price":
+                    "",
+
+                "district":
+                    "",
+
+                "details":
+                    {},
+
+                "description":
+                    "",
+
+                "photos":
+                    [],
+
+                "contact":
+                    ""
+            }
+        }
+
+        send(
+
+            chat_id,
+
+            "<b>1 · Категория</b>\n\n"
+            "Выберите раздел:",
+
+            post_sub_menu(
+                category_key
+            )
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # POST SUBCATEGORY
+    # --------------------------------------------------------
+
+    if data.startswith(
+        "postsub_"
+    ):
+
+        parts = data.split(
+            "_",
+            2
+        )
+
+        if len(parts) < 3:
+
+            return
+
+        category_key = parts[1]
+
+        subcategory_key = parts[2]
+
+        if (
+            chat_id not in states
+            or
+            category_key not in CATEGORIES
+            or
+            subcategory_key
+            not in
+            CATEGORIES[
+                category_key
+            ]["subs"]
+        ):
+
+            return
+
+        listing = states[
+            chat_id
+        ]["data"]
+
+        listing[
+            "subcategory_key"
+        ] = subcategory_key
+
+        listing[
+            "subcategory"
+        ] = CATEGORIES[
+            category_key
+        ]["subs"][
+            subcategory_key
+        ]
+
+        states[
+            chat_id
+        ]["step"] = "type"
+
+        send(
+
+            chat_id,
+
+            "<b>2 · Тип объявления</b>\n\n"
+            "Что вы хотите сделать?",
+
+            post_type_menu(
+                category_key
+            )
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # POST TYPE
+    # --------------------------------------------------------
+
+    if data.startswith(
+        "posttype_"
+    ):
+
+        type_key = data[
+            9:
+        ]
+
+        if chat_id not in states:
+
+            return
+
+        listing = states[
+            chat_id
+        ]["data"]
+
+        listing[
+            "type_key"
+        ] = type_key
+
+        listing[
+            "type"
+        ] = TYPE_NAMES.get(
+            type_key,
+            type_key
+        )
+
+        next_after_type(
+            chat_id
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # PHOTOS
+    # --------------------------------------------------------
+
+    if data == "photos_done":
+
+        if (
+            chat_id in states
+            and
+            states[
+                chat_id
+            ]["step"] == "photos"
+        ):
+
+            ask_contact(
+                chat_id
             )
 
-            return
+        return
 
-        # ----------------------------------------------------
-        # POST TYPE
-        # ----------------------------------------------------
+    if data == "photos_skip":
 
-        if data.startswith("posttype_"):
+        if chat_id in states:
 
-            type_key = data.replace(
-                "posttype_",
-                ""
-            )
-
-            if type_key not in TYPE_NAMES:
-
-                return
-
-            if chat_id not in user_states:
-
-                start_post(chat_id)
-
-                return
-
-            state = user_states[chat_id]
-
-            state["step"] = "title"
-
-            state["data"][
-                "type_key"
-            ] = type_key
-
-            state["data"][
-                "type"
-            ] = TYPE_NAMES[type_key]
-
-            ask_title(chat_id)
-
-            return
-
-        # ----------------------------------------------------
-        # PHOTOS
-        # ----------------------------------------------------
-
-        if data == "photos_done":
-
-            if chat_id not in user_states:
-
-                return
-
-            if user_states[
-                chat_id
-            ]["step"] != "photos":
-
-                return
-
-            ask_contact(chat_id)
-
-            return
-
-        if data == "photos_skip":
-
-            if chat_id not in user_states:
-
-                return
-
-            if user_states[
-                chat_id
-            ]["step"] != "photos":
-
-                return
-
-            user_states[
+            states[
                 chat_id
             ]["data"]["photos"] = []
 
-            ask_contact(chat_id)
+            ask_contact(
+                chat_id
+            )
 
-            return
+        return
 
-        # ----------------------------------------------------
-        # EDIT
-        # ----------------------------------------------------
+    # --------------------------------------------------------
+    # EDIT MENU
+    # --------------------------------------------------------
 
-        if data == "edit_menu":
+    if data == "edit_menu":
 
-            if chat_id not in user_states:
+        if chat_id in states:
 
-                start_post(chat_id)
+            send(
 
-                return
-
-            send_message(
                 chat_id,
 
                 "<b>✏️ Что хотите изменить?</b>",
@@ -1720,143 +1957,359 @@ def process_update(update):
                 edit_menu()
             )
 
+        return
+
+    # --------------------------------------------------------
+    # EDIT STANDARD FIELDS
+    # --------------------------------------------------------
+
+    if data in [
+        "edit_title",
+        "edit_price",
+        "edit_district",
+        "edit_description",
+        "edit_contact"
+    ]:
+
+        if chat_id not in states:
+
             return
 
-        if data in [
-            "edit_title",
-            "edit_price",
-            "edit_district",
-            "edit_description",
-            "edit_contact",
-            "edit_photos"
-        ]:
+        field = data[
+            5:
+        ]
 
-            field = data.replace(
-                "edit_",
-                ""
-            )
+        states[
+            chat_id
+        ]["step"] = (
+            "edit_" + field
+        )
 
-            start_edit(
+        prompts = {
+
+            "title":
+                "<b>✏️ Новый заголовок</b>",
+
+            "price":
+                "<b>💰 Новая цена</b>",
+
+            "district":
+                "<b>📍 Новая локация</b>",
+
+            "description":
+                "<b>📝 Новое описание</b>",
+
+            "contact":
+                "<b>📞 Новый контакт</b>"
+        }
+
+        send(
+            chat_id,
+            prompts[field]
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # EDIT DETAILS MENU
+    # --------------------------------------------------------
+
+    if data == "edit_details":
+
+        if chat_id not in states:
+
+            return
+
+        category_key = states[
+            chat_id
+        ]["data"][
+            "category_key"
+        ]
+
+        fields = DETAIL_FIELDS.get(
+            category_key,
+            []
+        )
+
+        if not fields:
+
+            send(
+
                 chat_id,
-                field
+
+                "Для этой категории "
+                "дополнительных характеристик нет.",
+
+                [
+                    [
+                        {
+                            "text":
+                                "⬅️ Назад",
+
+                            "callback_data":
+                                "edit_menu"
+                        }
+                    ]
+                ]
             )
 
             return
 
-        # ----------------------------------------------------
-        # PREVIEW
-        # ----------------------------------------------------
+        rows = []
 
-        if data == "show_preview":
+        for index, field in enumerate(
+            fields
+        ):
 
-            show_preview(chat_id)
+            rows.append(
+                [
+                    {
+                        "text":
+                            field[1],
+
+                        "callback_data":
+                            f"edit_detail_{index}"
+                    }
+                ]
+            )
+
+        rows.append(
+            [
+                {
+                    "text":
+                        "⬅️ Назад",
+
+                    "callback_data":
+                        "edit_menu"
+                }
+            ]
+        )
+
+        send(
+            chat_id,
+            "<b>📋 Что изменить?</b>",
+            rows
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # EDIT ONE DETAIL
+    # --------------------------------------------------------
+
+    if data.startswith(
+        "edit_detail_"
+    ):
+
+        if chat_id not in states:
 
             return
 
-        # ----------------------------------------------------
-        # RESTART
-        # ----------------------------------------------------
+        index = int(
+            data.rsplit(
+                "_",
+                1
+            )[1]
+        )
 
-        if data == "restart_post":
+        category_key = states[
+            chat_id
+        ]["data"][
+            "category_key"
+        ]
 
-            start_post(chat_id)
+        fields = DETAIL_FIELDS.get(
+            category_key,
+            []
+        )
 
-            return
+        if index < len(fields):
 
-        # ----------------------------------------------------
-        # CANCEL
-        # ----------------------------------------------------
+            states[
+                chat_id
+            ]["step"] = (
+                f"edit_detail_{index}"
+            )
 
-        if data == "cancel_post":
+            send(
 
-            if chat_id in user_states:
-
-                del user_states[chat_id]
-
-            send_message(
                 chat_id,
 
-                "❌ <b>Размещение отменено.</b>\n\n"
-                "Выберите действие:",
-
-                main_menu()
+                f"<b>{esc(fields[index][1])}</b>\n\n"
+                "Введите новое значение."
             )
 
-            return
+        return
 
-        # ----------------------------------------------------
-        # PUBLISH
-        # ----------------------------------------------------
+    # --------------------------------------------------------
+    # EDIT PHOTOS
+    # --------------------------------------------------------
 
-        if data == "publish_post":
+    if data == "edit_photos":
 
-            publish_post(chat_id)
+        if chat_id in states:
 
-            return
+            states[
+                chat_id
+            ]["data"]["photos"] = []
+
+            ask_photos(
+                chat_id
+            )
+
+        return
+
+    # --------------------------------------------------------
+    # SHOW PREVIEW
+    # --------------------------------------------------------
+
+    if data == "show_preview":
+
+        preview(
+            chat_id
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # RESTART
+    # --------------------------------------------------------
+
+    if data == "restart_post":
+
+        start_post(
+            chat_id
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # CANCEL
+    # --------------------------------------------------------
+
+    if data == "cancel_post":
+
+        states.pop(
+            chat_id,
+            None
+        )
+
+        send(
+
+            chat_id,
+
+            "❌ <b>Размещение отменено.</b>",
+
+            main_menu()
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # PUBLISH
+    # --------------------------------------------------------
+
+    if data == "publish_post":
+
+        publish(
+            chat_id
+        )
+
+        return
 
 
 # ============================================================
 # WEBHOOK
 # ============================================================
 
-@app.route("/", methods=["GET"])
+@app.get("/")
 def home():
 
-    return "MADLOBA MARKET BOT is running."
+    return (
+        "MADLOBA MARKET BOT is running."
+    )
 
 
-@app.route("/webhook", methods=["POST"])
+@app.post("/webhook")
 def webhook():
 
-    update = request.get_json(silent=True)
+    update = request.get_json(
+        silent=True
+    )
 
     if update:
 
         try:
 
-            process_update(update)
+            handle(
+                update
+            )
 
         except Exception as e:
 
             print(
-                "PROCESS UPDATE ERROR:",
-                e
+                "UPDATE ERROR:",
+                repr(e)
             )
 
     return "OK"
 
 
 # ============================================================
-# BOT COMMAND MENU
+# TELEGRAM COMMANDS
 # ============================================================
 
-print("===== BOT START =====")
+print(
+    "===== BOT START ====="
+)
 
-telegram("getMe")
+api(
+    "getMe"
+)
 
-telegram(
+api(
     "setMyCommands",
     {
         "commands": [
+
             {
-                "command": "start",
-                "description": "Главное меню"
+                "command":
+                    "start",
+
+                "description":
+                    "Главное меню"
             },
+
             {
-                "command": "categories",
-                "description": "Категории"
+                "command":
+                    "categories",
+
+                "description":
+                    "Категории"
             },
+
             {
-                "command": "post",
-                "description": "Разместить объявление"
+                "command":
+                    "post",
+
+                "description":
+                    "Разместить объявление"
             },
+
             {
-                "command": "rules",
-                "description": "Правила"
+                "command":
+                    "rules",
+
+                "description":
+                    "Правила"
             },
+
             {
-                "command": "help",
-                "description": "Помощь"
+                "command":
+                    "help",
+
+                "description":
+                    "Помощь"
             }
         ]
     }
@@ -1872,32 +2325,31 @@ render_url = os.environ.get(
     "https://madloba-market-bot.onrender.com"
 )
 
-webhook_url = f"{render_url}/webhook"
+webhook_url = (
+    f"{render_url}/webhook"
+)
 
 print(
     "WEBHOOK URL:",
     webhook_url
 )
 
-set_webhook_result = telegram(
-    "setWebhook",
-    {
-        "url": webhook_url
-    }
-)
-
 print(
-    "SET WEBHOOK RESULT:",
-    set_webhook_result
-)
-
-webhook_info = telegram(
-    "getWebhookInfo"
+    "SET WEBHOOK:",
+    api(
+        "setWebhook",
+        {
+            "url":
+                webhook_url
+        }
+    )
 )
 
 print(
     "WEBHOOK INFO:",
-    webhook_info
+    api(
+        "getWebhookInfo"
+    )
 )
 
 print(
@@ -1916,14 +2368,12 @@ print(
 
 if __name__ == "__main__":
 
-    port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
-    )
-
     app.run(
         host="0.0.0.0",
-        port=port
+        port=int(
+            os.environ.get(
+                "PORT",
+                10000
+            )
+        )
     )
