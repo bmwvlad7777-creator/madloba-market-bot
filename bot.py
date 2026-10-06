@@ -1390,18 +1390,14 @@ def make_title(
         "category_key"
     ]
 
-    typ = data[
-        "type_key"
-    ]
-
     details = data[
         "details"
     ]
 
-
-    # -------------------------
-    # НЕДВИЖИМОСТЬ
-    # -------------------------
+    # Заголовок — только суть объявления.
+    # Тип действия (Сдам / Сниму / Продам / Куплю / Ищу)
+    # уже показывается в верхней строке карточки, поэтому
+    # повторять его здесь не нужно.
 
     if category == "realestate":
 
@@ -1416,24 +1412,12 @@ def make_title(
         )
 
         property_names = {
-
-            "apartment":
-                "квартиру",
-
-            "house":
-                "дом",
-
-            "room":
-                "комнату",
-
-            "commercial":
-                "коммерческое помещение",
-
-            "land":
-                "земельный участок",
-
-            "garage":
-                "гараж / парковку",
+            "apartment": "квартира",
+            "house": "дом",
+            "room": "комната",
+            "commercial": "коммерческое помещение",
+            "land": "земельный участок",
+            "garage": "гараж / парковка",
         }
 
         property_name = property_names.get(
@@ -1441,65 +1425,13 @@ def make_title(
             "объект недвижимости"
         )
 
-        action = {
-
-            "rent":
-                "Сдам",
-
-            "seek":
-                "Сниму",
-
-            "sell":
-                "Продам",
-
-            "buy":
-                "Куплю"
-
-        }.get(
-
-            typ,
-
-            "Объявление"
-        )
-
         if subcategory == "apartment" and rooms:
+            return f"{rooms}-комнатная квартира"
 
-            title = (
-                f"{action} "
-                f"{rooms}-комнатную квартиру"
-            )
+        if subcategory == "room" and rooms:
+            return f"{rooms}-комнатная комната"
 
-        elif subcategory == "room" and rooms:
-
-            title = (
-                f"{action} "
-                f"{rooms}-комнатную комнату"
-            )
-
-        else:
-
-            title = (
-                f"{action} "
-                f"{property_name}"
-            )
-
-        area = details.get(
-            "area",
-            ""
-        )
-
-        if area:
-
-            title += (
-                f" · {area} м²"
-            )
-
-        return title
-
-
-    # -------------------------
-    # АВТО
-    # -------------------------
+        return property_name
 
     if category == "auto":
 
@@ -1508,8 +1440,7 @@ def make_title(
                 "make_model",
                 ""
             )
-            or
-            "автомобиль"
+            or "автомобиль"
         )
 
         year = details.get(
@@ -1517,141 +1448,49 @@ def make_title(
             ""
         )
 
-        action = {
-
-            "sell":
-                "Продам",
-
-            "buy":
-                "Куплю",
-
-            "rent":
-                "Сдам",
-
-            "seek":
-                "Ищу"
-
-        }.get(
-
-            typ,
-
-            "Авто"
-        )
-
-        title = (
-            f"{action} {model}"
-        )
+        title = model
 
         if year:
-
-            title += (
-                f" · {year}"
-            )
+            title += f" · {year}"
 
         return title
 
-
-    # -------------------------
-    # ТЕХНИКА
-    # -------------------------
-
     if category == "tech":
 
-        model = (
+        return (
             details.get(
                 "brand_model",
                 ""
             )
-            or
-            "технику"
+            or "Техника"
         )
-
-        action = {
-
-            "sell":
-                "Продам",
-
-            "buy":
-                "Куплю"
-
-        }.get(
-
-            typ,
-
-            "Техника"
-        )
-
-        return (
-            f"{action} {model}"
-        )
-
-
-    # -------------------------
-    # РАБОТА
-    # -------------------------
 
     if category == "work":
 
         return (
-
             details.get(
                 "service",
                 ""
             )
-
-            or
-
-            "Работа / услуга в Батуми"
+            or "Работа / услуга в Батуми"
         )
-
-
-    # -------------------------
-    # ИЩУ
-    # -------------------------
 
     if category == "search":
 
-        requirement = details.get(
-            "requirements",
-            ""
+        return (
+            details.get(
+                "requirements",
+                ""
+            )
+            or ""
         )
 
-        if requirement:
+    # Для «Отдам» отдельный заголовок не нужен:
+    # тип и подкатегория уже показаны выше.
+    if category == "give":
+        return ""
 
-            return (
-                f"Ищу: {requirement}"
-            )
-
-        return "Ищу"
-
-
-    # -------------------------
-    # ОТДАМ
-    # -------------------------
-
-    if typ == "give":
-
-        return "Отдам бесплатно"
-
-
-    # -------------------------
-    # ОСТАЛЬНОЕ
-    # -------------------------
-
-    return {
-
-        "sell":
-            "Продам",
-
-        "buy":
-            "Куплю"
-
-    }.get(
-
-        typ,
-
-        "Объявление"
-    )
+    return ""
 
 
 # ============================================================
