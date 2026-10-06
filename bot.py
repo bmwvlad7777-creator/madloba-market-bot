@@ -67,11 +67,11 @@ CATEGORIES = {
         "subs": {
 
             "apartment": "🏢 Квартиры",
-            "house": "🏡 Дома и дачи",
+            "house": "🏡 Дома",
             "room": "🛏 Комнаты",
             "commercial": "🏬 Коммерция",
             "land": "🌳 Земля",
-            "garage": "🚗 Гаражи",
+            "garage": "🚗 Гаражи и парковки",
         },
 
         "types": [
@@ -568,33 +568,6 @@ CHANNEL_MENU_TEXT = (
 )
 
 
-def channel_main_menu():
-
-    base = "https://t.me/MadlobaMarketBot?start="
-
-    return [
-        [
-            {"text": "🏠 Недвижимость", "url": base + "cat_realestate"},
-            {"text": "🚗 Авто", "url": base + "cat_auto"},
-        ],
-        [
-            {"text": "📱 Техника", "url": base + "cat_tech"},
-            {"text": "🛋 Дом и мебель", "url": base + "cat_home"},
-        ],
-        [
-            {"text": "👶 Детское", "url": base + "cat_kids"},
-            {"text": "💼 Работа и услуги", "url": base + "cat_work"},
-        ],
-        [
-            {"text": "🎁 Отдам", "url": base + "cat_give"},
-            {"text": "🔎 Ищу", "url": base + "cat_search"},
-        ],
-        [
-            {"text": "🚀 РАЗМЕСТИТЬ ОБЪЯВЛЕНИЕ", "url": base + "post"},
-        ],
-    ]
-
-
 def main_menu():
 
     return [
@@ -606,8 +579,8 @@ def main_menu():
                 "text":
                     "🏠 Недвижимость",
 
-                "callback_data":
-                    "cat_realestate"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_realestate"
             },
 
             {
@@ -615,8 +588,8 @@ def main_menu():
                 "text":
                     "🚗 Авто",
 
-                "callback_data":
-                    "cat_auto"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_auto"
             }
         ],
 
@@ -627,8 +600,8 @@ def main_menu():
                 "text":
                     "📱 Техника",
 
-                "callback_data":
-                    "cat_tech"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_tech"
             },
 
             {
@@ -636,8 +609,8 @@ def main_menu():
                 "text":
                     "🛋 Дом и мебель",
 
-                "callback_data":
-                    "cat_home"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_home"
             }
         ],
 
@@ -648,8 +621,8 @@ def main_menu():
                 "text":
                     "👶 Детское",
 
-                "callback_data":
-                    "cat_kids"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_kids"
             },
 
             {
@@ -657,8 +630,8 @@ def main_menu():
                 "text":
                     "💼 Работа и услуги",
 
-                "callback_data":
-                    "cat_work"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_work"
             }
         ],
 
@@ -669,8 +642,8 @@ def main_menu():
                 "text":
                     "🎁 Отдам",
 
-                "callback_data":
-                    "cat_give"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_give"
             },
 
             {
@@ -678,8 +651,8 @@ def main_menu():
                 "text":
                     "🔎 Ищу",
 
-                "callback_data":
-                    "cat_search"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=cat_search"
             }
         ],
 
@@ -690,8 +663,8 @@ def main_menu():
                 "text":
                     "🚀 РАЗМЕСТИТЬ ОБЪЯВЛЕНИЕ",
 
-                "callback_data":
-                    "post"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=post"
             }
         ],
     ]
@@ -817,8 +790,8 @@ def post_sub_menu(
                 "text":
                     "⬅️ Назад",
 
-                "callback_data":
-                    "post"
+                "url":
+                    "https://t.me/MadlobaMarketBot?start=post"
             }
         ]
     )
@@ -3442,26 +3415,19 @@ def handle(
 
 
         # ====================================================
-        # START
+        # TELEGRAM DEEP LINKS
         # ====================================================
 
-        if (
-            text.startswith("/start")
-            or
-            text.strip() == "🏠 Главное меню"
-        ):
+        if text.startswith("/start") and len(text.split(" ", 1)) > 1:
 
-            remove_moderation_requests_for_user(chat_id)
-            states.pop(chat_id, None)
+            start_param = text.split(" ", 1)[1].strip()
 
-            payload = ""
-            if text.startswith("/start"):
-                parts = text.split(maxsplit=1)
-                if len(parts) == 2:
-                    payload = parts[1].strip()
+            if start_param == "post":
+                start_post(chat_id)
+                return
 
-            if payload.startswith("cat_"):
-                key = payload[4:]
+            if start_param.startswith("cat_"):
+                key = start_param[4:]
                 if key in CATEGORIES:
                     send(
                         chat_id,
@@ -3469,22 +3435,57 @@ def handle(
                         "Выберите раздел:",
                         category_menu(key)
                     )
-                    return
-
-            if payload == "post":
-                start_post(chat_id)
                 return
 
-            send(
+        # ====================================================
+        # START
+        # ====================================================
+
+        if (
+
+            text.startswith(
+                "/start"
+            )
+
+            or
+
+            text.strip()
+            ==
+            "🏠 Главное меню"
+
+        ):
+
+            remove_moderation_requests_for_user(
+                chat_id
+            )
+
+            states.pop(
                 chat_id,
-                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
+                None
+            )
+
+
+            send(
+
+                chat_id,
+
+                "<b>"
+                "🛒 MADLOBA MARKET | БАТУМИ"
+                "</b>\n\n"
+
                 "Главная доска объявлений Батуми.\n\n"
+
                 "Купи · Продай · Сдай · Найди\n\n"
-                "<b>Выберите категорию:</b>",
+
+                "<b>"
+                "Выберите категорию:"
+                "</b>",
+
                 main_menu()
             )
-            return
 
+
+            return
 
 
         # ====================================================
@@ -3512,7 +3513,7 @@ def handle(
             result = send(
                 CHANNEL_USERNAME,
                 CHANNEL_MENU_TEXT,
-                channel_main_menu()
+                main_menu()
             )
 
             if result.get("ok") and result.get("result", {}).get("message_id"):
