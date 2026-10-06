@@ -53,6 +53,26 @@ next_moderation_id = 1
 # Опубликованные объявления.
 # Хранятся отдельно от states, потому что states очищается
 # после успешной публикации.
+# ============================================================
+# ХРАНИЛИЩЕ ОБЪЯВЛЕНИЙ — SUPABASE
+# ============================================================
+
+# Supabase подключается через Render Environment.
+# НИКОГДА не вставляйте ключ прямо в этот файл.
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SECRET_KEY = os.environ.get(
+    "SUPABASE_SECRET_KEY",
+    ""
+).strip() or os.environ.get(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    ""
+).strip()
+
+# Пока Mini App не выбирает город при создании объявления,
+# объявления из Telegram-бота считаем объявлениями Батуми.
+DEFAULT_CITY_SLUG = os.environ.get("DEFAULT_CITY_SLUG", "batumi").strip().lower() or "batumi"
+
+# Локальный файл оставляем как резервный fallback.
 LISTINGS_FILE = os.environ.get(
     "LISTINGS_FILE",
     "listings.json"
@@ -62,8 +82,51 @@ published_listings = []
 next_listing_id = 1
 
 
-def load_published_listings():
+def supabase_enabled():
+    return bool(SUPABASE_URL and SUPABASE_SECRET_KEY)
 
+
+def supabase_request(method, path, params=None, payload=None):
+    if not supabase_enabled():
+        return None
+
+    url = f"{SUPABASE_URL}/rest/v1/{path.lstrip('/')}"
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY,
+        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    if method.upper() in {"POST", "PATCH", "DELETE"}:
+        headers["Prefer"] = "return=representation"
+
+    try:
+        response = requests.request(
+            method.upper(),
+            url,
+            headers=headers,
+            params=params or {},
+            json=payload,
+            timeout=25,
+        )
+        if not response.ok:
+            print(
+                "SUPABASE ERROR:",
+                response.status_code,
+                response.text[:1000],
+            )
+            return None
+
+        if not response.text:
+            return []
+
+        return response.json()
+    except Exception as error:
+        print("SUPABASE REQUEST ERROR:", repr(error))
+        return None
+
+
+def load_local_published_listings():
     global published_listings, next_listing_id
 
     try:
@@ -96,11 +159,10 @@ def load_published_listings():
         next_listing_id = 1
 
 
-def save_published_listings():
-
+def save_local_published_listings():
     payload = {
         "next_id": next_listing_id,
-        "listings": published_listings
+        "listings": published_listings,
     }
 
     try:
@@ -114,33 +176,243 @@ def save_published_listings():
 
         os.replace(temporary, LISTINGS_FILE)
         return True
-
     except OSError as error:
         print("LISTINGS SAVE ERROR:", repr(error))
         return False
 
 
-def register_published_listing(data, publish_result):
+def _price_number(value):
+    try:
+        if value in (None, "", "Бесплатно"):
+            return None
+        cleaned = str(value).replace(" ", "").replace(",", ".")
+        return float(cleaned)
+    except (TypeError, ValueError):
+        return None
 
+
+def _supabase_city_id(slug_value):
+    rows = supabase_request(
+        "GET",
+        "cities",
+        params={
+            "select": "id,slug",
+            "slug": f"eq.{slug_value}",
+            "limit": "1",
+        },
+    )
+    return rows[0]["id"] if rows else None
+
+
+def _supabase_category_id(category_key):
+    rows = supabase_request(
+        "GET",
+        "categories",
+        params={
+            "select": "id,slug",
+            "slug": f"eq.{category_key}",
+            "limit": "1",
+        },
+    )
+    return rows[0]["id"] if rows else None
+
+
+def _supabase_user_id(telegram_id):
+    if not telegram_id:
+        return None
+
+    telegram_id = int(telegram_id)
+
+    existing = supabase_request(
+        "GET",
+        "users",
+        params={
+            "select": "id,telegram_id",
+            "telegram_id": f"eq.{telegram_id}",
+            "limit": "1",
+        },
+    )
+    if existing:
+        return existing[0]["id"]
+
+    created = supabase_request(
+        "POST",
+        "users",
+        payload={"telegram_id": telegram_id},
+    )
+    if created:
+        return created[0]["id"]
+
+    # Race condition / повторная попытка.
+    existing = supabase_request(
+        "GET",
+        "users",
+        params={
+            "select": "id,telegram_id",
+            "telegram_id": f"eq.{telegram_id}",
+            "limit": "1",
+        },
+    )
+    return existing[0]["id"] if existing else None
+
+
+def _row_to_listing(row):
+    metadata = row.get("metadata") or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    item = dict(metadata)
+    item["id"] = row.get("id", item.get("id"))
+    item["status"] = row.get("status", "published")
+    item["channel_message_id"] = row.get("channel_message_id")
+    item["channel_post_url"] = row.get("channel_url", "") or ""
+
+    # Данные из нормализованных колонок имеют приоритет.
+    if row.get("address"):
+        item["district"] = row["address"]
+    if row.get("description") is not None:
+        item["description"] = row.get("description") or ""
+    if row.get("currency"):
+        item["currency"] = row["currency"]
+    if row.get("price") is not None:
+        item["price"] = str(row["price"])
+
+    photos = []
+    for photo in row.get("listing_photos", []) or []:
+        if photo.get("photo_url"):
+            photos.append(photo["photo_url"])
+    if photos:
+        item["photos"] = photos
+
+    return item
+
+
+def load_supabase_published_listings():
+    global published_listings, next_listing_id
+
+    if not supabase_enabled():
+        return False
+
+    rows = supabase_request(
+        "GET",
+        "listings",
+        params={
+            "select": "*,listing_photos(*)",
+            "status": "eq.published",
+            "order": "created_at.desc",
+        },
+    )
+
+    if rows is None:
+        return False
+
+    published_listings = [_row_to_listing(row) for row in rows]
+
+    numeric_ids = [
+        int(item["id"])
+        for item in published_listings
+        if str(item.get("id", "")).isdigit()
+    ]
+    next_listing_id = max(numeric_ids, default=0) + 1
+    return True
+
+
+def save_listing_to_supabase(data, publish_result, user_chat_id=None):
+    """Создаёт опубликованное объявление и его фотографии в Supabase."""
+
+    if not supabase_enabled():
+        return None
+
+    city_slug = str(data.get("city_slug") or DEFAULT_CITY_SLUG).strip().lower()
+    city_id = _supabase_city_id(city_slug)
+    category_id = _supabase_category_id(data.get("category_key", ""))
+
+    if not city_id:
+        print("SUPABASE: city not found:", city_slug)
+        return None
+    if not category_id:
+        print("SUPABASE: category not found:", data.get("category_key"))
+        return None
+
+    user_id = _supabase_user_id(user_chat_id)
+
+    result = publish_result.get("result") if isinstance(publish_result, dict) else None
+    message_id = None
+    if isinstance(result, list) and result:
+        message_id = result[0].get("message_id")
+    elif isinstance(result, dict):
+        message_id = result.get("message_id")
+
+    channel_url = ""
+    if CHANNEL_USERNAME.startswith("@") and message_id:
+        channel_url = f"https://t.me/{CHANNEL_USERNAME[1:]}/{message_id}"
+
+    metadata = dict(data)
+    metadata.pop("_telegram_id", None)
+    metadata["legacy_id"] = data.get("id")
+
+    payload = {
+        "user_id": user_id,
+        "city_id": city_id,
+        "category_id": category_id,
+        "title": listing_title(data),
+        "description": data.get("description", "") or "",
+        "price": _price_number(data.get("price")),
+        "currency": data.get("currency", "") or "USD",
+        "phone": data.get("contact", "") or "",
+        "address": data.get("district", "") or "",
+        "status": "published",
+        "channel_message_id": message_id,
+        "channel_url": channel_url,
+        "metadata": metadata,
+    }
+
+    created = supabase_request("POST", "listings", payload=payload)
+    if not created:
+        return None
+
+    row = created[0]
+    listing_id = row.get("id")
+
+    photos = [
+        {
+            "listing_id": listing_id,
+            "photo_url": str(photo),
+            "sort_order": index,
+        }
+        for index, photo in enumerate(data.get("photos", []))
+        if photo
+    ]
+
+    if photos:
+        inserted_photos = supabase_request(
+            "POST",
+            "listing_photos",
+            payload=photos,
+        )
+        if inserted_photos is None:
+            print("SUPABASE: listing created, but photos were not saved")
+
+    return _row_to_listing({**row, "listing_photos": photos})
+
+
+def register_published_listing(data, publish_result, user_chat_id=None):
     global next_listing_id
 
     item = dict(data)
     item["details"] = dict(data.get("details", {}))
     item["photos"] = list(data.get("photos", []))
-    item["id"] = next_listing_id
     item["status"] = "published"
 
     result = publish_result.get("result") if isinstance(publish_result, dict) else None
     message_id = None
-
     if isinstance(result, list) and result:
         message_id = result[0].get("message_id")
     elif isinstance(result, dict):
         message_id = result.get("message_id")
 
     item["channel_message_id"] = message_id
-
-    if CHANNEL_USERNAME.startswith("@"): 
+    if CHANNEL_USERNAME.startswith("@"):
         item["channel_post_url"] = (
             f"https://t.me/{CHANNEL_USERNAME[1:]}/{message_id}"
             if message_id else ""
@@ -148,196 +420,39 @@ def register_published_listing(data, publish_result):
     else:
         item["channel_post_url"] = ""
 
-    published_listings.insert(0, item)
-    next_listing_id += 1
-    save_published_listings()
+    # Сначала пытаемся сохранить в Supabase.
+    supabase_item = save_listing_to_supabase(
+        data,
+        publish_result,
+        user_chat_id=user_chat_id,
+    )
+
+    if supabase_item:
+        item = supabase_item
+        # Обновляем память из БД, чтобы каталог сразу видел новое объявление.
+        if not load_supabase_published_listings():
+            published_listings.insert(0, item)
+    else:
+        # Резервный режим — старый listings.json.
+        item["id"] = next_listing_id
+        next_listing_id += 1
+        published_listings.insert(0, item)
+        save_local_published_listings()
+        print("SUPABASE: fallback to local listings.json")
+
     return item
 
 
-def listing_matches(item, key, sub):
-
-    category = item.get("category_key", "")
-    subcategory = item.get("subcategory_key", "")
-
-    # Глобальный каталог.
-    if key == "search" and sub == "all":
-        return True
-
-    # Каталог "Ищу → Недвижимость" должен показывать
-    # объявления недвижимости, а также объявления "ищу"
-    # внутри этой тематики.
-    if key == "search":
-        if sub == "services":
-            return category == "work"
-        if sub == "other":
-            return category not in {
-                "realestate", "auto", "tech", "home", "kids", "work"
-            }
-        return category == sub or (
-            category == "search" and subcategory == sub
-        )
-
-    if sub == "all":
-        return category == key
-
-    return category == key and subcategory == sub
-
-
-def listing_title(item):
-
-    category = item.get("category", "Объявление")
-    subcategory = item.get("subcategory", "")
-    type_name = item.get("type", "")
-
-    parts = [category]
-    if subcategory:
-        parts.append(subcategory)
-    if type_name:
-        parts.append(type_name)
-
-    return " · ".join(parts)
-
-
-def listing_short_text(item):
-
-    data = item
-    details = data.get("details", {}) or {}
-
-    lines = [
-        f"<b>#{data.get('id', '')} {esc(listing_title(data))}</b>"
-    ]
-
-    if details:
-        detail_parts = []
-        for key, value in details.items():
-            if value not in (None, ""):
-                detail_parts.append(str(value))
-        if detail_parts:
-            lines.append(" · ".join(esc(value) for value in detail_parts))
-
-    price = data.get("price", "")
-    currency = data.get("currency", "")
-    if price:
-        lines.append(f"💰 <b>{esc(price)} {esc(currency)}</b>")
-
-    district = data.get("district", "")
-    if district:
-        lines.append(f"📍 {esc(district)}")
-
-    description = data.get("description", "")
-    if description:
-        compact = " ".join(str(description).split())
-        if len(compact) > 120:
-            compact = compact[:117] + "..."
-        lines.append(esc(compact))
-
-    return "\n".join(lines)
-
-
-def listing_keyboard(key, sub, page, item):
-
-    rows = []
-
-    url = item.get("channel_post_url", "")
-    if url:
-        rows.append([
-            {
-                "text": "📣 Открыть в канале",
-                "url": url
-            }
-        ])
-
-    return rows
-
-
-def send_listing_catalog(chat_id, key, sub, page=0):
-
-    matches = [
-        item for item in published_listings
-        if listing_matches(item, key, sub)
-    ]
-
-    per_page = 5
-    total_pages = max(1, (len(matches) + per_page - 1) // per_page)
-    page = max(0, min(int(page), total_pages - 1))
-
-    start = page * per_page
-    current = matches[start:start + per_page]
-
-    if key == "search":
-        if sub == "all":
-            label = "📋 Все объявления"
+def load_published_listings():
+    """Загрузка каталога. Supabase — основной источник, JSON — fallback."""
+    load_local_published_listings()
+    if supabase_enabled():
+        if load_supabase_published_listings():
+            print("LISTINGS STORAGE: Supabase")
         else:
-            label = CATEGORIES["search"]["subs"].get(sub, "Раздел")
+            print("LISTINGS STORAGE: local fallback")
     else:
-        label = (
-            "📋 Все объявления"
-            if sub == "all"
-            else CATEGORIES[key]["subs"].get(sub, "Раздел")
-        )
-
-    if not current:
-        text = (
-            f"<b>{esc(label)}</b>\n\n"
-            "Пока нет опубликованных объявлений.\n\n"
-            "Разместите первое объявление — и оно появится здесь."
-        )
-        send(
-            chat_id,
-            text,
-            [
-                [{"text": "⬅️ Назад", "callback_data": f"cat_{key}"}],
-                [{"text": "🏠 Главное меню", "callback_data": "back_main"}]
-            ]
-        )
-        return
-
-    send(
-        chat_id,
-        f"<b>{esc(label)}</b>\n\n"
-        f"Найдено: <b>{len(matches)}</b>\n"
-        f"Страница <b>{page + 1}/{total_pages}</b>",
-        [[{"text": "⬅️ Назад", "callback_data": f"cat_{key}"}]]
-    )
-
-    for item in current:
-        photos = item.get("photos", [])
-        text = listing_short_text(item)
-        if photos:
-            result = send_album(chat_id, photos, text)
-            if result.get("ok"):
-                keyboard = listing_keyboard(key, sub, page, item)
-                if keyboard:
-                    send(chat_id, "Выберите действие:", keyboard)
-            else:
-                send(chat_id, text, listing_keyboard(key, sub, page, item))
-        else:
-            send(chat_id, text, listing_keyboard(key, sub, page, item))
-
-    navigation = []
-    if page > 0:
-        navigation.append({
-            "text": "⬅️ Предыдущие",
-            "callback_data": f"browsepage_{key}_{sub}_{page - 1}"
-        })
-    if page + 1 < total_pages:
-        navigation.append({
-            "text": "Следующие ➡️",
-            "callback_data": f"browsepage_{key}_{sub}_{page + 1}"
-        })
-
-    keyboard = []
-    if navigation:
-        keyboard.append(navigation)
-    keyboard.append([
-        {"text": "⬅️ Назад", "callback_data": f"cat_{key}"},
-        {"text": "🏠 Меню", "callback_data": "back_main"}
-    ])
-
-    send(chat_id, "Выберите действие:", keyboard)
-
-
-load_published_listings()
+        print("LISTINGS STORAGE: local listings.json (Supabase env not set)")
 
 
 # ============================================================
@@ -724,18 +839,24 @@ def send(
 # ============================================================
 
 def answer(
-    callback_id
+    callback_id,
+    text=None,
+    show_alert=False
 ):
 
+    payload = {
+        "callback_query_id": callback_id
+    }
+
+    if text:
+        payload["text"] = str(text)
+
+    if show_alert:
+        payload["show_alert"] = True
+
     return api(
-
         "answerCallbackQuery",
-
-        {
-
-            "callback_query_id":
-                callback_id
-        }
+        payload
     )
 
 
@@ -958,6 +1079,15 @@ def main_menu():
             }
         ],
     ]
+
+
+# ============================================================
+# ЗАГРУЗКА КАТАЛОГА ИЗ SUPABASE
+# ============================================================
+
+# CATEGORIES уже объявлен к этому моменту, поэтому каталог можно
+# безопасно синхронизировать при старте приложения.
+load_published_listings()
 
 
 # ============================================================
@@ -1318,6 +1448,12 @@ def edit_menu():
 def blank_listing():
 
     return {
+
+        "city_slug":
+            DEFAULT_CITY_SLUG,
+
+        "city":
+            "Batumi" if DEFAULT_CITY_SLUG == "batumi" else DEFAULT_CITY_SLUG.title(),
 
         "category_key":
             "",
@@ -2685,6 +2821,9 @@ def submit_for_moderation(
         chat_id
     ]["data"]
 
+    # Нужен для связи объявления с пользователем в Supabase.
+    data["_telegram_id"] = chat_id
+
     request_id = next_moderation_id
 
     next_moderation_id += 1
@@ -3073,7 +3212,8 @@ def moderate_publish(
     # Сохраняем объявление в каталоге ДО очистки states.
     register_published_listing(
         data,
-        result
+        result,
+        user_chat_id=user_chat_id
     )
 
     moderation_requests.pop(
