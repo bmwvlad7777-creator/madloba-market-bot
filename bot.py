@@ -22,6 +22,13 @@ CHANNEL_USERNAME = os.environ.get(
     ""
 ).strip()
 
+# Telegram ID администратора, которому приходят объявления
+# на модерацию.
+ADMIN_CHAT_ID = os.environ.get(
+    "ADMIN_CHAT_ID",
+    ""
+).strip()
+
 # Максимальное количество фотографий
 MAX_PHOTOS = 8
 
@@ -31,6 +38,16 @@ app = Flask(__name__)
 # Временные данные пользователей.
 # Для первой версии этого достаточно.
 states = {}
+
+# Заявки, ожидающие решения администратора.
+# Важно: эти данные хранятся в памяти Render.
+moderation_requests = {}
+
+# Текущее редактирование объявления модератором.
+moderator_sessions = {}
+
+# Счётчик заявок на модерацию.
+next_moderation_id = 1
 
 
 # ============================================================
@@ -1053,6 +1070,10 @@ def start_post(
     chat_id
 ):
 
+    remove_moderation_requests_for_user(
+        chat_id
+    )
+
     states[
         chat_id
     ] = {
@@ -2044,10 +2065,10 @@ def preview_keyboard():
             {
 
                 "text":
-                    "✅ Опубликовать объявление",
+                    "📨 Отправить на проверку",
 
                 "callback_data":
-                    "publish_post"
+                    "submit_moderation"
             }
         ],
 
@@ -2078,8 +2099,77 @@ def preview_keyboard():
 
 
 # ============================================================
-# АЛЬБОМ ФОТОГРАФИЙ
+# КНОПКИ МОДЕРАЦИИ
 # ============================================================
+
+def moderation_keyboard(
+    request_id
+):
+
+    return [
+        [
+            {
+                "text": "✏️ РЕДАКТИРОВАТЬ",
+                "callback_data": f"mod_edit_{request_id}"
+            }
+        ],
+        [
+            {
+                "text": "🟢 ОПУБЛИКОВАТЬ",
+                "callback_data": f"mod_publish_{request_id}"
+            }
+        ],
+        [
+            {
+                "text": "🔴 ОТКЛОНИТЬ",
+                "callback_data": f"mod_reject_{request_id}"
+            }
+        ]
+    ]
+
+
+def moderation_edit_menu(request_id):
+
+    return [
+        [
+            {"text": "💰 Цена", "callback_data": f"mod_field_price_{request_id}"},
+            {"text": "📍 Локация", "callback_data": f"mod_field_district_{request_id}"}
+        ],
+        [
+            {"text": "📝 Описание", "callback_data": f"mod_field_description_{request_id}"},
+            {"text": "📞 Контакт", "callback_data": f"mod_field_contact_{request_id}"}
+        ],
+        [
+            {"text": "📋 Характеристики", "callback_data": f"mod_details_{request_id}"}
+        ],
+        [
+            {"text": "⬅️ К объявлению", "callback_data": f"mod_back_{request_id}"}
+        ]
+    ]
+
+
+def moderation_detail_menu(request_id, data):
+
+    fields = CATEGORIES[data["category_key"]]["fields"]
+    rows = []
+
+    for i, (_, label) in enumerate(fields):
+        rows.append([
+            {
+                "text": label,
+                "callback_data": f"mod_detail_{request_id}_{i}"
+            }
+        ])
+
+    rows.append([
+        {
+            "text": "⬅️ Назад",
+            "callback_data": f"mod_edit_{request_id}"
+        }
+    ])
+
+    return rows
+
 
 def send_album(
     chat_id,
@@ -2316,55 +2406,34 @@ def edit_details_menu(
 # ПУБЛИКАЦИЯ В КАНАЛ
 # ============================================================
 
-def publish(
-    chat_id
+def publish_listing(
+    data
 ):
-
-    if chat_id not in states:
-
-        return
-
-
-    data = states[
-        chat_id
-    ]["data"]
-
 
     text = build_listing(
         data
     )
 
-
     photos = data[
         "photos"
     ]
 
-
     # Канал не указан
     if not CHANNEL_USERNAME:
 
-        send(
+        return {
 
-            chat_id,
+            "ok":
+                False,
 
-            "<b>⚠️ Канал пока не подключён.</b>\n\n"
-
-            "В Render → Environment "
-            "нужно добавить переменную:\n\n"
-
-            "<code>CHANNEL_USERNAME</code>\n\n"
-
-            "и указать username твоего "
-            "публичного канала."
-        )
-
-        return
-
+            "description":
+                "CHANNEL_USERNAME is empty"
+        }
 
     # Публикация с фотографиями
     if photos:
 
-        result = send_album(
+        return send_album(
 
             CHANNEL_USERNAME,
 
@@ -2373,38 +2442,488 @@ def publish(
             text
         )
 
-
     # Публикация без фотографий
-    else:
+    return api(
 
-        result = api(
+        "sendMessage",
 
-            "sendMessage",
+        {
 
-            {
+            "chat_id":
+                CHANNEL_USERNAME,
 
-                "chat_id":
-                    CHANNEL_USERNAME,
+            "text":
+                text,
 
-                "text":
-                    text,
-
-                "parse_mode":
-                    "HTML"
-            }
-        )
+            "parse_mode":
+                "HTML"
+        }
+    )
 
 
-    # Ошибка
-    if not result.get(
-        "ok"
+def remove_moderation_requests_for_user(
+    chat_id
+):
+
+    for request_id, item in list(
+        moderation_requests.items()
     ):
+
+        if item.get(
+            "user_chat_id"
+        ) == chat_id:
+
+            moderation_requests.pop(
+                request_id,
+                None
+            )
+
+
+def edit_moderation_message(
+    chat_id,
+    message_id,
+    text,
+    keyboard=None
+):
+
+    if not chat_id or not message_id:
+        return
+
+    data = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": "HTML"
+    }
+
+    if keyboard:
+        data["reply_markup"] = {
+            "inline_keyboard": keyboard
+        }
+
+    api(
+        "editMessageText",
+        data
+    )
+
+
+def submit_for_moderation(
+    chat_id
+):
+
+    global next_moderation_id
+
+    if chat_id not in states:
+        return
+
+    if not ADMIN_CHAT_ID:
 
         send(
 
             chat_id,
 
-            "<b>⚠️ Не удалось опубликовать.</b>\n\n"
+            "<b>⚠️ Модератор пока не настроен.</b>\n\n"
+
+            "В Render → Environment добавьте "
+            "переменную <code>ADMIN_CHAT_ID</code>."
+        )
+
+        return
+
+    if states[chat_id]["step"] == "moderation":
+
+        send(
+
+            chat_id,
+
+            "⏳ <b>Объявление уже отправлено "
+            "на проверку.</b>\n\n"
+
+            "Дождитесь решения администратора."
+        )
+
+        return
+
+    data = states[
+        chat_id
+    ]["data"]
+
+    request_id = next_moderation_id
+
+    next_moderation_id += 1
+
+    moderation_requests[
+        request_id
+    ] = {
+
+        "user_chat_id":
+            chat_id,
+
+        "message_chat_id":
+            None,
+
+        "message_id":
+            None
+    }
+
+    states[
+        chat_id
+    ]["step"] = "moderation"
+
+    text = build_listing(
+        data
+    )
+
+    photos = data[
+        "photos"
+    ]
+
+    admin_header = (
+
+        "<b>🛡 НОВОЕ ОБЪЯВЛЕНИЕ "
+        "НА МОДЕРАЦИЮ</b>\n\n"
+
+        f"👤 ID автора: <code>{chat_id}</code>\n"
+
+        f"🔢 Заявка: <code>#{request_id}</code>\n\n"
+    )
+
+    # Если есть фотографии — отправляем их администратору
+    # компактным альбомом.
+    if photos:
+
+        result = send_album(
+
+            ADMIN_CHAT_ID,
+
+            photos,
+
+            text
+        )
+
+        if not result.get(
+            "ok"
+        ):
+
+            moderation_requests.pop(
+                request_id,
+                None
+            )
+
+            states[
+                chat_id
+            ]["step"] = "preview"
+
+            send(
+
+                chat_id,
+
+                "<b>⚠️ Не удалось отправить "
+                "объявление администратору.</b>\n\n"
+
+                "Попробуйте ещё раз."
+            )
+
+            return
+
+        control = send(
+
+            ADMIN_CHAT_ID,
+
+            admin_header +
+
+            f"📷 Фотографий: "
+            f"<b>{len(photos)}</b>\n\n"
+
+            "Выберите действие:",
+
+            moderation_keyboard(
+                request_id
+            )
+        )
+
+    # Без фотографий — всё объявление сразу
+    # отправляем администратору вместе с кнопками.
+    else:
+
+        control = send(
+
+            ADMIN_CHAT_ID,
+
+            admin_header +
+
+            text +
+
+            "\n\n"
+            "Выберите действие:",
+
+            moderation_keyboard(
+                request_id
+            )
+        )
+
+    if not control.get(
+        "ok"
+    ):
+
+        moderation_requests.pop(
+            request_id,
+            None
+        )
+
+        states[
+            chat_id
+        ]["step"] = "preview"
+
+        send(
+
+            chat_id,
+
+            "<b>⚠️ Не удалось отправить "
+            "объявление на модерацию.</b>\n\n"
+
+            "Попробуйте ещё раз."
+        )
+
+        return
+
+    result_data = control.get(
+        "result",
+        {}
+    )
+
+    moderation_requests[
+        request_id
+    ]["message_chat_id"] = (
+        result_data
+        .get("chat", {})
+        .get("id")
+    )
+
+    moderation_requests[
+        request_id
+    ]["message_id"] = (
+        result_data
+        .get("message_id")
+    )
+
+    send(
+
+        chat_id,
+
+        "<b>📨 Объявление отправлено "
+        "на проверку.</b>\n\n"
+
+        "После решения администратора "
+        "вы получите уведомление.",
+
+        main_menu()
+    )
+
+
+
+def moderator_is_allowed(admin_user_id):
+    try:
+        return bool(ADMIN_CHAT_ID) and int(admin_user_id) == int(ADMIN_CHAT_ID)
+    except Exception:
+        return False
+
+
+def moderation_control_text(request_id):
+    item = moderation_requests.get(request_id)
+    if not item:
+        return None
+    user_chat_id = item["user_chat_id"]
+    if user_chat_id not in states:
+        return None
+    data = states[user_chat_id]["data"]
+    return (
+        "<b>🛡 ОБЪЯВЛЕНИЕ НА МОДЕРАЦИИ</b>\n\n"
+        f"👤 ID автора: <code>{user_chat_id}</code>\n"
+        f"🔢 Заявка: <code>#{request_id}</code>\n\n"
+        f"{build_listing(data)}\n\n"
+        "Выберите действие:"
+    )
+
+
+def show_moderation_editor(admin_chat_id, request_id):
+    if not moderator_is_allowed(admin_chat_id):
+        return
+    item = moderation_requests.get(request_id)
+    if not item or item["user_chat_id"] not in states:
+        send(admin_chat_id, "⚠️ Заявка уже обработана или недоступна.")
+        return
+    moderator_sessions[admin_chat_id] = {"request_id": request_id, "step": "menu"}
+    send(
+        admin_chat_id,
+        "<b>✏️ РЕДАКТИРОВАНИЕ ОБЪЯВЛЕНИЯ</b>\n\nВыберите, что нужно исправить:",
+        moderation_edit_menu(request_id)
+    )
+
+
+def show_updated_moderation(admin_chat_id, request_id):
+    text = moderation_control_text(request_id)
+    item = moderation_requests.get(request_id)
+    if not text or not item:
+        return
+    edit_moderation_message(
+        item.get("message_chat_id"),
+        item.get("message_id"),
+        text,
+        moderation_keyboard(request_id)
+    )
+
+
+def process_moderator_text(admin_chat_id, text):
+    session = moderator_sessions.get(admin_chat_id)
+    if not session:
+        return False
+    request_id = session.get("request_id")
+    item = moderation_requests.get(request_id)
+    if not item or item["user_chat_id"] not in states:
+        moderator_sessions.pop(admin_chat_id, None)
+        send(admin_chat_id, "⚠️ Заявка уже обработана или недоступна.")
+        return True
+
+    data = states[item["user_chat_id"]]["data"]
+    step = session.get("step")
+    text = text.strip()
+
+    if not text:
+        send(admin_chat_id, "Введите новое значение.")
+        return True
+
+    if step == "price":
+        data["price"] = text.replace(" ", "").replace(",", ".")
+    elif step == "district":
+        data["district"] = text
+    elif step == "description":
+        data["description"] = "" if text.lower() in {"ничего", "нет", "нечего", "без описания", "пропустить", "-"} else text
+    elif step == "contact":
+        data["contact"] = text
+    elif step.startswith("detail_"):
+        try:
+            index = int(step.split("_", 1)[1])
+        except ValueError:
+            moderator_sessions.pop(admin_chat_id, None)
+            return True
+        fields = CATEGORIES[data["category_key"]]["fields"]
+        if index < len(fields):
+            data["details"][fields[index][0]] = text
+    else:
+        return False
+
+    moderator_sessions.pop(admin_chat_id, None)
+    send(admin_chat_id, "✅ <b>Изменение сохранено.</b>\n\nПроверьте объявление ещё раз.")
+    show_updated_moderation(admin_chat_id, request_id)
+    return True
+
+def moderate_publish(
+    request_id,
+    admin_user_id,
+    callback_id
+):
+
+    # Проверяем, что кнопку нажал именно
+    # назначенный администратор.
+    try:
+
+        if int(
+            admin_user_id
+        ) != int(
+            ADMIN_CHAT_ID
+        ):
+
+            answer(
+
+                callback_id,
+
+                "⛔ У вас нет прав администратора.",
+
+                True
+            )
+
+            return
+
+    except Exception:
+
+        answer(
+
+            callback_id,
+
+            "⚠️ ADMIN_CHAT_ID настроен неправильно.",
+
+            True
+        )
+
+        return
+
+    item = moderation_requests.get(
+        request_id
+    )
+
+    if not item:
+
+        answer(
+
+            callback_id,
+
+            "Заявка уже обработана.",
+
+            True
+        )
+
+        return
+
+    user_chat_id = item[
+        "user_chat_id"
+    ]
+
+    if user_chat_id not in states:
+
+        moderation_requests.pop(
+            request_id,
+            None
+        )
+
+        answer(
+
+            callback_id,
+
+            "Объявление больше недоступно.",
+
+            True
+        )
+
+        return
+
+    data = states[
+        user_chat_id
+    ]["data"]
+
+    result = publish_listing(
+        data
+    )
+
+    if not result.get(
+        "ok"
+    ):
+
+        answer(
+
+            callback_id,
+
+            "⚠️ Не удалось опубликовать.",
+
+            True
+        )
+
+        send(
+
+            admin_user_id,
+
+            "<b>⚠️ Не удалось опубликовать "
+            "объявление.</b>\n\n"
 
             "Проверьте:\n"
             "• бот является администратором канала;\n"
@@ -2414,24 +2933,210 @@ def publish(
 
         return
 
-
-    # Удаляем временное объявление
-    states.pop(
-        chat_id,
+    moderation_requests.pop(
+        request_id,
         None
     )
 
+    moderator_sessions.pop(
+        int(admin_user_id),
+        None
+    )
+
+    states.pop(
+        user_chat_id,
+        None
+    )
+
+    answer(
+
+        callback_id,
+
+        "🟢 Опубликовано!"
+    )
+
+    edit_moderation_message(
+
+        item.get(
+            "message_chat_id"
+        ),
+
+        item.get(
+            "message_id"
+        ),
+
+        "<b>🟢 ОПУБЛИКОВАНО</b>\n\n"
+
+        f"Заявка: <code>#{request_id}</code>\n"
+
+        f"Автор ID: <code>{user_chat_id}</code>"
+    )
 
     send(
 
-        chat_id,
+        user_chat_id,
 
         "<b>🎉 Объявление опубликовано!</b>\n\n"
 
-        "Оно добавлено в "
-        "<b>MADLOBA MARKET | БАТУМИ</b>.",
+        "Оно прошло модерацию и добавлено "
+        "в <b>MADLOBA MARKET | БАТУМИ</b>.",
 
         main_menu()
+    )
+
+
+def moderate_reject(
+    request_id,
+    admin_user_id,
+    callback_id
+):
+
+    try:
+
+        if int(
+            admin_user_id
+        ) != int(
+            ADMIN_CHAT_ID
+        ):
+
+            answer(
+
+                callback_id,
+
+                "⛔ У вас нет прав администратора.",
+
+                True
+            )
+
+            return
+
+    except Exception:
+
+        answer(
+
+            callback_id,
+
+            "⚠️ ADMIN_CHAT_ID настроен неправильно.",
+
+            True
+        )
+
+        return
+
+    item = moderation_requests.get(
+        request_id
+    )
+
+    if not item:
+
+        answer(
+
+            callback_id,
+
+            "Заявка уже обработана.",
+
+            True
+        )
+
+        return
+
+    user_chat_id = item[
+        "user_chat_id"
+    ]
+
+    # Удаляем заявку из очереди.
+    # Само объявление сохраняем, чтобы автор
+    # мог его исправить и отправить повторно.
+    moderation_requests.pop(
+        request_id,
+        None
+    )
+
+    moderator_sessions.pop(
+        int(admin_user_id),
+        None
+    )
+
+    if user_chat_id in states:
+
+        states[
+            user_chat_id
+        ]["step"] = "preview"
+
+        send(
+
+            user_chat_id,
+
+            "<b>❌ Объявление не прошло "
+            "модерацию.</b>\n\n"
+
+            "Администратор отклонил объявление.\n\n"
+
+            "Вы можете изменить данные "
+            "и отправить его на проверку повторно.",
+
+            [
+
+                [
+
+                    {
+
+                        "text":
+                            "✏️ Изменить объявление",
+
+                        "callback_data":
+                            "edit_menu"
+                    }
+                ],
+
+                [
+
+                    {
+
+                        "text":
+                            "🔄 Начать заново",
+
+                        "callback_data":
+                            "restart_post"
+                    }
+                ],
+
+                [
+
+                    {
+
+                        "text":
+                            "❌ Удалить",
+
+                        "callback_data":
+                            "cancel_post"
+                    }
+                ]
+            ]
+        )
+
+    answer(
+
+        callback_id,
+
+        "🔴 Объявление отклонено."
+    )
+
+    edit_moderation_message(
+
+        item.get(
+            "message_chat_id"
+        ),
+
+        item.get(
+            "message_id"
+        ),
+
+        "<b>🔴 ОТКЛОНЕНО</b>\n\n"
+
+        f"Заявка: <code>#{request_id}</code>\n"
+
+        f"Автор ID: <code>{user_chat_id}</code>"
     )
 
 
@@ -2463,6 +3168,25 @@ def process_text(
 
 
     text = text.strip()
+
+
+    # ========================================================
+    # ОЖИДАНИЕ МОДЕРАЦИИ
+    # ========================================================
+
+    if step == "moderation":
+
+        send(
+
+            chat_id,
+
+            "⏳ <b>Объявление находится "
+            "на модерации.</b>\n\n"
+
+            "Дождитесь решения администратора."
+        )
+
+        return True
 
 
     # Отмена
@@ -2831,6 +3555,19 @@ def handle(
 
 
         # ====================================================
+        # РЕДАКТИРОВАНИЕ ОБЪЯВЛЕНИЯ МОДЕРАТОРОМ
+        # ====================================================
+
+        if (
+            ADMIN_CHAT_ID
+            and str(chat_id) == str(ADMIN_CHAT_ID)
+            and chat_id in moderator_sessions
+            and process_moderator_text(chat_id, text)
+        ):
+            return
+
+
+        # ====================================================
         # START
         # ====================================================
 
@@ -2847,6 +3584,10 @@ def handle(
             "🏠 Главное меню"
 
         ):
+
+            remove_moderation_requests_for_user(
+                chat_id
+            )
 
             states.pop(
                 chat_id,
@@ -2873,6 +3614,25 @@ def handle(
                 main_menu()
             )
 
+
+            return
+
+
+        # ====================================================
+        # TELEGRAM ID
+        # ====================================================
+
+        if text.strip() == "/id":
+
+            send(
+
+                chat_id,
+
+                "🆔 Ваш Telegram ID:\n\n"
+                f"<code>{chat_id}</code>\n\n"
+                "Этот номер нужно указать в Render "
+                "как <code>ADMIN_CHAT_ID</code>."
+            )
 
             return
 
@@ -2987,6 +3747,203 @@ def handle(
         "data",
         ""
     )
+
+    callback_from_id = callback[
+        "from"
+    ]["id"]
+
+
+    # ========================================================
+    # МОДЕРАЦИЯ
+    # ========================================================
+
+    if data.startswith("mod_edit_"):
+        try:
+            request_id = int(data[len("mod_edit_"):])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер заявки.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        answer(callback["id"])
+        show_moderation_editor(callback_from_id, request_id)
+        return
+
+
+    if data.startswith("mod_back_"):
+        try:
+            request_id = int(data[len("mod_back_"):])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер заявки.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        moderator_sessions.pop(callback_from_id, None)
+        answer(callback["id"])
+        text = moderation_control_text(request_id)
+        if text:
+            send(callback_from_id, text, moderation_keyboard(request_id))
+        return
+
+
+    if data.startswith("mod_field_"):
+        parts = data.split("_")
+        if len(parts) != 4:
+            answer(callback["id"], "Некорректная команда.", True)
+            return
+        field = parts[2]
+        try:
+            request_id = int(parts[3])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер заявки.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        if request_id not in moderation_requests:
+            answer(callback["id"], "Заявка уже обработана.", True)
+            return
+        prompts = {
+            "price": "💰 <b>Новая цена</b>\n\nВведите только сумму. Например: <b>750</b>",
+            "district": "📍 <b>Новая локация</b>\n\nВведите район или адрес.",
+            "description": "📝 <b>Новое описание</b>\n\nВведите новый текст. Чтобы убрать описание — напишите <b>Пропустить</b>.",
+            "contact": "📞 <b>Новый контакт</b>\n\nВведите телефон, Telegram или WhatsApp."
+        }
+        if field not in prompts:
+            answer(callback["id"], "Неизвестное поле.", True)
+            return
+        moderator_sessions[callback_from_id] = {"request_id": request_id, "step": field}
+        answer(callback["id"])
+        send(callback_from_id, prompts[field])
+        return
+
+
+    if data.startswith("mod_details_"):
+        try:
+            request_id = int(data[len("mod_details_"):])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер заявки.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        item = moderation_requests.get(request_id)
+        if not item or item["user_chat_id"] not in states:
+            answer(callback["id"], "Заявка уже обработана.", True)
+            return
+        moderator_sessions[callback_from_id] = {"request_id": request_id, "step": "details_menu"}
+        answer(callback["id"])
+        send(
+            callback_from_id,
+            "<b>📋 Характеристики</b>\n\nЧто изменить?",
+            moderation_detail_menu(request_id, states[item["user_chat_id"]]["data"])
+        )
+        return
+
+
+    if data.startswith("mod_detail_"):
+        parts = data.split("_")
+        if len(parts) != 4:
+            answer(callback["id"], "Некорректная команда.", True)
+            return
+        try:
+            request_id = int(parts[2])
+            index = int(parts[3])
+        except ValueError:
+            answer(callback["id"], "Некорректная заявка.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        item = moderation_requests.get(request_id)
+        if not item or item["user_chat_id"] not in states:
+            answer(callback["id"], "Заявка уже обработана.", True)
+            return
+        data_listing = states[item["user_chat_id"]]["data"]
+        fields = CATEGORIES[data_listing["category_key"]]["fields"]
+        if index >= len(fields):
+            answer(callback["id"], "Характеристика не найдена.", True)
+            return
+        moderator_sessions[callback_from_id] = {"request_id": request_id, "step": f"detail_{index}"}
+        answer(callback["id"])
+        send(callback_from_id, f"<b>{esc(fields[index][1])}</b>\n\nВведите новое значение.")
+        return
+
+
+    if data.startswith(
+        "mod_publish_"
+    ):
+
+        try:
+
+            request_id = int(
+                data[
+                    len("mod_publish_"):
+                ]
+            )
+
+        except ValueError:
+
+            answer(
+
+                callback["id"],
+
+                "Некорректный номер заявки.",
+
+                True
+            )
+
+            return
+
+        moderate_publish(
+
+            request_id,
+
+            callback_from_id,
+
+            callback["id"]
+        )
+
+        return
+
+
+    if data.startswith(
+        "mod_reject_"
+    ):
+
+        try:
+
+            request_id = int(
+                data[
+                    len("mod_reject_"):
+                ]
+            )
+
+        except ValueError:
+
+            answer(
+
+                callback["id"],
+
+                "Некорректный номер заявки.",
+
+                True
+            )
+
+            return
+
+        moderate_reject(
+
+            request_id,
+
+            callback_from_id,
+
+            callback["id"]
+        )
+
+        return
 
 
     answer(
@@ -3783,6 +4740,10 @@ def handle(
 
     if data == "cancel_post":
 
+        remove_moderation_requests_for_user(
+            chat_id
+        )
+
         states.pop(
             chat_id,
             None
@@ -3805,12 +4766,12 @@ def handle(
 
 
     # ========================================================
-    # ПУБЛИКАЦИЯ
+    # ОТПРАВКА НА МОДЕРАЦИЮ
     # ========================================================
 
-    if data == "publish_post":
+    if data == "submit_moderation":
 
-        publish(
+        submit_for_moderation(
             chat_id
         )
 
@@ -3918,6 +4879,15 @@ api(
             {
 
                 "command":
+                    "id",
+
+                "description":
+                    "Мой Telegram ID"
+            },
+
+            {
+
+                "command":
                     "rules",
 
                 "description":
@@ -3992,6 +4962,13 @@ print(
     "CHANNEL USERNAME:",
 
     CHANNEL_USERNAME
+)
+
+print(
+
+    "ADMIN CHAT ID:",
+
+    ADMIN_CHAT_ID
 )
 
 
