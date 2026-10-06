@@ -67,11 +67,11 @@ CATEGORIES = {
         "subs": {
 
             "apartment": "🏢 Квартиры",
-            "house": "🏡 Дома",
+            "house": "🏡 Дома и дачи",
             "room": "🛏 Комнаты",
             "commercial": "🏬 Коммерция",
             "land": "🌳 Земля",
-            "garage": "🚗 Гаражи и парковки",
+            "garage": "🚗 Гаражи",
         },
 
         "types": [
@@ -568,6 +568,33 @@ CHANNEL_MENU_TEXT = (
 )
 
 
+def channel_main_menu():
+
+    base = "https://t.me/MadlobaMarketBot?start="
+
+    return [
+        [
+            {"text": "🏠 Недвижимость", "url": base + "cat_realestate"},
+            {"text": "🚗 Авто", "url": base + "cat_auto"},
+        ],
+        [
+            {"text": "📱 Техника", "url": base + "cat_tech"},
+            {"text": "🛋 Дом и мебель", "url": base + "cat_home"},
+        ],
+        [
+            {"text": "👶 Детское", "url": base + "cat_kids"},
+            {"text": "💼 Работа и услуги", "url": base + "cat_work"},
+        ],
+        [
+            {"text": "🎁 Отдам", "url": base + "cat_give"},
+            {"text": "🔎 Ищу", "url": base + "cat_search"},
+        ],
+        [
+            {"text": "🚀 РАЗМЕСТИТЬ ОБЪЯВЛЕНИЕ", "url": base + "post"},
+        ],
+    ]
+
+
 def main_menu():
 
     return [
@@ -667,71 +694,6 @@ def main_menu():
                     "post"
             }
         ],
-    ]
-
-
-# ============================================================
-# МЕНЮ ДЛЯ КАНАЛА
-# Кнопки открывают ЛИЧНЫЙ ЧАТ с ботом,
-# поэтому навигационные сообщения не засоряют канал.
-# ============================================================
-
-def channel_menu():
-
-    base = "https://t.me/MadlobaMarketBot?start="
-
-    return [
-
-        [
-            {
-                "text": "🏠 Недвижимость",
-                "url": base + "cat_realestate"
-            },
-            {
-                "text": "🚗 Авто",
-                "url": base + "cat_auto"
-            }
-        ],
-
-        [
-            {
-                "text": "📱 Техника",
-                "url": base + "cat_tech"
-            },
-            {
-                "text": "🛋 Дом и мебель",
-                "url": base + "cat_home"
-            }
-        ],
-
-        [
-            {
-                "text": "👶 Детское",
-                "url": base + "cat_kids"
-            },
-            {
-                "text": "💼 Работа и услуги",
-                "url": base + "cat_work"
-            }
-        ],
-
-        [
-            {
-                "text": "🎁 Отдам",
-                "url": base + "cat_give"
-            },
-            {
-                "text": "🔎 Ищу",
-                "url": base + "cat_search"
-            }
-        ],
-
-        [
-            {
-                "text": "🚀 РАЗМЕСТИТЬ ОБЪЯВЛЕНИЕ",
-                "url": base + "post"
-            }
-        ]
     ]
 
 
@@ -3484,42 +3446,23 @@ def handle(
         # ====================================================
 
         if (
-
-            text.startswith(
-                "/start"
-            )
-
+            text.startswith("/start")
             or
-
-            text.strip()
-            ==
-            "🏠 Главное меню"
-
+            text.strip() == "🏠 Главное меню"
         ):
 
-            remove_moderation_requests_for_user(
-                chat_id
-            )
+            remove_moderation_requests_for_user(chat_id)
+            states.pop(chat_id, None)
 
-            states.pop(
-                chat_id,
-                None
-            )
+            payload = ""
+            if text.startswith("/start"):
+                parts = text.split(maxsplit=1)
+                if len(parts) == 2:
+                    payload = parts[1].strip()
 
-            # Deep-link из канала: /start cat_realestate, /start post и т.д.
-            start_parts = text.strip().split(maxsplit=1)
-            start_payload = (
-                start_parts[1].strip()
-                if len(start_parts) > 1
-                else ""
-            )
-
-            if start_payload.startswith("cat_"):
-
-                key = start_payload[4:]
-
+            if payload.startswith("cat_"):
+                key = payload[4:]
                 if key in CATEGORIES:
-
                     send(
                         chat_id,
                         f"<b>{esc(CATEGORIES[key]['name'])}</b>\n\n"
@@ -3528,31 +3471,20 @@ def handle(
                     )
                     return
 
-            if start_payload == "post":
-
+            if payload == "post":
                 start_post(chat_id)
                 return
 
             send(
-
                 chat_id,
-
-                "<b>"
-                "🛒 MADLOBA MARKET | БАТУМИ"
-                "</b>\n\n"
-
+                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
                 "Главная доска объявлений Батуми.\n\n"
-
                 "Купи · Продай · Сдай · Найди\n\n"
-
-                "<b>"
-                "Выберите категорию:"
-                "</b>",
-
+                "<b>Выберите категорию:</b>",
                 main_menu()
             )
-
             return
+
 
 
         # ====================================================
@@ -3580,7 +3512,7 @@ def handle(
             result = send(
                 CHANNEL_USERNAME,
                 CHANNEL_MENU_TEXT,
-                channel_menu()
+                channel_main_menu()
             )
 
             if result.get("ok") and result.get("result", {}).get("message_id"):
