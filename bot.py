@@ -560,6 +560,14 @@ def pair_buttons(
 # ГЛАВНОЕ МЕНЮ
 # ============================================================
 
+CHANNEL_MENU_TEXT = (
+    "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
+    "<b>Главная доска объявлений Батуми</b>\n\n"
+    "Покупайте • Продавайте • Сдавайте • Находите\n\n"
+    "<b>Выберите категорию:</b>"
+)
+
+
 def main_menu():
 
     return [
@@ -3453,6 +3461,69 @@ def handle(
                 main_menu()
             )
 
+
+            return
+
+
+        # ====================================================
+        # ПУБЛИКАЦИЯ ГЛАВНОГО МЕНЮ В КАНАЛ
+        # ====================================================
+
+        if text.strip() == "/channel_menu":
+
+            if not ADMIN_CHAT_ID or str(chat_id) != str(ADMIN_CHAT_ID):
+
+                send(
+                    chat_id,
+                    "⛔ Эта команда доступна только администратору."
+                )
+                return
+
+            if not CHANNEL_USERNAME:
+
+                send(
+                    chat_id,
+                    "❌ Не указан CHANNEL_USERNAME в Render."
+                )
+                return
+
+            result = send(
+                CHANNEL_USERNAME,
+                CHANNEL_MENU_TEXT,
+                main_menu()
+            )
+
+            if result.get("ok") and result.get("result", {}).get("message_id"):
+
+                message_id = result["result"]["message_id"]
+
+                pin_result = api(
+                    "pinChatMessage",
+                    {
+                        "chat_id": CHANNEL_USERNAME,
+                        "message_id": message_id,
+                        "disable_notification": True
+                    }
+                )
+
+                if pin_result.get("ok"):
+                    send(
+                        chat_id,
+                        "✅ Главное меню опубликовано и закреплено в канале."
+                    )
+                else:
+                    send(
+                        chat_id,
+                        "✅ Главное меню опубликовано в канале.\n\n"
+                        "⚠️ Автоматически закрепить его не удалось. "
+                        "Проверь права бота на управление публикациями."
+                    )
+            else:
+                send(
+                    chat_id,
+                    "❌ Не удалось опубликовать главное меню.\n\n"
+                    f"<code>{esc(str(result))}</code>"
+                )
 
             return
 
