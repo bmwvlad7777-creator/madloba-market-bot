@@ -2,6 +2,7 @@
 
 import os
 import html
+import json
 import requests
 
 from flask import Flask, request
@@ -48,6 +49,295 @@ moderator_sessions = {}
 
 # Счётчик заявок на модерацию.
 next_moderation_id = 1
+
+# Опубликованные объявления.
+# Хранятся отдельно от states, потому что states очищается
+# после успешной публикации.
+LISTINGS_FILE = os.environ.get(
+    "LISTINGS_FILE",
+    "listings.json"
+).strip() or "listings.json"
+
+published_listings = []
+next_listing_id = 1
+
+
+def load_published_listings():
+
+    global published_listings, next_listing_id
+
+    try:
+        with open(LISTINGS_FILE, "r", encoding="utf-8") as file:
+            payload = json.load(file)
+
+        if isinstance(payload, dict):
+            published_listings = payload.get("listings", [])
+            next_listing_id = int(payload.get("next_id", 1))
+        elif isinstance(payload, list):
+            published_listings = payload
+            next_listing_id = 1
+        else:
+            published_listings = []
+            next_listing_id = 1
+
+        if not isinstance(published_listings, list):
+            published_listings = []
+
+        if published_listings:
+            max_id = max(
+                int(item.get("id", 0))
+                for item in published_listings
+                if str(item.get("id", "")).isdigit()
+            )
+            next_listing_id = max(next_listing_id, max_id + 1)
+
+    except (FileNotFoundError, json.JSONDecodeError, OSError, ValueError, TypeError):
+        published_listings = []
+        next_listing_id = 1
+
+
+def save_published_listings():
+
+    payload = {
+        "next_id": next_listing_id,
+        "listings": published_listings
+    }
+
+    try:
+        directory = os.path.dirname(LISTINGS_FILE)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
+        temporary = LISTINGS_FILE + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as file:
+            json.dump(payload, file, ensure_ascii=False, indent=2)
+
+        os.replace(temporary, LISTINGS_FILE)
+        return True
+
+    except OSError as error:
+        print("LISTINGS SAVE ERROR:", repr(error))
+        return False
+
+
+def register_published_listing(data, publish_result):
+
+    global next_listing_id
+
+    item = dict(data)
+    item["details"] = dict(data.get("details", {}))
+    item["photos"] = list(data.get("photos", []))
+    item["id"] = next_listing_id
+    item["status"] = "published"
+
+    result = publish_result.get("result") if isinstance(publish_result, dict) else None
+    message_id = None
+
+    if isinstance(result, list) and result:
+        message_id = result[0].get("message_id")
+    elif isinstance(result, dict):
+        message_id = result.get("message_id")
+
+    item["channel_message_id"] = message_id
+
+    if CHANNEL_USERNAME.startswith("@"): 
+        item["channel_post_url"] = (
+            f"https://t.me/{CHANNEL_USERNAME[1:]}/{message_id}"
+            if message_id else ""
+        )
+    else:
+        item["channel_post_url"] = ""
+
+    published_listings.insert(0, item)
+    next_listing_id += 1
+    save_published_listings()
+    return item
+
+
+def listing_matches(item, key, sub):
+
+    category = item.get("category_key", "")
+    subcategory = item.get("subcategory_key", "")
+
+    # Глобальный каталог.
+    if key == "search" and sub == "all":
+        return True
+
+    # Каталог "Ищу → Недвижимость" должен показывать
+    # объявления недвижимости, а также объявления "ищу"
+    # внутри этой тематики.
+    if key == "search":
+        if sub == "services":
+            return category == "work"
+        if sub == "other":
+            return category not in {
+                "realestate", "auto", "tech", "home", "kids", "work"
+            }
+        return category == sub or (
+            category == "search" and subcategory == sub
+        )
+
+    if sub == "all":
+        return category == key
+
+    return category == key and subcategory == sub
+
+
+def listing_title(item):
+
+    category = item.get("category", "Объявление")
+    subcategory = item.get("subcategory", "")
+    type_name = item.get("type", "")
+
+    parts = [category]
+    if subcategory:
+        parts.append(subcategory)
+    if type_name:
+        parts.append(type_name)
+
+    return " · ".join(parts)
+
+
+def listing_short_text(item):
+
+    data = item
+    details = data.get("details", {}) or {}
+
+    lines = [
+        f"<b>#{data.get('id', '')} {esc(listing_title(data))}</b>"
+    ]
+
+    if details:
+        detail_parts = []
+        for key, value in details.items():
+            if value not in (None, ""):
+                detail_parts.append(str(value))
+        if detail_parts:
+            lines.append(" · ".join(esc(value) for value in detail_parts))
+
+    price = data.get("price", "")
+    currency = data.get("currency", "")
+    if price:
+        lines.append(f"💰 <b>{esc(price)} {esc(currency)}</b>")
+
+    district = data.get("district", "")
+    if district:
+        lines.append(f"📍 {esc(district)}")
+
+    description = data.get("description", "")
+    if description:
+        compact = " ".join(str(description).split())
+        if len(compact) > 120:
+            compact = compact[:117] + "..."
+        lines.append(esc(compact))
+
+    return "\n".join(lines)
+
+
+def listing_keyboard(key, sub, page, item):
+
+    rows = []
+
+    url = item.get("channel_post_url", "")
+    if url:
+        rows.append([
+            {
+                "text": "📣 Открыть в канале",
+                "url": url
+            }
+        ])
+
+    return rows
+
+
+def send_listing_catalog(chat_id, key, sub, page=0):
+
+    matches = [
+        item for item in published_listings
+        if listing_matches(item, key, sub)
+    ]
+
+    per_page = 5
+    total_pages = max(1, (len(matches) + per_page - 1) // per_page)
+    page = max(0, min(int(page), total_pages - 1))
+
+    start = page * per_page
+    current = matches[start:start + per_page]
+
+    if key == "search":
+        if sub == "all":
+            label = "📋 Все объявления"
+        else:
+            label = CATEGORIES["search"]["subs"].get(sub, "Раздел")
+    else:
+        label = (
+            "📋 Все объявления"
+            if sub == "all"
+            else CATEGORIES[key]["subs"].get(sub, "Раздел")
+        )
+
+    if not current:
+        text = (
+            f"<b>{esc(label)}</b>\n\n"
+            "Пока нет опубликованных объявлений.\n\n"
+            "Разместите первое объявление — и оно появится здесь."
+        )
+        send(
+            chat_id,
+            text,
+            [
+                [{"text": "⬅️ Назад", "callback_data": f"cat_{key}"}],
+                [{"text": "🏠 Главное меню", "callback_data": "back_main"}]
+            ]
+        )
+        return
+
+    send(
+        chat_id,
+        f"<b>{esc(label)}</b>\n\n"
+        f"Найдено: <b>{len(matches)}</b>\n"
+        f"Страница <b>{page + 1}/{total_pages}</b>",
+        [[{"text": "⬅️ Назад", "callback_data": f"cat_{key}"}]]
+    )
+
+    for item in current:
+        photos = item.get("photos", [])
+        text = listing_short_text(item)
+        if photos:
+            result = send_album(chat_id, photos, text)
+            if result.get("ok"):
+                keyboard = listing_keyboard(key, sub, page, item)
+                if keyboard:
+                    send(chat_id, "Выберите действие:", keyboard)
+            else:
+                send(chat_id, text, listing_keyboard(key, sub, page, item))
+        else:
+            send(chat_id, text, listing_keyboard(key, sub, page, item))
+
+    navigation = []
+    if page > 0:
+        navigation.append({
+            "text": "⬅️ Предыдущие",
+            "callback_data": f"browsepage_{key}_{sub}_{page - 1}"
+        })
+    if page + 1 < total_pages:
+        navigation.append({
+            "text": "Следующие ➡️",
+            "callback_data": f"browsepage_{key}_{sub}_{page + 1}"
+        })
+
+    keyboard = []
+    if navigation:
+        keyboard.append(navigation)
+    keyboard.append([
+        {"text": "⬅️ Назад", "callback_data": f"cat_{key}"},
+        {"text": "🏠 Меню", "callback_data": "back_main"}
+    ])
+
+    send(chat_id, "Выберите действие:", keyboard)
+
+
+load_published_listings()
 
 
 # ============================================================
@@ -2780,6 +3070,12 @@ def moderate_publish(
 
         return
 
+    # Сохраняем объявление в каталоге ДО очистки states.
+    register_published_listing(
+        data,
+        result
+    )
+
     moderation_requests.pop(
         request_id,
         None
@@ -3944,6 +4240,40 @@ def handle(
     # ========================================================
 
     if data.startswith(
+        "browsepage_"
+    ):
+
+        parts = data.split(
+            "_",
+            3
+        )
+
+        if len(parts) != 4:
+            return
+
+        key = parts[1]
+        sub = parts[2]
+
+        try:
+            page = int(parts[3])
+        except ValueError:
+            return
+
+        if key not in CATEGORIES:
+            return
+
+        send_listing_catalog(
+            chat_id,
+            key,
+            sub,
+            page
+        )
+
+        return
+
+
+
+    if data.startswith(
         "browse_"
     ):
 
@@ -3952,83 +4282,21 @@ def handle(
             2
         )
 
-
         if len(parts) < 3:
-
             return
 
-
-        key = parts[
-            1
-        ]
-
-        sub = parts[
-            2
-        ]
-
+        key = parts[1]
+        sub = parts[2]
 
         if key not in CATEGORIES:
-
             return
 
-
-        if sub == "all":
-
-            label = (
-                "📋 Все объявления"
-            )
-
-        else:
-
-            label = CATEGORIES[
-                key
-            ]["subs"].get(
-
-                sub,
-
-                "Раздел"
-            )
-
-
-        send(
-
+        send_listing_catalog(
             chat_id,
-
-            f"<b>"
-            f"{esc(label)}"
-            f"</b>\n\n"
-
-            "Здесь будут отображаться "
-            "объявления этой категории.",
-
-            [
-
-                [
-
-                    {
-
-                        "text":
-                            "⬅️ Назад",
-
-                        "callback_data":
-                            f"cat_{key}"
-                    }
-                ],
-
-                [
-
-                    {
-
-                        "text":
-                            "🏠 Главное меню",
-
-                        "callback_data":
-                            "back_main"
-                    }
-                ]
-            ]
+            key,
+            sub,
+            0
         )
-
 
         return
 
