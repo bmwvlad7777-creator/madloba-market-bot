@@ -469,6 +469,38 @@ def slug(value):
 
 
 # ============================================================
+# УНИКАЛЬНЫЕ ХЭШТЕГИ
+# ============================================================
+
+def unique_hashtags(tags):
+
+    result = []
+    seen = set()
+
+    for tag in tags:
+
+        tag = str(
+            tag or ""
+        ).strip()
+
+        if not tag:
+            continue
+
+        if not tag.startswith("#"):
+            tag = "#" + tag
+
+        key = tag.lower()
+
+        if key not in seen:
+
+            seen.add(key)
+
+            result.append(tag)
+
+    return result
+
+
+# ============================================================
 # КНОПКИ 2 В РЯД
 # ============================================================
 
@@ -770,9 +802,6 @@ def post_type_menu(
             [
 
                 {
-
-                    # ВАЖНО:
-                    # пользователь видит только русский текст.
 
                     "text":
                         label,
@@ -1246,7 +1275,9 @@ def ask_description(
 
         "<b>📝 Описание</b>\n\n"
         "Напишите несколько важных деталей "
-        "объявления."
+        "объявления.\n\n"
+        "<i>Если описания нет — напишите "
+        "«Пропустить».</i>"
     )
 
 
@@ -1358,13 +1389,44 @@ def make_title(
             ""
         )
 
+        subcategory = data.get(
+            "subcategory_key",
+            ""
+        )
+
+        property_names = {
+
+            "apartment":
+                "квартиру",
+
+            "house":
+                "дом",
+
+            "room":
+                "комнату",
+
+            "commercial":
+                "коммерческое помещение",
+
+            "land":
+                "земельный участок",
+
+            "garage":
+                "гараж / парковку",
+        }
+
+        property_name = property_names.get(
+            subcategory,
+            "объект недвижимости"
+        )
+
         action = {
 
             "rent":
                 "Сдам",
 
             "seek":
-                "Ищу",
+                "Сниму",
 
             "sell":
                 "Продам",
@@ -1379,17 +1441,25 @@ def make_title(
             "Объявление"
         )
 
-        if rooms:
+        if subcategory == "apartment" and rooms:
 
             title = (
                 f"{action} "
                 f"{rooms}-комнатную квартиру"
             )
 
+        elif subcategory == "room" and rooms:
+
+            title = (
+                f"{action} "
+                f"{rooms}-комнатную комнату"
+            )
+
         else:
 
             title = (
-                f"{action} квартиру"
+                f"{action} "
+                f"{property_name}"
             )
 
         area = details.get(
@@ -1624,39 +1694,59 @@ def build_hashtags(
     data
 ):
 
-    tags = [
+    tags = []
 
-        "#"
-        +
-        slug(
-            data[
-                "category"
-            ].split(
-                " ",
-                1
-            )[-1]
-        ),
 
-        "#"
-        +
-        slug(
-            data[
-                "subcategory"
-            ].split(
-                " ",
-                1
-            )[-1]
+    # Категория
+    category_tag = slug(
+        data.get(
+            "category",
+            ""
+        ).split(
+            " ",
+            1
+        )[-1]
+    )
+
+    if category_tag:
+
+        tags.append(
+            "#" + category_tag
         )
-    ]
 
 
+    # Подкатегория
+    subcategory_tag = slug(
+        data.get(
+            "subcategory",
+            ""
+        ).split(
+            " ",
+            1
+        )[-1]
+    )
+
+    if subcategory_tag:
+
+        tags.append(
+            "#" + subcategory_tag
+        )
+
+
+    # Тип объявления
     type_tags = {
 
         "rent":
             "#сдам",
 
         "seek":
-            "#ищу",
+            (
+                "#сниму"
+                if data.get(
+                    "category_key"
+                ) == "realestate"
+                else "#ищу"
+            ),
 
         "sell":
             "#продам",
@@ -1672,44 +1762,48 @@ def build_hashtags(
     }
 
 
-    if data[
-        "type_key"
-    ] in type_tags:
+    type_tag = type_tags.get(
+
+        data.get(
+            "type_key"
+        )
+    )
+
+    if type_tag:
 
         tags.append(
-
-            type_tags[
-                data[
-                    "type_key"
-                ]
-            ]
+            type_tag
         )
 
 
-    if data[
-        "district"
-    ]:
+    # Район
+    district = data.get(
+        "district",
+        ""
+    ).strip()
 
-        tags.append(
+    if district:
 
-            "#"
-            +
-            slug(
-                data[
-                    "district"
-                ]
+        district_tag = slug(
+            district
+        )
+
+        if district_tag:
+
+            tags.append(
+                "#" + district_tag
             )
-        )
 
 
+    # Батуми
     tags.append(
         "#батум"
     )
 
 
+    # Убираем любые повторы
     return " ".join(
-
-        dict.fromkeys(
+        unique_hashtags(
             tags
         )
     )
@@ -1768,12 +1862,9 @@ def build_listing(
 
         if value:
 
-            # Более компактный вид
-            clean_label = label
-
             details_lines.append(
 
-                f"{esc(clean_label)}: "
+                f"{esc(label)}: "
                 f"<b>{esc(value)}</b>"
             )
 
@@ -1791,27 +1882,35 @@ def build_listing(
     # АВТОМАТИЧЕСКИЙ ЗАГОЛОВОК
     # ========================================================
 
-    lines.append(
-
-        f"<b>"
-        f"{esc(make_title(data))}"
-        f"</b>"
+    title = make_title(
+        data
     )
 
+    if title:
 
-    lines.append("")
+        lines.append(
+
+            f"<b>"
+            f"{esc(title)}"
+            f"</b>"
+        )
+
+        lines.append("")
 
 
     # ========================================================
     # ЦЕНА
     # ========================================================
 
-    lines.append(
-
-        price_text(
-            data
-        )
+    price = price_text(
+        data
     )
+
+    if price:
+
+        lines.append(
+            price
+        )
 
 
     # ========================================================
@@ -1834,9 +1933,39 @@ def build_listing(
     # ОПИСАНИЕ
     # ========================================================
 
-    if data[
-        "description"
-    ]:
+    description = str(
+        data.get(
+            "description",
+            ""
+        )
+        or
+        ""
+    ).strip()
+
+
+    # Если пользователь написал одно из этих значений,
+    # описание не публикуем.
+    skip_descriptions = {
+
+        "ничего",
+        "нет",
+        "нечего",
+        "без описания",
+        "пропустить",
+        "-"
+    }
+
+
+    if (
+
+        description
+
+        and
+
+        description.lower()
+        not in skip_descriptions
+
+    ):
 
         lines.extend(
 
@@ -1845,9 +1974,7 @@ def build_listing(
                 "",
 
                 esc(
-                    data[
-                        "description"
-                    ]
+                    description
                 )
             ]
         )
@@ -1882,17 +2009,21 @@ def build_listing(
     # ХЭШТЕГИ
     # ========================================================
 
-    lines.extend(
-
-        [
-
-            "",
-
-            build_hashtags(
-                data
-            )
-        ]
+    hashtags = build_hashtags(
+        data
     )
+
+    if hashtags:
+
+        lines.extend(
+
+            [
+
+                "",
+
+                hashtags
+            ]
+        )
 
 
     return "\n".join(
@@ -1977,8 +2108,6 @@ def send_album(
 
 
         # Текст ставим только под первой фотографией.
-        # Telegram автоматически показывает остальные
-        # фотографии компактным альбомом.
 
         if i == 0:
 
@@ -2525,9 +2654,27 @@ def process_text(
         "edit_description"
     ):
 
-        data[
-            "description"
-        ] = text
+        # Пустые/служебные ответы не публикуем.
+        if text.lower() in {
+
+            "ничего",
+            "нет",
+            "нечего",
+            "без описания",
+            "пропустить",
+            "-"
+
+        }:
+
+            data[
+                "description"
+            ] = ""
+
+        else:
+
+            data[
+                "description"
+            ] = text
 
 
         if step == "description":
@@ -3192,14 +3339,39 @@ def handle(
         ] = type_key
 
 
-        listing[
-            "type"
-        ] = TYPE_NAMES.get(
+        # Для недвижимости seek = Сниму.
+        if (
 
-            type_key,
+            listing[
+                "category_key"
+            ]
+
+            ==
+
+            "realestate"
+
+            and
 
             type_key
-        )
+            ==
+            "seek"
+
+        ):
+
+            listing[
+                "type"
+            ] = "🔎 Сниму"
+
+        else:
+
+            listing[
+                "type"
+            ] = TYPE_NAMES.get(
+
+                type_key,
+
+                type_key
+            )
 
 
         ask_detail(
