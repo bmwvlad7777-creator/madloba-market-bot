@@ -205,12 +205,30 @@ def _supabase_city_id(slug_value):
 
 
 def _supabase_category_id(category_key):
+    # Ключи категорий внутри Telegram-бота отличаются от slug
+    # категорий в Supabase, поэтому явно сопоставляем их.
+    category_slug_map = {
+        "realestate": "real-estate",
+        "auto": "cars",
+        "tech": "electronics",
+        "home": "home",
+        "kids": "kids",
+        "work": "jobs-services",
+        "give": "free",
+        "search": "wanted",
+    }
+
+    category_slug = category_slug_map.get(
+        str(category_key).strip().lower(),
+        str(category_key).strip().lower(),
+    )
+
     rows = supabase_request(
         "GET",
         "categories",
         params={
             "select": "id,slug",
-            "slug": f"eq.{category_key}",
+            "slug": f"eq.{category_slug}",
             "limit": "1",
         },
     )
