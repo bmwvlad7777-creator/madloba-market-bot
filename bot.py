@@ -1364,273 +1364,40 @@ def ask_contact(
 def make_title(
     data
 ):
+    """Короткий заголовок без повторения действия, цены и характеристик."""
 
-    category = data[
-        "category_key"
-    ]
-
-    typ = data[
-        "type_key"
-    ]
-
-    details = data[
-        "details"
-    ]
-
-
-    # -------------------------
-    # НЕДВИЖИМОСТЬ
-    # -------------------------
+    category = data.get("category_key", "")
+    details = data.get("details", {})
+    subcategory = data.get("subcategory_key", "")
 
     if category == "realestate":
-
-        rooms = details.get(
-            "rooms",
-            ""
-        )
-
-        subcategory = data.get(
-            "subcategory_key",
-            ""
-        )
-
-        property_names = {
-
-            "apartment":
-                "квартиру",
-
-            "house":
-                "дом",
-
-            "room":
-                "комнату",
-
-            "commercial":
-                "коммерческое помещение",
-
-            "land":
-                "земельный участок",
-
-            "garage":
-                "гараж / парковку",
+        rooms = details.get("rooms", "")
+        names = {
+            "apartment": f"{rooms}-комнатная квартира" if rooms else "Квартира",
+            "house": "Дом",
+            "room": f"{rooms}-комнатная комната" if rooms else "Комната",
+            "commercial": "Коммерческое помещение",
+            "land": "Земельный участок",
+            "garage": "Гараж / парковка",
         }
-
-        property_name = property_names.get(
-            subcategory,
-            "объект недвижимости"
-        )
-
-        action = {
-
-            "rent":
-                "Сдам",
-
-            "seek":
-                "Сниму",
-
-            "sell":
-                "Продам",
-
-            "buy":
-                "Куплю"
-
-        }.get(
-
-            typ,
-
-            "Объявление"
-        )
-
-        if subcategory == "apartment" and rooms:
-
-            title = (
-                f"{action} "
-                f"{rooms}-комнатную квартиру"
-            )
-
-        elif subcategory == "room" and rooms:
-
-            title = (
-                f"{action} "
-                f"{rooms}-комнатную комнату"
-            )
-
-        else:
-
-            title = (
-                f"{action} "
-                f"{property_name}"
-            )
-
-        area = details.get(
-            "area",
-            ""
-        )
-
-        if area:
-
-            title += (
-                f" · {area} м²"
-            )
-
-        return title
-
-
-    # -------------------------
-    # АВТО
-    # -------------------------
+        return names.get(subcategory, "Недвижимость")
 
     if category == "auto":
-
-        model = (
-            details.get(
-                "make_model",
-                ""
-            )
-            or
-            "автомобиль"
-        )
-
-        year = details.get(
-            "year",
-            ""
-        )
-
-        action = {
-
-            "sell":
-                "Продам",
-
-            "buy":
-                "Куплю",
-
-            "rent":
-                "Сдам",
-
-            "seek":
-                "Ищу"
-
-        }.get(
-
-            typ,
-
-            "Авто"
-        )
-
-        title = (
-            f"{action} {model}"
-        )
-
-        if year:
-
-            title += (
-                f" · {year}"
-            )
-
-        return title
-
-
-    # -------------------------
-    # ТЕХНИКА
-    # -------------------------
+        return details.get("make_model", "") or "Автомобиль"
 
     if category == "tech":
-
-        model = (
-            details.get(
-                "brand_model",
-                ""
-            )
-            or
-            "технику"
-        )
-
-        action = {
-
-            "sell":
-                "Продам",
-
-            "buy":
-                "Куплю"
-
-        }.get(
-
-            typ,
-
-            "Техника"
-        )
-
-        return (
-            f"{action} {model}"
-        )
-
-
-    # -------------------------
-    # РАБОТА
-    # -------------------------
+        return details.get("brand_model", "") or "Техника"
 
     if category == "work":
-
-        return (
-
-            details.get(
-                "service",
-                ""
-            )
-
-            or
-
-            "Работа / услуга в Батуми"
-        )
-
-
-    # -------------------------
-    # ИЩУ
-    # -------------------------
+        return details.get("service", "") or "Работа / услуга"
 
     if category == "search":
+        return details.get("requirements", "") or "Ищу"
 
-        requirement = details.get(
-            "requirements",
-            ""
-        )
+    if category == "give":
+        return details.get("item", "") or "Отдам бесплатно"
 
-        if requirement:
-
-            return (
-                f"Ищу: {requirement}"
-            )
-
-        return "Ищу"
-
-
-    # -------------------------
-    # ОТДАМ
-    # -------------------------
-
-    if typ == "give":
-
-        return "Отдам бесплатно"
-
-
-    # -------------------------
-    # ОСТАЛЬНОЕ
-    # -------------------------
-
-    return {
-
-        "sell":
-            "Продам",
-
-        "buy":
-            "Куплю"
-
-    }.get(
-
-        typ,
-
-        "Объявление"
-    )
+    return details.get("item", "") or "Объявление"
 
 
 # ============================================================
@@ -1816,219 +1583,105 @@ def build_hashtags(
 def build_listing(
     data
 ):
+    """Единый компактный стиль карточки MADLOBA MARKET."""
 
     lines = [
-
-        # Категория + тип
-        (
-            f"<b>"
-            f"{esc(data['category'])}"
-            f" · "
-            f"{esc(data['type'])}"
-            f"</b>"
-        ),
-
-        # Подкатегория
-        (
-            f"<i>"
-            f"{esc(data['subcategory'])}"
-            f"</i>"
-        ),
-
-        ""
+        f"<b>{esc(data.get('category', ''))} · {esc(data.get('type', ''))}</b>",
+        f"<i>{esc(data.get('subcategory', ''))}</i>",
+        "",
     ]
 
+    title = make_title(data)
+    if title:
+        lines.append(f"<b>{esc(title)}</b>")
+        lines.append("")
 
-    # ========================================================
-    # ХАРАКТЕРИСТИКИ
-    # ========================================================
-
+    # Показываем только характеристики, которые не дублируют заголовок.
     details_lines = []
+    category = data.get("category_key", "")
+    skip_keys = set()
 
-    fields = CATEGORIES[
-        data[
-            "category_key"
-        ]
-    ]["fields"]
+    if category == "realestate":
+        skip_keys.add("rooms")  # количество комнат уже может быть в заголовке
+    elif category == "auto":
+        skip_keys.add("make_model")
+    elif category == "tech":
+        skip_keys.add("brand_model")
+    elif category == "work":
+        skip_keys.add("service")
+    elif category == "search":
+        skip_keys.add("requirements")
+    elif category in ("home", "kids", "give"):
+        skip_keys.add("item")
 
+    for key, label in get_fields(data):
+        if key in skip_keys:
+            continue
+        value = data.get("details", {}).get(key)
+        if not value:
+            continue
 
-    for key, label in fields:
+        # Более компактные подписи именно для карточки.
+        compact_label = {
+            "area": "📐 Площадь",
+            "floor": "🏢 Этаж",
+            "year": "📅 Год",
+            "mileage": "🛣 Пробег",
+            "condition": "✨ Состояние",
+            "warranty": "🛡 Гарантия",
+            "experience": "⭐ Опыт",
+            "dimensions": "📏 Размеры",
+            "age": "👶 Возраст",
+            "memory": "💾 Память",
+            "size": "📏 Размер",
+            "specs": "⚙️ Характеристики",
+            "land_area": "🌳 Участок",
+            "floors": "🏢 Этажей",
+            "rental_period": "📅 Срок аренды",
+            "part_name": "⚙️ Запчасть",
+            "budget": "💰 Бюджет",
+        }.get(key, label)
 
-        value = data[
-            "details"
-        ].get(
-            key
+        details_lines.append(
+            f"{esc(compact_label)}: <b>{esc(value)}</b>"
         )
-
-        if value:
-
-            details_lines.append(
-
-                f"{esc(label)}: "
-                f"<b>{esc(value)}</b>"
-            )
-
 
     if details_lines:
-
-        lines.extend(
-            details_lines
-        )
-
+        lines.extend(details_lines)
         lines.append("")
 
+    # Визуальный разделитель перед ценой.
+    lines.append("━━━━━━━━━━━━")
+    lines.append("")
 
-    # ========================================================
-    # АВТОМАТИЧЕСКИЙ ЗАГОЛОВОК
-    # ========================================================
-
-    title = make_title(
-        data
-    )
-
-    if title:
-
-        lines.append(
-
-            f"<b>"
-            f"{esc(title)}"
-            f"</b>"
-        )
-
-        lines.append("")
-
-
-    # ========================================================
-    # ЦЕНА
-    # ========================================================
-
-    price = price_text(
-        data
-    )
-
+    price = price_text(data)
     if price:
+        lines.append(price)
 
-        lines.append(
-            price
-        )
+    district = data.get("district", "")
+    if district:
+        lines.append(f"📍 <b>{esc(district)}</b>")
 
-
-    # ========================================================
-    # ЛОКАЦИЯ
-    # ========================================================
-
-    if data[
-        "district"
-    ]:
-
-        lines.append(
-
-            f"📍 <b>"
-            f"{esc(data['district'])}"
-            f"</b>"
-        )
-
-
-    # ========================================================
-    # ОПИСАНИЕ
-    # ========================================================
-
-    description = str(
-        data.get(
-            "description",
-            ""
-        )
-        or
-        ""
-    ).strip()
-
-
-    # Если пользователь написал одно из этих значений,
-    # описание не публикуем.
+    description = str(data.get("description", "") or "").strip()
     skip_descriptions = {
-
-        "ничего",
-        "нет",
-        "нечего",
-        "без описания",
-        "пропустить",
-        "-"
+        "ничего", "нет", "нечего", "без описания", "пропустить", "-"
     }
+    if description and description.lower() not in skip_descriptions:
+        lines.extend(["", esc(description)])
 
+    contact = data.get("contact", "")
+    if contact:
+        lines.extend([
+            "",
+            f"📞 <b>{esc(contact)}</b>",
+            "<i>WhatsApp · Telegram</i>",
+        ])
 
-    if (
-
-        description
-
-        and
-
-        description.lower()
-        not in skip_descriptions
-
-    ):
-
-        lines.extend(
-
-            [
-
-                "",
-
-                esc(
-                    description
-                )
-            ]
-        )
-
-
-    # ========================================================
-    # КОНТАКТ
-    # ========================================================
-
-    if data[
-        "contact"
-    ]:
-
-        lines.extend(
-
-            [
-
-                "",
-
-                f"📞 <b>"
-                f"{esc(data['contact'])}"
-                f"</b>",
-
-                "<i>"
-                "WhatsApp / Telegram"
-                "</i>"
-            ]
-        )
-
-
-    # ========================================================
-    # ХЭШТЕГИ
-    # ========================================================
-
-    hashtags = build_hashtags(
-        data
-    )
-
+    hashtags = build_hashtags(data)
     if hashtags:
+        lines.extend(["", hashtags])
 
-        lines.extend(
-
-            [
-
-                "",
-
-                hashtags
-            ]
-        )
-
-
-    return "\n".join(
-        lines
-    )
+    return "\n".join(lines)
 
 
 # ============================================================
