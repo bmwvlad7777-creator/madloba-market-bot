@@ -3513,7 +3513,7 @@ def handle(
             result = send(
                 CHANNEL_USERNAME,
                 CHANNEL_MENU_TEXT,
-                main_menu()
+                channel_main_menu()
             )
 
             if result.get("ok") and result.get("result", {}).get("message_id"):
