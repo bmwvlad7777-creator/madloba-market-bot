@@ -671,6 +671,71 @@ def main_menu():
 
 
 # ============================================================
+# МЕНЮ ДЛЯ КАНАЛА
+# Кнопки открывают ЛИЧНЫЙ ЧАТ с ботом,
+# поэтому навигационные сообщения не засоряют канал.
+# ============================================================
+
+def channel_menu():
+
+    base = "https://t.me/MadlobaMarketBot?start="
+
+    return [
+
+        [
+            {
+                "text": "🏠 Недвижимость",
+                "url": base + "cat_realestate"
+            },
+            {
+                "text": "🚗 Авто",
+                "url": base + "cat_auto"
+            }
+        ],
+
+        [
+            {
+                "text": "📱 Техника",
+                "url": base + "cat_tech"
+            },
+            {
+                "text": "🛋 Дом и мебель",
+                "url": base + "cat_home"
+            }
+        ],
+
+        [
+            {
+                "text": "👶 Детское",
+                "url": base + "cat_kids"
+            },
+            {
+                "text": "💼 Работа и услуги",
+                "url": base + "cat_work"
+            }
+        ],
+
+        [
+            {
+                "text": "🎁 Отдам",
+                "url": base + "cat_give"
+            },
+            {
+                "text": "🔎 Ищу",
+                "url": base + "cat_search"
+            }
+        ],
+
+        [
+            {
+                "text": "🚀 РАЗМЕСТИТЬ ОБЪЯВЛЕНИЕ",
+                "url": base + "post"
+            }
+        ]
+    ]
+
+
+# ============================================================
 # ПРОСМОТР КАТЕГОРИИ
 # ============================================================
 
@@ -3441,6 +3506,32 @@ def handle(
                 None
             )
 
+            # Deep-link из канала: /start cat_realestate, /start post и т.д.
+            start_parts = text.strip().split(maxsplit=1)
+            start_payload = (
+                start_parts[1].strip()
+                if len(start_parts) > 1
+                else ""
+            )
+
+            if start_payload.startswith("cat_"):
+
+                key = start_payload[4:]
+
+                if key in CATEGORIES:
+
+                    send(
+                        chat_id,
+                        f"<b>{esc(CATEGORIES[key]['name'])}</b>\n\n"
+                        "Выберите раздел:",
+                        category_menu(key)
+                    )
+                    return
+
+            if start_payload == "post":
+
+                start_post(chat_id)
+                return
 
             send(
 
@@ -3460,7 +3551,6 @@ def handle(
 
                 main_menu()
             )
-
 
             return
 
@@ -3490,7 +3580,7 @@ def handle(
             result = send(
                 CHANNEL_USERNAME,
                 CHANNEL_MENU_TEXT,
-                main_menu()
+                channel_menu()
             )
 
             if result.get("ok") and result.get("result", {}).get("message_id"):
