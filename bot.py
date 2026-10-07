@@ -5717,23 +5717,55 @@ def mini_app_update_listing(listing_id):
     metadata["price"] = raw_price
     metadata.pop("_telegram_id", None)
 
+    # Владелец уже проверен выше в _mini_app_owned_row().
+    # Поэтому при самом UPDATE не дублируем фильтр user_id: это
+    # делает запрос устойчивее к типам/ограничениям PostgREST.
+    update_payload = {
+        "description": description,
+        "price": price,
+        "currency": currency,
+        "phone": phone,
+        "whatsapp": whatsapp,
+        "telegram": telegram,
+        "address": address,
+        "metadata": metadata,
+    }
+
     updated = supabase_request(
         "PATCH",
         "listings",
-        params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
-        payload={
-            "description": description,
-            "price": price,
-            "currency": currency,
-            "phone": phone,
-            "whatsapp": whatsapp,
-            "telegram": telegram,
-            "address": address,
-            "metadata": metadata,
-        },
+        params={"id":f"eq.{listing_id}"},
+        payload=update_payload,
     )
+
+    # Если старые данные metadata мешают PATCH, повторяем только
+    # по основным колонкам. Само объявление при этом всё равно
+    # обновляется, а расширенные данные останутся в текущем metadata.
+    if updated is None:
+        core_payload = dict(update_payload)
+        core_payload.pop("metadata", None)
+        updated = supabase_request(
+            "PATCH",
+            "listings",
+            params={"id":f"eq.{listing_id}"},
+            payload=core_payload,
+        )
+
     if updated is None:
         return jsonify({"error":"db_update_failed"}), 503
+
+    # metadata обновляем отдельным запросом только если основной
+    # UPDATE прошёл без него. Это защищает редактирование от проблем
+    # с JSONB/старыми metadata в конкретной записи.
+    if "metadata" not in (updated[0] if isinstance(updated, list) and updated else {}):
+        metadata_result = supabase_request(
+            "PATCH",
+            "listings",
+            params={"id":f"eq.{listing_id}"},
+            payload={"metadata": metadata},
+        )
+        if metadata_result is None:
+            print("MINI APP: metadata update skipped after successful core update")
 
     # Синхронизируем уже опубликованный текст с каналом.
     if str(row.get("status") or "").lower() == "published":
