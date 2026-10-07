@@ -6110,53 +6110,15 @@ def mini_app_listings():
         if safe_q:
             params["or"] = f"(title.ilike.*{safe_q}*,description.ilike.*{safe_q}*,address.ilike.*{safe_q}*)"
 
-    # Основные фильтры недвижимости применяем прямо в Supabase,
-    # чтобы не тянуть весь каталог в Mini App.
-    if category == "realestate":
-        deal = str(request.args.get("deal", "")).strip().lower()
-        sub = str(request.args.get("sub", "")).strip().lower()
-        min_price = str(request.args.get("min_price", "")).strip()
-        max_price = str(request.args.get("max_price", "")).strip()
-        rooms = str(request.args.get("rooms", "")).strip()
-        district = str(request.args.get("district", "")).strip()[:80]
-
-        # Не передаём JSON-пути metadata в PostgREST query params:
-        # на некоторых конфигурациях Supabase это приводит к 400.
-        # deal/sub фильтруем ниже на Python после получения ограниченного
-        # набора кандидатов из Supabase.
-        if min_price and max_price:
-            try:
-                params["price.gte"] = str(float(min_price))
-                params["price.lte"] = str(float(max_price))
-            except ValueError:
-                pass
-        elif min_price:
-            try:
-                params["price.gte"] = str(float(min_price))
-            except ValueError:
-                pass
-        elif max_price:
-            try:
-                params["price.lte"] = str(float(max_price))
-            except ValueError:
-                pass
-        # Комнаты фильтруем ниже на Python по metadata.details.
-        # JSON-path параметр PostgREST здесь не используем: он может
-        # приводить к HTTP 400 на конфигурации Supabase проекта.
-        if district:
-            safe_district = district.replace("*", "").replace(",", " ").strip()
-            if safe_district:
-                params["address"] = f"ilike.*{safe_district}*"
-
+    # Фильтры недвижимости применяем в Python после получения ограниченного
+    # набора кандидатов. Это специально сделано так, чтобы не зависеть от
+    # типов колонок/JSON-path синтаксиса PostgREST и не получать HTTP 400.
     # Для площади и 4+ комнат нужен числовой разбор JSON metadata.
     # Берём ограниченный набор кандидатов, уже отфильтрованный Supabase
     # по городу/категории/цене/типу/району.
-    has_python_filters = category == "realestate" and (
-        str(request.args.get("deal", "")).strip() in {"rent", "seek", "sell", "buy"} or
-        str(request.args.get("sub", "")).strip() in {"apartment", "house", "room", "commercial", "land", "garage"} or
-        str(request.args.get("min_area", "")).strip() or
-        str(request.args.get("max_area", "")).strip() or
-        str(request.args.get("rooms", "")).strip() in {"1", "2", "3", "4"}
+    has_python_filters = category == "realestate" and any(
+        str(request.args.get(name, "")).strip()
+        for name in ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area", "district")
     )
 
     if has_python_filters:
@@ -6181,6 +6143,30 @@ def mini_app_listings():
             meta = row.get("metadata") or {}
             meta = meta if isinstance(meta, dict) else {}
             details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
+
+            # Цена
+            price_value = row.get("price")
+            try:
+                price_n = float(str(price_value).replace(",", ".").strip())
+            except (TypeError, ValueError):
+                price_n = None
+            min_price_raw = str(request.args.get("min_price", "")).strip()
+            max_price_raw = str(request.args.get("max_price", "")).strip()
+            try: min_price_n = float(min_price_raw) if min_price_raw else None
+            except ValueError: min_price_n = None
+            try: max_price_n = float(max_price_raw) if max_price_raw else None
+            except ValueError: max_price_n = None
+            if min_price_n is not None and (price_n is None or price_n < min_price_n):
+                continue
+            if max_price_n is not None and (price_n is None or price_n > max_price_n):
+                continue
+
+            # Район / адрес
+            selected_district = str(request.args.get("district", "")).strip().lower()
+            if selected_district:
+                address_text = str(row.get("address", "") or "").lower()
+                if selected_district not in address_text:
+                    continue
 
             if selected_deal and selected_deal in {"rent", "seek", "sell", "buy"}:
                 if str(meta.get("type_key", "")).strip().lower() != selected_deal:
