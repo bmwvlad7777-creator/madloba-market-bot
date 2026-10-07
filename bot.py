@@ -5899,7 +5899,7 @@ $('detailBack').onclick=()=>showHome();
 $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
 $('profileBack').onclick=()=>showHome();
-document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home')showHome();else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){toast('Размещение откроется через бота')}else if(n==='favorites')loadFavorites()});
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home')showHome();else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
 applyLang();load(true);</script></body></html>'''
 
 
