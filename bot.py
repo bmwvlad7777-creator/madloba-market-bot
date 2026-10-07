@@ -5536,10 +5536,11 @@ async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeU
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phone=String(x.phone||'').trim();const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phone)contact.push(`<a class="contact-btn" href="tel:${encodeURIComponent(phone)}">📞 Позвонить</a>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">💬 WhatsApp</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">✈️ Telegram</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">📣 Открыть в канале</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:'<div class="photo-empty"><span>📷</span><small>Фото не добавлено</small></div>'}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-tag">${esc(x.category_name||x.category||'Объявление')}</div><div class="detail-title">${esc(x.title||'Объявление')}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;if(photos.length>1){let idx=0;const img='detailImg';const update=()=>{$(img).src='/media/'+encodeURIComponent(x.id)+'/'+idx;$('photoCount').textContent=(idx+1)+'/'+photos.length};$('prevPhoto').onclick=e=>{e.stopPropagation();idx=(idx-1+photos.length)%photos.length;update()};$('nextPhoto').onclick=e=>{e.stopPropagation();idx=(idx+1)%photos.length;update()}}}
 async function load(reset=true){if(state.loading)return;state.loading=true;if(reset){state.page=0;$('list').innerHTML=''}const p=new URLSearchParams({city:state.city,page:state.page,per_page:20});if(state.category)p.set('category',state.category);if(state.q)p.set('q',state.q);try{const r=await apiFetch('/api/listings?'+p);if(!r.ok)throw 0;const data=await r.json();if(reset)$('list').innerHTML='';$('list').insertAdjacentHTML('beforeend',(data.items||[]).map(card).join(''));bindCards();$('moreBtn').style.display=data.has_next?'inline-block':'none';$('countLabel').textContent=data.total_hint?data.total_hint+'+':'';if(reset&&!data.items?.length)$('list').innerHTML='<div class="empty">Пока нет объявлений.<br>Попробуйте другую категорию или город.</div>'}catch(e){if(reset)$('list').innerHTML='<div class="empty">Не удалось загрузить объявления.<br>Попробуйте ещё раз.</div>'}finally{state.loading=false}}
 function statusText(status){const map={published:'Опубликовано',pending:'На модерации',rejected:'Отклонено',draft:'Черновик',archived:'Снято с публикации'};return map[String(status||'').toLowerCase()]||String(status||'Объявление')}
-function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 Открыть</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ Редактировать</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ Снять</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 Удалить</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||'Объявление')}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${del}</div></div>`}
-async function loadMine(){showView('mineView');$('mineList').innerHTML='<div class="empty">Загружаем ваши объявления…</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML='<div class="empty">Откройте MADLOBA MARKET из Telegram, чтобы увидеть свои объявления.</div>';return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML='<div class="empty">У вас пока нет объявлений.<br><br>Разместите первое объявление через кнопку «Разместить».</div>';return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='unpublish')unpublishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML='<div class="empty">Не удалось загрузить ваши объявления. Попробуйте ещё раз.</div>'}}
+function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 Открыть</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ Редактировать</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ Снять</button>`:'';const republish=st==='archived'?`<button class="mine-action primary" data-action="republish">📣 Вернуть в публикацию</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 Удалить</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||'Объявление')}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${republish}${del}</div></div>`}
+async function loadMine(){showView('mineView');$('mineList').innerHTML='<div class="empty">Загружаем ваши объявления…</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML='<div class="empty">Откройте MADLOBA MARKET из Telegram, чтобы увидеть свои объявления.</div>';return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML='<div class="empty">У вас пока нет объявлений.<br><br>Разместите первое объявление через кнопку «Разместить».</div>';return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML='<div class="empty">Не удалось загрузить ваши объявления. Попробуйте ещё раз.</div>'}}
 async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ Редактирование объявления</div><div class="edit-field"><label>Описание</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>Цена</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>Валюта</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>Адрес / район</label><input id="editAddress" value="${esc(x.address||'')}"></div><div class="edit-field"><label>Телефон</label><input id="editPhone" inputmode="tel" value="${esc(x.phone||'')}"></div><div class="edit-field"><label>WhatsApp</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>Telegram</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">Отмена</button><button class="edit-save" id="editSave">Сохранить</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value};$('editSave').disabled=true;$('editSave').textContent='Сохраняем…';try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.detail||er.error||'save_failed')}toast('Объявление сохранено');await loadMine()}catch(e){toast(e.message && e.message!=='save_failed'?e.message:'Не удалось сохранить');$('editSave').disabled=false;$('editSave').textContent='Сохранить'}}}catch(e){toast('Не удалось открыть редактирование')}}
 async function unpublishMine(id){if(!confirm('Снять объявление с публикации? Оно исчезнет из каталога.'))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST'});if(!r.ok)throw 0;toast('Объявление снято с публикации');await loadMine()}catch(e){toast('Не удалось снять объявление')}}
+async function republishMine(id){if(!confirm('Вернуть объявление в публикацию? Оно снова появится в каталоге и будет опубликовано в канале.'))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/republish',{method:'POST'});if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}toast('Объявление снова опубликовано');await loadMine()}catch(e){toast(e.message==='channel_publish_failed'?'Не удалось опубликовать в канале':'Не удалось вернуть объявление в публикацию')}}
 async function deleteMine(id){if(!confirm('Удалить объявление без возможности восстановления?'))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'DELETE'});if(!r.ok)throw 0;toast('Объявление удалено');await loadMine()}catch(e){toast('Не удалось удалить объявление')}}
 async function loadProfile(){showView('profileView');$('profileContent').innerHTML='<div class="empty">Загружаем профиль…</div>';try{const r=await apiFetch('/api/me');if(r.status===401){$('profileContent').innerHTML='<div class="empty">Профиль доступен при запуске Mini App из Telegram.</div>';return}if(!r.ok)throw 0;const u=await r.json();const initials=esc(((u.first_name||'')+' '+(u.last_name||'')).trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'MM');$('profileContent').innerHTML=`<div class="account-head"><div class="account-avatar">${initials}</div><div><div class="account-name">${esc(([u.first_name,u.last_name].filter(Boolean).join(' ')||'Пользователь'))}</div><div class="account-sub">${u.username?'@'+esc(u.username):'Telegram-пользователь'}</div></div></div><div class="profile-card"><div class="profile-item"><div class="profile-label">Telegram ID</div><div class="profile-value">${esc(u.id)}</div></div><div class="profile-item"><div class="profile-label">Город</div><div class="profile-value">${esc(cityNames[state.city]||state.city)}</div></div><div class="profile-item"><div class="profile-label">Статус</div><div class="profile-value">Пользователь MADLOBA MARKET</div></div></div>`}catch(e){$('profileContent').innerHTML='<div class="empty">Не удалось загрузить профиль.</div>'}}
 $('cityBtn').onclick=()=>{state.city=state.city==='batumi'?'tbilisi':'batumi';localStorage.setItem('mm_city',state.city);$('cityName').textContent=cityNames[state.city];load(true);toast('Город: '+cityNames[state.city])};
@@ -5818,6 +5819,71 @@ def mini_app_unpublish_listing(listing_id):
     if updated is None:
         return jsonify({"error":"db_update_failed"}), 503
     return jsonify({"ok":True})
+
+
+@app.post("/api/my-listing/<int:listing_id>/republish")
+def mini_app_republish_listing(listing_id):
+    """Возвращает снятое объявление в канал и каталог без создания дубля в БД."""
+    row, user, user_id = _mini_app_owned_row(listing_id)
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not row:
+        return jsonify({"error":"not_found"}), 404
+    status = str(row.get("status") or "").lower()
+    if status == "published":
+        return jsonify({"ok":True})
+    if status != "archived":
+        return jsonify({"error":"not_republishable"}), 400
+
+    metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
+    data = dict(metadata)
+    data["id"] = row.get("id")
+    data["description"] = row.get("description") or metadata.get("description") or ""
+    data["price"] = str(row.get("price")) if row.get("price") is not None else metadata.get("price", "")
+    data["currency"] = row.get("currency") or metadata.get("currency") or "USD"
+    data["district"] = row.get("address") or metadata.get("district") or ""
+    data["contact"] = row.get("phone") or metadata.get("contact") or ""
+    data["whatsapp"] = metadata.get("whatsapp", "")
+    data["telegram"] = metadata.get("telegram", "")
+
+    photo_rows = supabase_request(
+        "GET", "listing_photos",
+        params={"select":"photo_url,sort_order", "listing_id":f"eq.{int(listing_id)}", "order":"sort_order.asc"},
+    ) or []
+    data["photos"] = [str(x.get("photo_url")) for x in photo_rows if x.get("photo_url")]
+
+    result = publish_listing(data)
+    if not result or not result.get("ok"):
+        print("MINI APP REPUBLISH ERROR:", result)
+        return jsonify({"error":"channel_publish_failed"}), 503
+
+    tg_result = result.get("result") if isinstance(result, dict) else None
+    message_id = None
+    if isinstance(tg_result, list) and tg_result:
+        message_id = tg_result[0].get("message_id")
+    elif isinstance(tg_result, dict):
+        message_id = tg_result.get("message_id")
+
+    channel_url = ""
+    if CHANNEL_USERNAME.startswith("@") and message_id:
+        channel_url = f"https://t.me/{CHANNEL_USERNAME[1:]}/{message_id}"
+
+    updated = supabase_request(
+        "PATCH", "listings",
+        params={"id":f"eq.{int(listing_id)}", "user_id":f"eq.{user_id}"},
+        payload={"status":"published", "channel_url":channel_url, "channel_message_id":message_id},
+    )
+    if updated is None:
+        # Не оставляем новое сообщение в канале без связи с объявлением.
+        if message_id and CHANNEL_USERNAME:
+            try:
+                api("deleteMessage", {"chat_id":CHANNEL_USERNAME, "message_id":message_id})
+            except Exception:
+                pass
+        return jsonify({"error":"db_update_failed"}), 503
+
+    load_supabase_published_listings()
+    return jsonify({"ok":True, "channel_url":channel_url})
 
 
 @app.delete("/api/my-listing/<int:listing_id>")
