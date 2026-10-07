@@ -6679,6 +6679,93 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
   #categoriesBlock .cat .ico .reference-category-icon{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}
   .popular-card{flex-basis:158px!important;width:158px!important;min-width:158px!important;max-width:158px!important}
 }
+
+/* FINAL POPULAR ICON NORMALIZATION */
+.popular-card{
+  flex:0 0 158px!important;
+  width:158px!important;
+  min-width:158px!important;
+  max-width:158px!important;
+  height:184px!important;
+  min-height:184px!important;
+  max-height:184px!important;
+  padding:10px!important;
+  display:grid!important;
+  grid-template-rows:100px 38px 14px!important;
+  gap:5px!important;
+  align-content:start!important;
+  overflow:hidden!important;
+}
+.popular-ico{
+  width:100%!important;
+  height:100px!important;
+  min-height:100px!important;
+  max-height:100px!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:transparent!important;
+  border-radius:16px!important;
+  overflow:hidden!important;
+}
+.popular-ico .reference-category-icon,
+.popular-ico img{
+  width:100px!important;
+  height:100px!important;
+  min-width:100px!important;
+  min-height:100px!important;
+  max-width:100px!important;
+  max-height:100px!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  display:block!important;
+  margin:0!important;
+}
+.popular-ico svg{
+  width:72px!important;
+  height:72px!important;
+  display:block!important;
+  margin:0 auto!important;
+}
+.popular-card b{
+  width:100%!important;
+  min-width:0!important;
+  min-height:38px!important;
+  max-height:38px!important;
+  margin:0!important;
+  padding:0 2px!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  font-size:14px!important;
+  line-height:1.15!important;
+  text-align:left!important;
+}
+.popular-card small{
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0 2px!important;
+  display:block!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:10px!important;
+  line-height:14px!important;
+}
+@media(max-width:480px){
+  .popular-card{
+    flex-basis:158px!important;
+    width:158px!important;
+    min-width:158px!important;
+    max-width:158px!important;
+    height:184px!important;
+  }
+}
 </style>
 </head>
 <body>
