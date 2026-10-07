@@ -6414,6 +6414,272 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
   #categoriesBlock .cat small{font-size:11px!important;line-height:1.2!important}
 }
 </style>
+
+<style id="madloba-final-carousel-icon-fix">
+/* FINAL FIX: stable carousels + perfectly normalized category artwork */
+.quick-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  width:100%!important;
+  max-width:100%!important;
+  gap:10px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:3px 2px 9px!important;
+  margin-top:12px!important;
+  scroll-snap-type:x mandatory!important;
+  scroll-padding-left:2px!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-action{
+  flex:0 0 112px!important;
+  width:112px!important;
+  min-width:112px!important;
+  max-width:112px!important;
+  height:76px!important;
+  min-height:76px!important;
+  max-height:76px!important;
+  box-sizing:border-box!important;
+  padding:8px 6px!important;
+  overflow:hidden!important;
+  scroll-snap-align:start!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:5px!important;
+}
+.quick-action .quick-icon{
+  width:40px!important;
+  height:40px!important;
+  flex:0 0 40px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+.quick-action .quick-icon svg{
+  width:29px!important;
+  height:29px!important;
+  display:block!important;
+  margin:0!important;
+}
+.quick-action .quick-icon .reference-category-icon{
+  width:32px!important;
+  height:32px!important;
+  max-width:32px!important;
+  max-height:32px!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  display:block!important;
+  margin:0 auto!important;
+}
+.quick-action .quick-label{
+  width:100%!important;
+  min-width:0!important;
+  display:block!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  line-height:1.05!important;
+  font-size:10.8px!important;
+}
+
+/* Main category cards: one fixed icon zone, one text zone, one arrow zone. */
+#categoriesBlock .cats{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+  width:100%!important;
+}
+#categoriesBlock .cat{
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr) 18px!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:9px!important;
+  width:100%!important;
+  min-width:0!important;
+  height:108px!important;
+  min-height:108px!important;
+  max-height:108px!important;
+  padding:11px 10px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+#categoriesBlock .cat .ico{
+  grid-column:1!important;
+  grid-row:1!important;
+  justify-self:center!important;
+  align-self:center!important;
+  width:54px!important;
+  height:54px!important;
+  min-width:54px!important;
+  min-height:54px!important;
+  max-width:54px!important;
+  max-height:54px!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+#categoriesBlock .cat .ico .reference-category-icon{
+  width:40px!important;
+  height:40px!important;
+  max-width:40px!important;
+  max-height:40px!important;
+  min-width:40px!important;
+  min-height:40px!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+}
+#categoriesBlock .cat b,
+#categoriesBlock .cat small{
+  grid-column:2!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:left!important;
+  justify-self:stretch!important;
+  overflow:hidden!important;
+  overflow-wrap:break-word!important;
+  word-break:normal!important;
+}
+#categoriesBlock .cat b{
+  grid-row:1!important;
+  align-self:center!important;
+  font-size:15px!important;
+  line-height:1.08!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+}
+#categoriesBlock .cat small{
+  display:none!important;
+}
+#categoriesBlock .cat:after{
+  grid-column:3!important;
+  grid-row:1!important;
+  position:static!important;
+  justify-self:center!important;
+  align-self:center!important;
+  transform:none!important;
+  margin:0!important;
+  font-size:25px!important;
+  line-height:1!important;
+}
+
+/* Popular carousel: every card has exactly the same image frame and text frame. */
+.popular-row{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:11px!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:2px 2px 12px!important;
+  scroll-snap-type:x mandatory!important;
+  scroll-padding-left:2px!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.popular-row::-webkit-scrollbar{display:none!important}
+.popular-card{
+  flex:0 0 158px!important;
+  width:158px!important;
+  min-width:158px!important;
+  max-width:158px!important;
+  height:164px!important;
+  min-height:164px!important;
+  max-height:164px!important;
+  padding:10px!important;
+  box-sizing:border-box!important;
+  display:grid!important;
+  grid-template-rows:82px minmax(32px,auto) 14px!important;
+  gap:6px!important;
+  align-content:start!important;
+  overflow:hidden!important;
+  scroll-snap-align:start!important;
+}
+.popular-ico{
+  width:100%!important;
+  height:82px!important;
+  min-height:82px!important;
+  max-height:82px!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.popular-ico .reference-category-icon,
+.popular-ico img{
+  width:58px!important;
+  height:58px!important;
+  min-width:58px!important;
+  min-height:58px!important;
+  max-width:58px!important;
+  max-height:58px!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  display:block!important;
+  margin:0 auto!important;
+}
+.popular-ico svg{
+  width:48px!important;
+  height:48px!important;
+  display:block!important;
+  margin:0 auto!important;
+}
+.popular-card b{
+  width:100%!important;
+  min-width:0!important;
+  min-height:32px!important;
+  max-height:32px!important;
+  margin:0!important;
+  padding:0!important;
+  display:-webkit-box!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  font-size:14px!important;
+  line-height:1.12!important;
+  text-align:left!important;
+}
+.popular-card small{
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  display:block!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:10px!important;
+  line-height:14px!important;
+}
+
+@media(max-width:480px){
+  .quick-action{flex-basis:112px!important;width:112px!important;min-width:112px!important;max-width:112px!important}
+  #categoriesBlock .cat{grid-template-columns:58px minmax(0,1fr) 18px!important;height:108px!important;min-height:108px!important;max-height:108px!important}
+  #categoriesBlock .cat .ico{width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important}
+  #categoriesBlock .cat .ico .reference-category-icon{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}
+  .popular-card{flex-basis:158px!important;width:158px!important;min-width:158px!important;max-width:158px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
@@ -6466,7 +6732,7 @@ function apiFetch(url,options={}){const headers=new Headers(options.headers||{})
 function setActiveNav(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));}
 function navTap(button){document.querySelectorAll('.nav').forEach(b=>b.classList.remove('tap'));button.classList.add('tap');setTimeout(()=>button.classList.remove('tap'),180)}
 function hideViews(){['homeView','detailView','favoritesView','mineView','profileView'].forEach(id=>$(id).classList.remove('show'));$('homeView').style.display='none'}
-function showHome(){setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');$('backBtn').classList.remove('show');state.category='';setQuickActive('');state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};updateFilterVisibility();load(true)}
+function showHome(){setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');$('backBtn').classList.remove('show');state.category='';resetHomeCarousels();setQuickActive('');state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};updateFilterVisibility();load(true)}
 function showView(id){hideViews();$(id).classList.add('show')}
 function realEstateFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','rooms','min_area','max_area','district'].includes(k)&&String(v||'').trim()!=='')}
 function autoFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','make','model','min_price','max_price','min_year','max_year','min_mileage','max_mileage'].includes(k)&&String(v||'').trim()!=='')}
@@ -6506,6 +6772,7 @@ function updateFilterVisibility(){
  syncFilterUI();if(state.category==='auto')loadAutoOptions(state.filters.make||'')
 }
 function renderQuickIcons(){document.querySelectorAll('.quick-icon[data-icon],.popular-ico[data-icon]').forEach(el=>{const k=el.dataset.icon;el.innerHTML=k==='all'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5" y="5" width="5" height="5" rx="1"/><rect x="14" y="5" width="5" height="5" rx="1"/><rect x="5" y="14" width="5" height="5" rx="1"/><rect x="14" y="14" width="5" height="5" rx="1"/></svg>':ICONS[k]||''})}
+function resetHomeCarousels(){const q=document.querySelector('.quick-actions');const p=document.querySelector('.popular-row');if(q)q.scrollLeft=0;if(p)p.scrollLeft=0}
 function setQuickActive(cat){document.querySelectorAll('.quick-action').forEach(b=>b.classList.toggle('active',(b.dataset.cat||'')===(cat||'')))}
 function renderCats(){$('cats').innerHTML=cats.map(c=>`<button class="cat" data-cat="${c[0]}"><span class="ico">${ICONS[c[1]]}</span><b>${t('category_'+c[0])}</b><small>${t('desc_'+c[0])}</small></button>`).join('');document.querySelectorAll('.cat,.quick-action').forEach(b=>b.onclick=()=>{showHome();state.category=b.dataset.cat;$('backBtn').classList.add('show');setQuickActive(state.category);updateFilterVisibility();load(true)}) ;setQuickActive(state.category)}
 function bindPopular(){document.querySelectorAll('.popular-card').forEach(b=>b.onclick=()=>{showHome();state.category=b.dataset.cat;$('backBtn').classList.add('show');updateFilterVisibility();load(true)});if($('popularAll'))$('popularAll').onclick=()=>{showHome();state.category='';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};if($('bestAll'))$('bestAll').onclick=()=>{showHome();state.category='';$('backBtn').classList.remove('show');updateFilterVisibility();$('resultsTitle').scrollIntoView({behavior:'smooth',block:'start'});load(true)}}
