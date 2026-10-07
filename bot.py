@@ -5661,6 +5661,63 @@ MINI_APP_HTML = r'''<!doctype html>
 .popular-section{margin-top:22px!important}.popular-section .section-head{margin:0 2px 11px!important}.section-link{background:transparent!important;color:var(--blue)!important;font-weight:900!important;font-size:14px!important;padding:4px 0!important}.popular-row{display:flex!important;gap:10px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding:1px 2px 8px!important;scrollbar-width:none!important}.popular-row::-webkit-scrollbar{display:none!important}.popular-card{flex:0 0 145px!important;height:128px!important;background:#fff!important;border:1px solid var(--line)!important;border-radius:18px!important;overflow:hidden!important;text-align:left!important;padding:12px!important;box-shadow:0 7px 20px rgba(15,23,42,.06)!important;scroll-snap-align:start!important}.popular-ico{display:flex!important;width:100%!important;height:64px!important;align-items:center!important;justify-content:center!important;border-radius:13px!important;background:#eef5ff!important;font-size:34px!important;margin-bottom:8px!important}.popular-card b{display:block!important;font-size:13px!important;line-height:1.15!important;color:#111827!important}.popular-card small{display:block!important;color:#7b8494!important;font-size:10px!important;margin-top:3px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.popular-card:nth-child(1) .popular-ico{background:linear-gradient(135deg,#dff1ff,#fff1e8)!important}.popular-card:nth-child(2) .popular-ico{background:linear-gradient(135deg,#e6f4ff,#eef2ff)!important}.popular-card:nth-child(3) .popular-ico{background:linear-gradient(135deg,#eef0ff,#e9f7ff)!important}.popular-card:nth-child(4) .popular-ico{background:linear-gradient(135deg,#fff4e6,#f2f7ff)!important}.popular-card:nth-child(5) .popular-ico{background:linear-gradient(135deg,#e5f8ef,#eaf3ff)!important}.best-section{margin-top:24px!important}.best-section .section-head{margin:0 2px 11px!important}.best-row{display:flex!important;gap:11px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding:1px 2px 10px!important;scrollbar-width:none!important}.best-row::-webkit-scrollbar{display:none!important}.best-card{position:relative;flex:0 0 224px!important;background:#fff!important;border:1px solid var(--line)!important;border-radius:20px!important;overflow:hidden!important;box-shadow:0 8px 24px rgba(15,23,42,.07)!important;scroll-snap-align:start!important;cursor:pointer}.best-photo{height:145px!important;background:linear-gradient(135deg,#eaf3ff,#f7f9fc)!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}.best-photo img{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important}.best-photo .photo-empty{width:100%!important;height:100%!important}.best-body{padding:11px 12px 13px!important}.best-tag{display:inline-flex!important;background:#eef5ff!important;color:var(--blue)!important;border-radius:999px!important;padding:4px 7px!important;font-size:10px!important;font-weight:850!important;margin-bottom:6px!important}.best-title{font-size:15px!important;line-height:1.2!important;font-weight:950!important;color:#111827!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;min-height:36px!important}.best-price{font-size:18px!important;font-weight:950!important;margin-top:8px!important}.best-loc{font-size:11px!important;color:#718096!important;margin-top:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.best-card .fav-btn{top:9px!important;right:9px!important;width:38px!important;height:38px!important;line-height:38px!important;font-size:21px!important}.best-empty{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 16px;color:var(--muted);text-align:center}
 @media(max-width:520px){.brand{font-size:19px!important}.city#langSelect{width:100px!important;min-width:100px!important}.city#cityBtn{min-width:118px!important}.hero h1{font-size:29px!important;margin-top:92px!important}.popular-card{flex-basis:142px!important}}
 @media (max-width:420px){.brand{font-size:16px;letter-spacing:-.8px}.city{height:46px;font-size:13px}.city#langSelect{width:64px}.city#cityBtn{min-width:100px}}
+
+/* HEADER FINAL FIX — based on original working bot.py.
+   Only layout/visual CSS; no JS or functionality changes. */
+.top{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:6px!important;
+  width:100%!important;
+}
+.top > div:last-child{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:5px!important;
+  flex:0 0 auto!important;
+  min-width:0!important;
+}
+.brand{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  font-size:18px!important;
+  letter-spacing:-.75px!important;
+}
+.city{flex:0 0 auto!important;white-space:nowrap!important;}
+.city#langSelect{
+  width:76px!important;
+  min-width:76px!important;
+  padding-left:9px!important;
+  padding-right:25px!important;
+  font-size:14px!important;
+}
+.city#cityBtn{
+  width:103px!important;
+  min-width:103px!important;
+  padding-left:12px!important;
+  padding-right:10px!important;
+  font-size:14px!important;
+}
+@media(max-width:520px){
+  .wrap{padding-left:14px!important;padding-right:14px!important;}
+  .top{gap:5px!important;}
+  .brand{font-size:17px!important;letter-spacing:-.8px!important;}
+  .top > div:last-child{gap:5px!important;}
+  .city{height:46px!important;border-radius:23px!important;}
+  .city#langSelect{width:74px!important;min-width:74px!important;font-size:14px!important;padding-left:8px!important;padding-right:23px!important;}
+  .city#cityBtn{width:103px!important;min-width:103px!important;font-size:14px!important;padding-left:11px!important;}
+}
+@media(max-width:380px){
+  .wrap{padding-left:11px!important;padding-right:11px!important;}
+  .brand{font-size:16px!important;}
+  .city#langSelect{width:70px!important;min-width:70px!important;}
+  .city#cityBtn{width:98px!important;min-width:98px!important;}
+}
+
 </style>
 </head>
 <body>
