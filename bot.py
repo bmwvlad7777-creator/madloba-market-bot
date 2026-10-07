@@ -5520,7 +5520,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <div class="filter-field"><label data-i18n="year_to">Год до</label><input id="autoFilterMaxYear" inputmode="numeric" placeholder="2026"></div>
 <div class="filter-field"><label data-i18n="mileage_from">Пробег от, км</label><input id="autoFilterMinMileage" inputmode="numeric" placeholder="0"></div>
 <div class="filter-field"><label data-i18n="mileage_to">Пробег до, км</label><input id="autoFilterMaxMileage" inputmode="numeric" placeholder="∞"></div>
-</div>div class="filter-actions"><button class="filter-reset" id="filterReset" type="button" data-i18n="reset">Сбросить</button><button class="filter-apply" id="filterApply" type="button" data-i18n="apply">Применить</button></div></div></div></div><button class="back" id="backBtn" data-i18n="all_categories">← Все категории</button><section id="homeView"><div id="categoriesBlock"><div class="section-head"><h2 data-i18n="categories">Категории</h2><small id="countLabel"></small></div><div class="cats" id="cats"></div></div><div class="results-head"><div class="section-head"><h2 id="resultsTitle" data-i18n="fresh_listings">Свежие объявления</h2><small id="resultsCount"></small></div><select id="sortSelect" class="sort-select" aria-label="Sort"><option value="new" data-i18n="sort_new">🆕 Сначала новые</option><option value="price_asc" data-i18n="sort_price_asc">💰 Цена: дешевле</option><option value="price_desc" data-i18n="sort_price_desc">💰 Цена: дороже</option></select></div><div class="list" id="list"></div><div class="more"><button id="moreBtn" style="display:none" data-i18n="show_more">Показать ещё</button></div></section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section></div>
+</div><div class="filter-actions"><button class="filter-reset" id="filterReset" type="button" data-i18n="reset">Сбросить</button><button class="filter-apply" id="filterApply" type="button" data-i18n="apply">Применить</button></div></div></div></div><button class="back" id="backBtn" data-i18n="all_categories">← Все категории</button><section id="homeView"><div id="categoriesBlock"><div class="section-head"><h2 data-i18n="categories">Категории</h2><small id="countLabel"></small></div><div class="cats" id="cats"></div></div><div class="results-head"><div class="section-head"><h2 id="resultsTitle" data-i18n="fresh_listings">Свежие объявления</h2><small id="resultsCount"></small></div><select id="sortSelect" class="sort-select" aria-label="Sort"><option value="new" data-i18n="sort_new">🆕 Сначала новые</option><option value="price_asc" data-i18n="sort_price_asc">💰 Цена: дешевле</option><option value="price_desc" data-i18n="sort_price_desc">💰 Цена: дороже</option></select></div><div class="list" id="list"></div><div class="more"><button id="moreBtn" style="display:none" data-i18n="show_more">Показать ещё</button></div></section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section></div>
 <nav class="bottom"><button class="nav active" data-nav="home"><span class="ni">⌂</span><span data-i18n="home">Главная</span></button><button class="nav" data-nav="favorites"><span class="ni">♡</span><span data-i18n="favorites">Избранное</span></button><button class="nav" data-nav="add"><span class="ni">＋</span><span data-i18n="post">Разместить</span></button><button class="nav" data-nav="mine"><span class="ni">▤</span><span data-i18n="mine_short">Мои</span></button><button class="nav" data-nav="profile"><span class="ni">◉</span><span data-i18n="profile">Профиль</span></button></nav><div class="toast" id="toast"></div>
 <script>
 const tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#0b73f6');tg.setBackgroundColor('#f5f7fb')}catch(e){}}
@@ -5546,6 +5546,48 @@ function showHome(){hideViews();$('homeView').style.display='block';$('detailVie
 function showView(id){hideViews();$(id).classList.add('show')}
 function realEstateFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','rooms','min_area','max_area','district'].includes(k)&&String(v||'').trim()!=='')}
 function autoFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','make','model','min_price','max_price','min_year','max_year','min_mileage','max_mileage'].includes(k)&&String(v||'').trim()!=='')}
+const AUTO_CATALOG={
+ Toyota:['Camry','Corolla','RAV4','Prius','Land Cruiser','Land Cruiser Prado','C-HR','Yaris','Highlander','Hilux','Aqua','Vitz'],
+ BMW:['3 Series','5 Series','7 Series','X1','X3','X5','X6','X7','i3','i4','iX'],
+ Mercedes-Benz:['C-Class','E-Class','S-Class','A-Class','GLA','GLC','GLE','GLS','V-Class','Sprinter'],
+ Audi:['A3','A4','A5','A6','A7','A8','Q3','Q5','Q7','Q8'],
+ Volkswagen:['Golf','Passat','Jetta','Tiguan','Touareg','Polo','T-Roc','Transporter'],
+ Hyundai:['Elantra','Sonata','Tucson','Santa Fe','Kona','i30','Ioniq','Palisade'],
+ Kia:['Rio','Cerato','K5','Sportage','Sorento','Seltos','Soul','Carnival'],
+ Nissan:['Qashqai','X-Trail','Juke','Note','Altima','Sentra','Pathfinder','Patrol'],
+ Honda:['Civic','Accord','CR-V','HR-V','Fit','Pilot'],
+ Ford:['Focus','Fusion','Mondeo','Kuga','Escape','Explorer','Mustang','Ranger'],
+ Chevrolet:['Cruze','Malibu','Aveo','Equinox','Captiva','Tahoe','Camaro'],
+ Lexus:['IS','ES','GS','LS','NX','RX','GX','LX','UX'],
+ Mazda:['Mazda 3','Mazda 6','CX-3','CX-5','CX-9','MX-5'],
+ Subaru:['Impreza','Legacy','Forester','Outback','XV','Crosstrek'],
+ Mitsubishi:['Lancer','Outlander','ASX','Pajero','Eclipse Cross'],
+ Volvo:['S60','S90','XC40','XC60','XC90'],
+ Renault:['Logan','Sandero','Duster','Kaptur','Arkana','Megane'],
+ Peugeot:['208','308','3008','5008','508'],
+ Skoda:['Fabia','Octavia','Superb','Karoq','Kodiaq'],
+ Jeep:['Renegade','Compass','Cherokee','Grand Cherokee','Wrangler'],
+ Land Rover:['Range Rover','Range Rover Sport','Discovery','Discovery Sport','Defender','Freelander'],
+ Porsche:['Cayenne','Macan','Panamera','911','Taycan'],
+ Tesla:['Model 3','Model S','Model X','Model Y'],
+ Geely:['Coolray','Atlas','Monjaro','Emgrand'],
+ Chery:['Tiggo 4','Tiggo 7','Tiggo 8','Arrizo 5'],
+ BYD:['Atto 3','Han','Seal','Song Plus','Tang'],
+ Daewoo:['Matiz','Nexia','Gentra'],
+ Dacia:['Duster','Logan','Sandero'],
+ Fiat:['500','Punto','Tipo','Doblo','Ducato'],
+ Suzuki:['Swift','Vitara','Jimny','SX4','S-Cross'],
+ Infiniti:['Q50','QX50','QX60','QX80'],
+ Acura:['TLX','MDX','RDX'],
+ Cadillac:['CT5','XT4','XT5','Escalade'],
+ Genesis:['G70','G80','G90','GV70','GV80'],
+ Jaguar:['XE','XF','F-Pace','E-Pace'],
+ Mini:['Cooper','Countryman','Clubman'],
+ Tesla:['Model 3','Model S','Model X','Model Y'],
+ Lada:['Niva','Vesta','Granta','Largus','XRAY']
+};
+const AUTO_MAKES=Object.keys(AUTO_CATALOG).sort((a,b)=>a.localeCompare(b));
+
 async function loadAutoOptions(make=''){
  try{
   const p=new URLSearchParams({city:state.city});
@@ -5554,15 +5596,30 @@ async function loadAutoOptions(make=''){
   if(!r.ok)throw 0;
   const data=await r.json();
   const makeEl=$('autoFilterMake'), modelEl=$('autoFilterModel');
+  const dbMakes=(data.makes||[]).map(String);
+  const allMakes=[...new Set([...AUTO_MAKES,...dbMakes])].sort((a,b)=>a.localeCompare(b));
   if(!make){
    const current=state.filters.make||'';
-   makeEl.innerHTML=`<option value="">${esc(t('auto_select_make'))}</option>`+(data.makes||[]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+   makeEl.innerHTML=`<option value="">${esc(t('auto_select_make'))}</option>`+allMakes.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
    makeEl.value=current;
   }
-  modelEl.innerHTML=`<option value="">${esc(t('auto_select_model'))}</option>`+(data.models||[]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  const catalogModels=make && AUTO_CATALOG[make] ? AUTO_CATALOG[make] : [];
+  const dbModels=(data.models||[]).map(String);
+  const allModels=[...new Set([...catalogModels,...dbModels])].sort((a,b)=>a.localeCompare(b));
+  modelEl.innerHTML=`<option value="">${esc(t('auto_select_model'))}</option>`+allModels.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
   modelEl.disabled=!make;
   if(make && state.filters.model)modelEl.value=state.filters.model;
- }catch(e){}
+ }catch(e){
+  const makeEl=$('autoFilterMake'), modelEl=$('autoFilterModel');
+  const current=state.filters.make||'';
+  if(!make){
+   makeEl.innerHTML=`<option value="">${esc(t('auto_select_make'))}</option>`+AUTO_MAKES.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+   makeEl.value=current;
+  }
+  const catalogModels=make && AUTO_CATALOG[make] ? AUTO_CATALOG[make] : [];
+  modelEl.innerHTML=`<option value="">${esc(t('auto_select_model'))}</option>`+catalogModels.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  modelEl.disabled=!make;
+ }
 }
 function syncFilterUI(){
  const f=state.filters;
