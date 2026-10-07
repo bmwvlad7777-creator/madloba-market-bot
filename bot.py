@@ -3,9 +3,15 @@
 import os
 import html
 import json
+import time
+import hmac
+import hashlib
+import urllib.parse
+import re
+
 import requests
 
-from flask import Flask, request
+from flask import Flask, request, Response, jsonify
 
 
 # ============================================================
@@ -5442,6 +5448,148 @@ def handle(
         return
 
 
+
+# ============================================================
+# MINI APP — MADLOBA MARKET
+# ============================================================
+
+MINI_APP_PER_PAGE = 20
+MINI_APP_URL = os.environ.get(
+    "MINI_APP_URL",
+    "https://madloba-market-bot.onrender.com/app",
+).strip()
+
+
+def validate_telegram_init_data(init_data, max_age=86400):
+    # Проверяет Telegram.WebApp.initData на сервере.
+    if not init_data or not BOT_TOKEN:
+        return None
+    try:
+        parsed = urllib.parse.parse_qs(init_data, keep_blank_values=True)
+        received_hash = parsed.pop("hash", [""])[0]
+        if not received_hash:
+            return None
+        data_check_string = "\n".join(
+            f"{key}={parsed[key][0]}" for key in sorted(parsed.keys())
+        )
+        secret_key = hmac.new(
+            b"WebAppData", BOT_TOKEN.encode("utf-8"), hashlib.sha256
+        ).digest()
+        calculated_hash = hmac.new(
+            secret_key, data_check_string.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(calculated_hash, received_hash):
+            return None
+        auth_date = int(parsed.get("auth_date", ["0"])[0])
+        if auth_date <= 0 or time.time() - auth_date > max_age:
+            return None
+        user_raw = parsed.get("user", [""])[0]
+        user = json.loads(user_raw) if user_raw else {}
+        if not isinstance(user, dict) or not user.get("id"):
+            return None
+        return user
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
+MINI_APP_HTML = r'''<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b73f6">
+<title>Madloba Market</title>
+<script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+<style>
+:root{--blue:#0b73f6;--text:#111827;--muted:#6b7280;--bg:#f5f7fb;--line:#e8edf5}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif}body{min-height:100vh;padding-bottom:88px}button,input{font:inherit}button{border:0;cursor:pointer}.wrap{max-width:760px;margin:auto;padding:14px 16px 24px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 16px}.brand{font-weight:900;font-size:20px;letter-spacing:-.5px}.brand span{color:var(--blue)}.city{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 12px;font-weight:800}.hero{background:linear-gradient(135deg,#0b73f6,#2d8cff);border-radius:24px;padding:20px;color:#fff;box-shadow:0 12px 30px rgba(11,115,246,.22);margin-bottom:16px}.hero h1{font-size:25px;line-height:1.05;margin:0 0 7px;font-weight:900}.hero p{margin:0 0 16px;opacity:.9;font-size:14px}.search{display:flex;align-items:center;gap:9px;background:#fff;border-radius:15px;padding:0 13px;height:50px;color:#111}.search input{border:0;outline:0;width:100%;background:transparent;font-size:16px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px}.section-head h2{font-size:18px;margin:0;font-weight:900}.section-head small{color:var(--muted)}.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;text-align:left;min-height:86px;box-shadow:0 4px 14px rgba(15,23,42,.035)}.cat .ico{font-size:25px;display:block;margin-bottom:7px}.cat b{font-size:14px}.cat small{display:block;color:var(--muted);margin-top:3px}.list{display:grid;gap:12px}.card{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 5px 18px rgba(15,23,42,.045)}.photo{height:170px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);display:flex;align-items:center;justify-content:center;font-size:38px;color:#9bb8df;overflow:hidden}.photo img{width:100%;height:100%;object-fit:cover;display:block}.cardbody{padding:14px}.tag{font-size:12px;color:var(--blue);font-weight:800;margin-bottom:5px}.title{font-size:17px;font-weight:900;margin-bottom:6px}.desc{font-size:14px;color:#4b5563;line-height:1.4}.meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.pill{background:#f4f7fb;border-radius:999px;padding:6px 9px;font-size:12px;color:#475569}.price{margin-top:12px;font-size:19px;font-weight:900}.loc{color:#64748b;font-size:13px;margin-top:6px}.more{text-align:center;margin:16px 0}.more button{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 18px;font-weight:800}.empty{text-align:center;padding:35px 15px;color:var(--muted)}.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr)}.nav{background:transparent;color:#7a8494;font-size:10px;font-weight:800;padding:5px 2px}.nav .ni{display:block;font-size:20px;line-height:22px}.nav.active{color:var(--blue)}.toast{position:fixed;z-index:50;left:50%;bottom:95px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1}.back{display:none;margin-bottom:12px;background:transparent;color:var(--blue);font-weight:800;padding:0}.back.show{display:block}@media(min-width:620px){.cats{grid-template-columns:repeat(4,minmax(0,1fr))}.photo{height:210px}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="top"><div class="brand">MADLOBA <span>MARKET</span></div><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div><div class="hero"><h1>Объявления рядом с вами</h1><p>Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search">🔎 <input id="search" placeholder="Что ищете? Например: квартира" autocomplete="off"></div></div><button class="back" id="backBtn">← Все категории</button><section><div class="section-head"><h2>Категории</h2><small id="countLabel"></small></div><div class="cats" id="cats"></div><div class="section-head"><h2>Свежие объявления</h2><small>новые</small></div><div class="list" id="list"></div><div class="more"><button id="moreBtn" style="display:none">Показать ещё</button></div></section></div>
+<nav class="bottom"><button class="nav active" data-nav="home"><span class="ni">⌂</span>Главная</button><button class="nav" data-nav="favorites"><span class="ni">♡</span>Избранное</button><button class="nav" data-nav="add"><span class="ni">＋</span>Разместить</button><button class="nav" data-nav="mine"><span class="ni">▤</span>Мои</button><button class="nav" data-nav="profile"><span class="ni">◉</span>Профиль</button></nav><div class="toast" id="toast"></div>
+<script>
+const tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#0b73f6');tg.setBackgroundColor('#f5f7fb')}catch(e){}}
+const state={city:localStorage.getItem('mm_city')||'batumi',page:0,q:'',category:'',loading:false};const cats=[['realestate','🏠','Недвижимость','Квартиры, дома, аренда'],['auto','🚗','Авто','Машины, мото, запчасти'],['tech','📱','Техника','Телефоны, электроника'],['home','🛋️','Дом и мебель','Мебель и всё для дома'],['kids','🧸','Детское','Детские товары'],['work','💼','Работа и услуги','Услуги и вакансии'],['give','🎁','Отдам','Бесплатно'],['search','🔎','Ищу','Нужные вещи и услуги']];const cityNames={batumi:'Batumi',tbilisi:'Tbilisi'};const $=id=>document.getElementById(id);function toast(t){$('toast').textContent=t;$('toast').classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>$('toast').classList.remove('show'),1800)}function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function money(v,c){const m={usd:'$',gel:'₾',eur:'€',USD:'$',GEL:'₾',EUR:'€'};return esc(v)+' '+(m[c]||esc(c||''))}function renderCats(){$('cats').innerHTML=cats.map(c=>`<button class="cat" data-cat="${c[0]}"><span class="ico">${c[1]}</span><b>${c[2]}</b><small>${c[3]}</small></button>`).join('');document.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;$('backBtn').classList.add('show');load(true)})}function card(x){const photo=(x.photos||[])[0];const title=x.title||x.category||'Объявление';const d=x.details||{};const pills=Object.values(d).filter(v=>v!==''&&v!=null).slice(0,4).map(v=>`<span class="pill">${esc(v)}</span>`).join('');return `<article class="card"><div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='🏠'">`:'🏠'}</div><div class="cardbody"><div class="tag">${esc(x.category_name||'Объявление')}</div><div class="title">${esc(title)}</div>${x.description?`<div class="desc">${esc(String(x.description).slice(0,180))}</div>`:''}<div class="meta">${pills}</div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${x.address?`<div class="loc">📍 ${esc(x.address)}</div>`:''}</div></article>`}async function load(reset=true){if(state.loading)return;state.loading=true;if(reset){state.page=0;$('list').innerHTML=''}const p=new URLSearchParams({city:state.city,page:state.page,per_page:20});if(state.category)p.set('category',state.category);if(state.q)p.set('q',state.q);try{const r=await fetch('/api/listings?'+p);if(!r.ok)throw 0;const data=await r.json();if(reset)$('list').innerHTML='';$('list').insertAdjacentHTML('beforeend',(data.items||[]).map(card).join(''));$('moreBtn').style.display=data.has_next?'inline-block':'none';$('countLabel').textContent=data.total_hint?data.total_hint+'+':'';if(reset&&!data.items?.length)$('list').innerHTML='<div class="empty">Пока нет объявлений.<br>Попробуйте другую категорию или город.</div>'}catch(e){if(reset)$('list').innerHTML='<div class="empty">Не удалось загрузить объявления.<br>Попробуйте ещё раз.</div>'}finally{state.loading=false}}$('cityBtn').onclick=()=>{state.city=state.city==='batumi'?'tbilisi':'batumi';localStorage.setItem('mm_city',state.city);$('cityName').textContent=cityNames[state.city];load(true);toast('Город: '+cityNames[state.city])};$('search').oninput=e=>{state.q=e.target.value.trim();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};$('moreBtn').onclick=()=>{state.page++;load(false)};$('backBtn').onclick=()=>{state.category='';$('backBtn').classList.remove('show');load(true)};document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{const n=b.dataset.nav;if(n==='home'){state.category='';$('backBtn').classList.remove('show');load(true)}else if(n==='add'){toast('Размещение откроется через бота')}else{toast('Этот раздел готовится')}});$('cityName').textContent=cityNames[state.city];renderCats();load(true);
+</script></body></html>'''
+
+
+
+
+@app.get("/app")
+def mini_app():
+    return Response(MINI_APP_HTML, mimetype="text/html")
+
+
+@app.get("/api/config")
+def mini_app_config():
+    return jsonify({"city":"batumi","per_page":MINI_APP_PER_PAGE,"app_url":MINI_APP_URL})
+
+
+@app.post("/api/auth")
+def mini_app_auth():
+    payload = request.get_json(silent=True) or {}
+    user = validate_telegram_init_data(str(payload.get("init_data", "")))
+    if not user:
+        return jsonify({"ok":False,"error":"invalid_init_data"}), 401
+    return jsonify({"ok":True,"user":user})
+
+
+@app.get("/api/listings")
+def mini_app_listings():
+    if not supabase_enabled():
+        return jsonify({"items":[],"has_next":False,"total_hint":0})
+    city = str(request.args.get("city", DEFAULT_CITY_SLUG)).strip().lower()
+    if city not in {"batumi", "tbilisi"}:
+        city = DEFAULT_CITY_SLUG
+    category = str(request.args.get("category", "")).strip().lower()
+    q = str(request.args.get("q", "")).strip()[:80]
+    try:
+        page = max(0, int(request.args.get("page", "0")))
+        per_page = min(20, max(1, int(request.args.get("per_page", "20"))))
+    except ValueError:
+        page, per_page = 0, 20
+    city_id = _supabase_city_id(city)
+    if not city_id:
+        return jsonify({"items":[],"has_next":False,"total_hint":0})
+    params={"select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status","status":"eq.published","city_id":f"eq.{city_id}","order":"created_at.desc","offset":str(page*per_page),"limit":str(per_page+1)}
+    if category:
+        category_id=_supabase_category_id(category)
+        if not category_id:return jsonify({"items":[],"has_next":False,"total_hint":0})
+        params["category_id"]=f"eq.{category_id}"
+    if q:
+        safe_q=q.replace("*","").replace(","," ").strip()
+        if safe_q:params["or"]=f"(title.ilike.*{safe_q}*,description.ilike.*{safe_q}*,address.ilike.*{safe_q}*)"
+    rows=supabase_request("GET","listings",params=params)
+    if rows is None:return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}),503
+    has_next=len(rows)>per_page;rows=rows[:per_page]
+    items=_attach_catalog_photos(rows)
+    for idx,item in enumerate(items):
+        row=rows[idx];item["title"]=row.get("title") or item.get("title") or listing_title(item);item["description"]=row.get("description") or item.get("description") or "";item["price"]=str(row.get("price")) if row.get("price") is not None else item.get("price","");item["currency"]=row.get("currency") or item.get("currency","");item["address"]=row.get("address") or item.get("district","");item["category_name"]=item.get("category") or "Объявление"
+    return jsonify({"items":items,"has_next":has_next,"total_hint":per_page*(page+1)+(1 if has_next else 0)})
+
+
+@app.get("/media/<int:listing_id>/<int:index>")
+def mini_app_media(listing_id, index):
+    if index < 0 or index >= MAX_PHOTOS:return "Not found",404
+    published=supabase_request("GET","listings",params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","limit":"1"})
+    if not published:return "Not found",404
+    rows=supabase_request("GET","listing_photos",params={"select":"photo_url,sort_order","listing_id":f"eq.{listing_id}","order":"sort_order.asc"})
+    if rows is None or index >= len(rows):return "Not found",404
+    photo_ref=str(rows[index].get("photo_url") or "")
+    if not photo_ref:return "Not found",404
+    try:
+        if photo_ref.startswith("http://") or photo_ref.startswith("https://"):
+            upstream=requests.get(photo_ref,timeout=15)
+        else:
+            file_info=api("getFile",{"file_id":photo_ref});result=file_info.get("result") if isinstance(file_info,dict) else None;file_path=result.get("file_path") if isinstance(result,dict) else None
+            if not file_path:return "Not found",404
+            upstream=requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=20)
+        if not upstream.ok:return "Not found",404
+        return Response(upstream.content,content_type=upstream.headers.get("Content-Type","image/jpeg"),headers={"Cache-Control":"public, max-age=86400","X-Content-Type-Options":"nosniff"})
+    except Exception as error:
+        print("MEDIA ERROR:",repr(error));return "Media unavailable",503
+
 # ============================================================
 # WEB
 # ============================================================
@@ -5568,6 +5716,25 @@ api(
             }
         ]
     }
+)
+
+
+# ============================================================
+# MINI APP — КНОПКА В МЕНЮ БОТА
+# ============================================================
+
+print(
+    "SET MINI APP MENU BUTTON:",
+    api(
+        "setChatMenuButton",
+        {
+            "menu_button": {
+                "type": "web_app",
+                "text": "MADLOBA MARKET",
+                "web_app": {"url": MINI_APP_URL},
+            }
+        },
+    )
 )
 
 
