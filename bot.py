@@ -311,13 +311,18 @@ def load_supabase_published_listings():
     if not supabase_enabled():
         return False
 
+    # В память загружаем только базовую информацию.
+    # Полный каталог теперь запрашивается постранично через
+    # load_supabase_catalog_page(), чтобы 10 000+ объявлений
+    # не загружались целиком при старте бота.
     rows = supabase_request(
         "GET",
         "listings",
         params={
-            "select": "*,listing_photos(*)",
+            "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
             "status": "eq.published",
             "order": "created_at.desc",
+            "limit": "1",
         },
     )
 
@@ -325,7 +330,6 @@ def load_supabase_published_listings():
         return False
 
     published_listings = [_row_to_listing(row) for row in rows]
-
     numeric_ids = [
         int(item["id"])
         for item in published_listings
@@ -334,6 +338,145 @@ def load_supabase_published_listings():
     next_listing_id = max(numeric_ids, default=0) + 1
     return True
 
+
+def _supabase_photo_rows(listing_ids):
+    if not listing_ids:
+        return []
+
+    values = ",".join(str(int(value)) for value in listing_ids)
+    return supabase_request(
+        "GET",
+        "listing_photos",
+        params={
+            "select": "listing_id,photo_url,sort_order",
+            "listing_id": f"in.({values})",
+            "order": "sort_order.asc",
+        },
+    ) or []
+
+
+def _attach_catalog_photos(rows):
+    photos_by_listing = {}
+    for photo in _supabase_photo_rows([row.get("id") for row in rows]):
+        listing_id = photo.get("listing_id")
+        photo_url = photo.get("photo_url")
+        if listing_id and photo_url:
+            photos_by_listing.setdefault(listing_id, []).append(photo_url)
+
+    result = []
+    for row in rows:
+        item = _row_to_listing(row)
+        item["photos"] = photos_by_listing.get(row.get("id"), [])
+        result.append(item)
+    return result
+
+
+def load_supabase_catalog_page(key, sub, page=0, per_page=20):
+    """
+    Загружает только текущую страницу каталога из Supabase.
+    Никаких 10 000 объявлений и фотографий в память.
+    Возвращает (items, has_next).
+    """
+    if not supabase_enabled():
+        return [], False
+
+    page = max(0, int(page))
+    per_page = max(1, min(int(per_page), 50))
+    offset = page * per_page
+
+    # Обычные категории фильтруются по индексируемому category_id.
+    if key != "search":
+        category_id = _supabase_category_id(key)
+        if not category_id:
+            return [], False
+
+        params = {
+            "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
+            "status": "eq.published",
+            "category_id": f"eq.{category_id}",
+            "order": "created_at.desc",
+            "offset": str(offset),
+            "limit": str(per_page + 1),
+        }
+
+        if sub != "all":
+            params["metadata->>subcategory_key"] = f"eq.{sub}"
+
+        rows = supabase_request("GET", "listings", params=params) or []
+        has_next = len(rows) > per_page
+        rows = rows[:per_page]
+        return _attach_catalog_photos(rows), has_next
+
+    # Раздел "Ищу" хранится отдельной категорией.
+    # Для конкретной тематики объединяем обычную категорию и wanted-объявления.
+    # Для первой версии достаточно ограниченных страниц: запрос никогда не
+    # вытаскивает весь каталог.
+    if sub == "all":
+        rows = supabase_request(
+            "GET",
+            "listings",
+            params={
+                "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
+                "status": "eq.published",
+                "order": "created_at.desc",
+                "offset": str(offset),
+                "limit": str(per_page + 1),
+            },
+        ) or []
+        has_next = len(rows) > per_page
+        rows = rows[:per_page]
+        return _attach_catalog_photos(rows), has_next
+
+    normal_category_id = _supabase_category_id(sub)
+    wanted_category_id = _supabase_category_id("search")
+    if not normal_category_id and not wanted_category_id:
+        return [], False
+
+    candidates = []
+    wanted_needed = offset + per_page + 1
+
+    if normal_category_id:
+        candidates.extend(supabase_request(
+            "GET",
+            "listings",
+            params={
+                "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
+                "status": "eq.published",
+                "category_id": f"eq.{normal_category_id}",
+                "order": "created_at.desc",
+                "offset": "0",
+                "limit": str(wanted_needed),
+            },
+        ) or [])
+
+    if wanted_category_id:
+        candidates.extend(supabase_request(
+            "GET",
+            "listings",
+            params={
+                "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
+                "status": "eq.published",
+                "category_id": f"eq.{wanted_category_id}",
+                "metadata->>subcategory_key": f"eq.{sub}",
+                "order": "created_at.desc",
+                "offset": "0",
+                "limit": str(wanted_needed),
+            },
+        ) or [])
+
+    # Объединяем и сортируем только ограниченный набор кандидатов.
+    unique = {}
+    for row in candidates:
+        unique[str(row.get("id"))] = row
+
+    rows = sorted(
+        unique.values(),
+        key=lambda row: row.get("created_at", ""),
+        reverse=True,
+    )
+    page_rows = rows[offset:offset + per_page]
+    has_next = len(rows) > offset + per_page
+    return _attach_catalog_photos(page_rows), has_next
 
 def save_listing_to_supabase(data, publish_result, user_chat_id=None):
     """Создаёт опубликованное объявление и его фотографии в Supabase."""
@@ -1182,21 +1325,23 @@ def listing_keyboard(key, sub, page, item):
 
 
 def send_listing_catalog(chat_id, key, sub, page=0):
-    # На всякий случай перечитываем актуальные объявления из Supabase
-    # перед каждым открытием каталога.
+    # 20 объявлений на одну страницу.
+    # Supabase при этом загружает только текущую страницу, а не весь каталог.
+    per_page = 20
+
     if supabase_enabled():
-        load_supabase_published_listings()
-
-    matches = [
-        item for item in published_listings
-        if listing_matches(item, key, sub)
-    ]
-
-    per_page = 5
-    total_pages = max(1, (len(matches) + per_page - 1) // per_page)
-    page = max(0, min(int(page), total_pages - 1))
-    start = page * per_page
-    current = matches[start:start + per_page]
+        current, has_next = load_supabase_catalog_page(
+            key, sub, page=page, per_page=per_page
+        )
+    else:
+        # Старый локальный режим сохраняем только как fallback.
+        matches = [
+            item for item in published_listings
+            if listing_matches(item, key, sub)
+        ]
+        start = page * per_page
+        current = matches[start:start + per_page]
+        has_next = start + per_page < len(matches)
 
     if key == "search":
         label = (
@@ -1227,8 +1372,7 @@ def send_listing_catalog(chat_id, key, sub, page=0):
     send(
         chat_id,
         f"<b>{esc(label)}</b>\n\n"
-        f"Найдено: <b>{len(matches)}</b>\n"
-        f"Страница <b>{page + 1}/{total_pages}</b>",
+        f"Страница <b>{page + 1}</b>",
         [[{"text": "⬅️ Назад", "callback_data": f"cat_{key}"}]],
     )
 
@@ -1251,7 +1395,7 @@ def send_listing_catalog(chat_id, key, sub, page=0):
             "text": "⬅️ Предыдущие",
             "callback_data": f"browsepage_{key}_{sub}_{page - 1}",
         })
-    if page + 1 < total_pages:
+    if has_next:
         navigation.append({
             "text": "Следующие ➡️",
             "callback_data": f"browsepage_{key}_{sub}_{page + 1}",
