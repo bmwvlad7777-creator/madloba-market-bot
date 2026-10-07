@@ -5878,13 +5878,13 @@ MINI_APP_HTML = r'''<!doctype html>
   letter-spacing:-.15px!important;color:#182235!important;
 }
 .quick-action.active{
-  background:linear-gradient(145deg,#0b73f6,#1768d5)!important;
-  border-color:#0b73f6!important;color:#fff!important;
-  box-shadow:0 12px 28px rgba(11,115,246,.30),inset 0 1px 0 rgba(255,255,255,.22)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(239,246,255,.96))!important;
+  border-color:#6aaeff!important;color:#0b73f6!important;
+  box-shadow:0 10px 24px rgba(15,23,42,.14),inset 0 0 0 1px rgba(11,115,246,.10)!important;
 }
-.quick-action.active:before{background:#fff!important;opacity:.9!important}
-.quick-action.active .quick-icon{background:rgba(255,255,255,.17)!important;color:#fff!important}
-.quick-action.active .quick-label{color:#fff!important}
+.quick-action.active:before{background:#0b73f6!important;opacity:1!important}
+.quick-action.active .quick-icon{background:#e7f1ff!important;color:#0b73f6!important}
+.quick-action.active .quick-label{color:#0b73f6!important}
 .quick-action:active{transform:scale(.96)!important}
 
 #categoriesBlock .section-head{
@@ -6010,7 +6010,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search">🔎 <input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
 <button class="quick-action" data-cat="realestate"><span class="quick-icon">🏠</span><span class="quick-label" data-i18n="category_realestate">Недвижимость</span></button>
 <button class="quick-action" data-cat="auto"><span class="quick-icon">🚗</span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
-<button class="quick-action" data-cat="tech"><span class="quick-icon">▣</span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
+<button class="quick-action" data-cat="tech"><span class="quick-icon">📱</span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
 <button class="quick-action" data-cat="work"><span class="quick-icon">💼</span><span class="quick-label" data-i18n="category_work">Работа</span></button>
 <button class="quick-action" data-cat=""><span class="quick-icon quick-grid">•••</span><span class="quick-label">Все</span></button>
 </div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button">⚙️ <span data-i18n="filters">Фильтры</span><span id="filterActive"></span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><input id="filterDistrict" data-i18n-placeholder="district_placeholder" placeholder="Например: Новый Бульвар"></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
