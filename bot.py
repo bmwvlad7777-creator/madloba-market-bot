@@ -5771,10 +5771,68 @@ MINI_APP_HTML = r'''<!doctype html>
   .best-card{flex-basis:244px!important}
   .best-photo{height:154px!important}
 }
+
+/* FINAL QUICK CATEGORY DESIGN */
+.quick-actions{
+  display:flex!important;
+  gap:9px!important;
+  margin-top:12px!important;
+  overflow-x:auto!important;
+  padding:2px 1px 5px!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-action{
+  flex:0 0 108px!important;
+  min-width:108px!important;
+  min-height:72px!important;
+  padding:9px 8px 8px!important;
+  border-radius:18px!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  background:rgba(255,255,255,.88)!important;
+  color:#182235!important;
+  box-shadow:0 8px 20px rgba(15,23,42,.12)!important;
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  transition:transform .16s ease,background .16s ease,color .16s ease,box-shadow .16s ease,border-color .16s ease!important;
+}
+.quick-icon{
+  width:32px!important;height:32px!important;border-radius:11px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  background:#eef5ff!important;color:#1476ed!important;font-size:19px!important;
+  line-height:1!important;box-shadow:inset 0 0 0 1px rgba(20,118,237,.05)!important;
+}
+.quick-grid{font-size:13px!important;letter-spacing:2px!important;font-weight:950!important}
+.quick-label{font-size:11px!important;line-height:1.05!important;font-weight:900!important;letter-spacing:-.1px!important;white-space:nowrap!important}
+.quick-action:active,.quick-action.tap{transform:scale(.96)!important}
+.quick-action.active{
+  background:#1476ed!important;color:#fff!important;border-color:#1476ed!important;
+  box-shadow:0 10px 22px rgba(20,118,237,.28)!important;
+}
+.quick-action.active .quick-icon{background:rgba(255,255,255,.18)!important;color:#fff!important}
+@media(max-width:520px){
+  .quick-action{flex-basis:104px!important;min-width:104px!important;min-height:70px!important}
+  .quick-label{font-size:10.5px!important}
+}
 </style>
 </head>
 <body>
-<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search">🔎 <input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions"><button class="quick-action" data-cat="realestate">🏠 <span>Недвижимость</span></button><button class="quick-action" data-cat="auto">🚗 <span>Авто</span></button><button class="quick-action" data-cat="tech">📱 <span>Техника</span></button><button class="quick-action" data-cat="work">💼 <span>Работа</span></button><button class="quick-action" data-cat="">▦ <span>Все</span></button></div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button">⚙️ <span data-i18n="filters">Фильтры</span><span id="filterActive"></span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><input id="filterDistrict" data-i18n-placeholder="district_placeholder" placeholder="Например: Новый Бульвар"></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
+<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search">🔎 <input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
+<button class="quick-action" data-cat="realestate"><span class="quick-icon">🏠</span><span class="quick-label" data-i18n="category_realestate">Недвижимость</span></button>
+<button class="quick-action" data-cat="auto"><span class="quick-icon">🚗</span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
+<button class="quick-action" data-cat="tech"><span class="quick-icon">▣</span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
+<button class="quick-action" data-cat="work"><span class="quick-icon">💼</span><span class="quick-label" data-i18n="category_work">Работа</span></button>
+<button class="quick-action" data-cat=""><span class="quick-icon quick-grid">•••</span><span class="quick-label">Все</span></button>
+</div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button">⚙️ <span data-i18n="filters">Фильтры</span><span id="filterActive"></span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><input id="filterDistrict" data-i18n-placeholder="district_placeholder" placeholder="Например: Новый Бульвар"></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
 <div class="filter-field" style="grid-column:1/-1"><label data-i18n="deal">Сделка</label><select id="autoFilterDeal"><option value="" data-i18n="all">Все</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div>
 <div class="filter-field"><label data-i18n="auto_make">Марка</label><select id="autoFilterMake"><option value="" data-i18n="auto_select_make">Выберите марку</option></select></div>
 <div class="filter-field"><label data-i18n="auto_model">Модель</label><select id="autoFilterModel" disabled><option value="" data-i18n="auto_select_model">Сначала выберите марку</option></select></div>
@@ -5808,7 +5866,7 @@ function apiFetch(url,options={}){const headers=new Headers(options.headers||{})
 function setActiveNav(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));}
 function navTap(button){document.querySelectorAll('.nav').forEach(b=>b.classList.remove('tap'));button.classList.add('tap');setTimeout(()=>button.classList.remove('tap'),180)}
 function hideViews(){['homeView','detailView','favoritesView','mineView','profileView'].forEach(id=>$(id).classList.remove('show'));$('homeView').style.display='none'}
-function showHome(){setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');$('backBtn').classList.remove('show');state.category='';state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};updateFilterVisibility();load(true)}
+function showHome(){setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');$('backBtn').classList.remove('show');state.category='';setQuickActive('');state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};updateFilterVisibility();load(true)}
 function showView(id){hideViews();$(id).classList.add('show')}
 function realEstateFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','rooms','min_area','max_area','district'].includes(k)&&String(v||'').trim()!=='')}
 function autoFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','make','model','min_price','max_price','min_year','max_year','min_mileage','max_mileage'].includes(k)&&String(v||'').trim()!=='')}
@@ -5847,7 +5905,8 @@ function updateFilterVisibility(){
  $('sortSelect').style.display=state.category?'block':'none';
  syncFilterUI();if(state.category==='auto')loadAutoOptions(state.filters.make||'')
 }
-function renderCats(){$('cats').innerHTML=cats.map(c=>`<button class="cat" data-cat="${c[0]}"><span class="ico">${c[1]}</span><b>${t('category_'+c[0])}</b><small>${t('desc_'+c[0])}</small></button>`).join('');document.querySelectorAll('.cat,.quick-action').forEach(b=>b.onclick=()=>{showHome();state.category=b.dataset.cat;$('backBtn').classList.add('show');updateFilterVisibility();load(true)})}
+function setQuickActive(cat){document.querySelectorAll('.quick-action').forEach(b=>b.classList.toggle('active',(b.dataset.cat||'')===(cat||'')))}
+function renderCats(){$('cats').innerHTML=cats.map(c=>`<button class="cat" data-cat="${c[0]}"><span class="ico">${c[1]}</span><b>${t('category_'+c[0])}</b><small>${t('desc_'+c[0])}</small></button>`).join('');document.querySelectorAll('.cat,.quick-action').forEach(b=>b.onclick=()=>{showHome();state.category=b.dataset.cat;$('backBtn').classList.add('show');setQuickActive(state.category);updateFilterVisibility();load(true)}) ;setQuickActive(state.category)}
 function bindPopular(){document.querySelectorAll('.popular-card').forEach(b=>b.onclick=()=>{showHome();state.category=b.dataset.cat;$('backBtn').classList.add('show');updateFilterVisibility();load(true)});if($('popularAll'))$('popularAll').onclick=()=>{showHome();state.category='';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};if($('bestAll'))$('bestAll').onclick=()=>{showHome();state.category='';$('backBtn').classList.remove('show');updateFilterVisibility();$('resultsTitle').scrollIntoView({behavior:'smooth',block:'start'});load(true)}}
 const FIELD_LABELS={rooms:['🛏','spec_rooms'],area:['📐','spec_area'],floor:['🏢','spec_floor'],make_model:['🚗','spec_make_model'],year:['📅','spec_year'],mileage:['🛣','spec_mileage'],brand_model:['📱','spec_brand_model'],condition:['✨','spec_condition'],warranty:['🛡','spec_warranty'],dimensions:['📏','spec_dimensions'],age:['👶','spec_age'],service:['🛠','spec_service'],experience:['⭐','spec_experience'],requirements:['📋','spec_requirements']};
 function formatSpecValue(k,v){const value=String(v??'').trim();if(!value)return '';if(k==='area'&&!/м²|m²|м2|m2/i.test(value))return value+' м²';if(k==='mileage'&&!/км|km/i.test(value))return value+' км';return value}
