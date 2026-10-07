@@ -6004,6 +6004,47 @@ MINI_APP_HTML = r'''<!doctype html>
   #categoriesBlock .cat small{font-size:10.5px!important}
 }
 
+<style id="premium-background-polish">
+:root{
+  --bg:#eef3f9!important;
+  --card:#ffffff!important;
+  --line:#dfe7f1!important;
+  --soft:#edf5ff!important;
+  --shadow:0 12px 32px rgba(31,55,88,.075)!important;
+}
+html,body{
+  background:
+    radial-gradient(circle at 12% 18%,rgba(91,164,255,.09),transparent 27%),
+    radial-gradient(circle at 88% 48%,rgba(80,143,230,.065),transparent 30%),
+    linear-gradient(180deg,#f5f8fc 0%,#eef3f9 48%,#eaf0f7 100%)!important;
+}
+body{color:#121a2b!important;}
+.wrap{position:relative!important;}
+.section-head h2{color:#121a2b!important;}
+#categoriesBlock .cat{
+  background:rgba(255,255,255,.94)!important;
+  border:1px solid rgba(219,228,239,.95)!important;
+  box-shadow:0 12px 30px rgba(35,58,91,.075),inset 0 1px 0 rgba(255,255,255,.95)!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
+}
+#categoriesBlock .cat:before{
+  content:""!important;position:absolute!important;left:14px!important;right:14px!important;top:0!important;height:2px!important;border-radius:0 0 4px 4px!important;
+  background:linear-gradient(90deg,rgba(37,128,246,.72),rgba(145,197,255,.35))!important;
+}
+#categoriesBlock .cat .ico{
+  background:linear-gradient(145deg,#f4f8ff,#eaf2fc)!important;
+  border:1px solid #e2ebf6!important;
+  box-shadow:0 4px 12px rgba(55,95,140,.07),inset 0 1px 0 #fff!important;
+}
+#categoriesBlock .cat b{color:#1677ee!important;}
+#categoriesBlock .cat small{color:#718096!important;}
+#categoriesBlock .cat:after{color:#9aabc0!important;}
+#categoriesBlock .cat:active{box-shadow:0 6px 18px rgba(35,58,91,.08)!important;}
+.popular-card,.best-card,.card,.detail-body,.profile-card,.mine-card,.edit-panel,.filter-panel{
+  box-shadow:0 12px 30px rgba(35,58,91,.065)!important;
+}
+</style>
 </style>
 </head>
 <body>
