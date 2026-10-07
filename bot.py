@@ -5502,7 +5502,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
 <style>
 :root{--blue:#0b73f6;--text:#111827;--muted:#6b7280;--bg:#f5f7fb;--line:#e8edf5}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif}body{min-height:100vh;padding-bottom:88px}button,input{font:inherit}button{border:0;cursor:pointer}.wrap{max-width:760px;margin:auto;padding:14px 16px 24px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 16px}.brand{font-weight:900;font-size:20px;letter-spacing:-.5px}.brand span{color:var(--blue)}.city{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 12px;font-weight:800}.hero{background:linear-gradient(135deg,#0b73f6,#2d8cff);border-radius:24px;padding:20px;color:#fff;box-shadow:0 12px 30px rgba(11,115,246,.22);margin-bottom:16px}.hero h1{font-size:25px;line-height:1.05;margin:0 0 7px;font-weight:900}.hero p{margin:0 0 16px;opacity:.9;font-size:14px}.search{display:flex;align-items:center;gap:9px;background:#fff;border-radius:15px;padding:0 13px;height:50px;color:#111}.search input{border:0;outline:0;width:100%;background:transparent;font-size:16px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px}.section-head h2{font-size:18px;margin:0;font-weight:900}.section-head small{color:var(--muted)}.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;text-align:left;min-height:86px;box-shadow:0 4px 14px rgba(15,23,42,.035)}.cat .ico{font-size:25px;display:block;margin-bottom:7px}.cat b{font-size:14px}.cat small{display:block;color:var(--muted);margin-top:3px}.list{display:grid;gap:12px}.card{cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 5px 18px rgba(15,23,42,.045)}.photo{height:170px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);display:flex;align-items:center;justify-content:center;font-size:38px;color:#9bb8df;overflow:hidden}.photo img{width:100%;height:100%;object-fit:cover;display:block}.photo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#9bb8df}.photo-empty span{font-size:34px}.photo-empty small{font-size:12px;color:#94a3b8}.cardbody{padding:14px}.tag{font-size:12px;color:var(--blue);font-weight:800;margin-bottom:5px}.title{font-size:17px;font-weight:900;margin-bottom:6px}.desc{font-size:14px;color:#4b5563;line-height:1.4}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:14px;padding:9px 8px;min-width:0}.spec-value{font-size:15px;font-weight:900;color:#111827;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spec-label{font-size:10px;color:#7b8494;margin-top:3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pill{background:#f4f7fb;border-radius:999px;padding:6px 9px;font-size:12px;color:#475569}.price{margin-top:12px;font-size:19px;font-weight:900}.loc{color:#64748b;font-size:13px;margin-top:6px}.more{text-align:center;margin:16px 0}.more button{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 18px;font-weight:800}.empty{text-align:center;padding:35px 15px;color:var(--muted)}.detail{display:none}.detail.show{display:block}.detail-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}.detail-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800}.detail-photo{height:290px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);border-radius:22px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}.detail-photo img{width:100%;height:100%;object-fit:cover}.detail-photo .photo-empty{height:100%;width:100%}.detail-photo .photo-empty span{font-size:42px}.detail-photo .photo-empty small{font-size:13px}.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(17,24,39,.58);color:#fff;font-size:22px}.gallery-btn.prev{left:12px}.gallery-btn.next{right:12px}.gallery-count{position:absolute;right:12px;bottom:12px;background:rgba(17,24,39,.65);color:#fff;border-radius:999px;padding:5px 9px;font-size:12px}.detail-body{background:#fff;border:1px solid var(--line);border-radius:22px;margin-top:12px;padding:18px;box-shadow:0 5px 18px rgba(15,23,42,.045)}.detail-tag{color:var(--blue);font-size:13px;font-weight:800;margin-bottom:7px}.detail-title{font-size:24px;line-height:1.15;font-weight:900;margin-bottom:10px}.detail-price{font-size:25px;font-weight:900;margin:12px 0}.detail-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.detail-spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:15px;padding:11px 10px;min-width:0}.detail-spec-value{font-size:17px;font-weight:900;line-height:1.15;word-break:break-word}.detail-spec-label{font-size:11px;color:#7b8494;margin-top:4px;line-height:1.15}.detail-desc{font-size:15px;line-height:1.55;color:#374151;white-space:pre-wrap;margin-top:14px}.detail-loc{font-size:14px;color:#64748b;margin-top:10px}.contacts{display:grid;gap:9px;margin-top:18px}.contact-btn{display:block;text-align:center;text-decoration:none;background:var(--blue);color:#fff;border-radius:14px;padding:13px 14px;font-weight:900}.contact-btn.secondary{background:#eef5ff;color:var(--blue)}.view{display:none}.view.show{display:block}.account-head{display:flex;align-items:center;gap:12px;margin:8px 0 16px}.account-avatar{width:52px;height:52px;border-radius:50%;background:#eaf3ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900}.account-name{font-size:20px;font-weight:900}.account-sub{font-size:13px;color:var(--muted);margin-top:3px}.view-title{font-size:25px;font-weight:900;margin:4px 0 16px}.view-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800;margin-bottom:14px}.mine-list{display:grid;gap:10px}.mine-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.mine-row{display:flex;gap:12px;align-items:center}.mine-thumb{width:76px;height:76px;border-radius:14px;background:#eef5ff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 76px}.mine-thumb img{width:100%;height:100%;object-fit:cover}.mine-info{min-width:0;flex:1}.mine-title{font-weight:900;font-size:15px;line-height:1.2}.mine-price{font-weight:900;font-size:16px;margin-top:5px}.status{display:inline-flex;align-items:center;margin-top:6px;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef5ff;color:var(--blue)}.profile-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px}.profile-item{padding:12px 0;border-bottom:1px solid var(--line)}.profile-item:last-child{border-bottom:0}.profile-label{font-size:12px;color:var(--muted);margin-bottom:4px}.profile-value{font-size:16px;font-weight:800;word-break:break-word}@media(min-width:620px){.detail-photo{height:380px}}.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr)}.nav{background:transparent;color:#7a8494;font-size:10px;font-weight:800;padding:5px 2px}.nav .ni{display:block;font-size:20px;line-height:22px}.nav.active{color:var(--blue)}.toast{position:fixed;z-index:50;left:50%;bottom:95px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1}.back{display:none;margin-bottom:12px;background:transparent;color:var(--blue);font-weight:800;padding:0}.back.show{display:block}@media(min-width:620px){.cats{grid-template-columns:repeat(4,minmax(0,1fr))}.photo{height:210px}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif}body{min-height:100vh;padding-bottom:88px}button,input{font:inherit}button{border:0;cursor:pointer}.wrap{max-width:760px;margin:auto;padding:14px 16px 24px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 16px}.brand{font-weight:900;font-size:20px;letter-spacing:-.5px}.brand span{color:var(--blue)}.city{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 12px;font-weight:800}.hero{background:linear-gradient(135deg,#0b73f6,#2d8cff);border-radius:24px;padding:20px;color:#fff;box-shadow:0 12px 30px rgba(11,115,246,.22);margin-bottom:16px}.hero h1{font-size:25px;line-height:1.05;margin:0 0 7px;font-weight:900}.hero p{margin:0 0 16px;opacity:.9;font-size:14px}.search{display:flex;align-items:center;gap:9px;background:#fff;border-radius:15px;padding:0 13px;height:50px;color:#111}.search input{border:0;outline:0;width:100%;background:transparent;font-size:16px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px}.section-head h2{font-size:18px;margin:0;font-weight:900}.section-head small{color:var(--muted)}.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;text-align:left;min-height:86px;box-shadow:0 4px 14px rgba(15,23,42,.035)}.cat .ico{font-size:25px;display:block;margin-bottom:7px}.cat b{font-size:14px}.cat small{display:block;color:var(--muted);margin-top:3px}.list{display:grid;gap:12px}.card{cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 5px 18px rgba(15,23,42,.045)}.photo{height:170px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);display:flex;align-items:center;justify-content:center;font-size:38px;color:#9bb8df;overflow:hidden}.photo img{width:100%;height:100%;object-fit:cover;display:block}.photo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#9bb8df}.photo-empty span{font-size:34px}.photo-empty small{font-size:12px;color:#94a3b8}.cardbody{padding:14px}.tag{font-size:12px;color:var(--blue);font-weight:800;margin-bottom:5px}.title{font-size:17px;font-weight:900;margin-bottom:6px}.desc{font-size:14px;color:#4b5563;line-height:1.4}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:14px;padding:9px 8px;min-width:0}.spec-value{font-size:15px;font-weight:900;color:#111827;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spec-label{font-size:10px;color:#7b8494;margin-top:3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pill{background:#f4f7fb;border-radius:999px;padding:6px 9px;font-size:12px;color:#475569}.price{margin-top:12px;font-size:19px;font-weight:900}.loc{color:#64748b;font-size:13px;margin-top:6px}.more{text-align:center;margin:16px 0}.more button{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 18px;font-weight:800}.empty{text-align:center;padding:35px 15px;color:var(--muted)}.detail{display:none}.detail.show{display:block}.detail-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}.detail-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800}.detail-photo{height:290px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);border-radius:22px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}.detail-photo img{width:100%;height:100%;object-fit:cover}.detail-photo .photo-empty{height:100%;width:100%}.detail-photo .photo-empty span{font-size:42px}.detail-photo .photo-empty small{font-size:13px}.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(17,24,39,.58);color:#fff;font-size:22px}.gallery-btn.prev{left:12px}.gallery-btn.next{right:12px}.gallery-count{position:absolute;right:12px;bottom:12px;background:rgba(17,24,39,.65);color:#fff;border-radius:999px;padding:5px 9px;font-size:12px}.detail-body{background:#fff;border:1px solid var(--line);border-radius:22px;margin-top:12px;padding:18px;box-shadow:0 5px 18px rgba(15,23,42,.045)}.detail-tag{color:var(--blue);font-size:13px;font-weight:800;margin-bottom:7px}.detail-title{font-size:24px;line-height:1.15;font-weight:900;margin-bottom:10px}.detail-price{font-size:25px;font-weight:900;margin:12px 0}.detail-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.detail-spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:15px;padding:11px 10px;min-width:0}.detail-spec-value{font-size:17px;font-weight:900;line-height:1.15;word-break:break-word}.detail-spec-label{font-size:11px;color:#7b8494;margin-top:4px;line-height:1.15}.detail-desc{font-size:15px;line-height:1.55;color:#374151;white-space:pre-wrap;margin-top:14px}.detail-loc{font-size:14px;color:#64748b;margin-top:10px}.contacts{display:grid;gap:9px;margin-top:18px}.contact-btn{display:block;text-align:center;text-decoration:none;background:var(--blue);color:#fff;border-radius:14px;padding:13px 14px;font-weight:900}.contact-btn.secondary{background:#eef5ff;color:var(--blue)}.view{display:none}.view.show{display:block}.account-head{display:flex;align-items:center;gap:12px;margin:8px 0 16px}.account-avatar{width:52px;height:52px;border-radius:50%;background:#eaf3ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900}.account-name{font-size:20px;font-weight:900}.account-sub{font-size:13px;color:var(--muted);margin-top:3px}.view-title{font-size:25px;font-weight:900;margin:4px 0 16px}.view-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800;margin-bottom:14px}.mine-list{display:grid;gap:10px}.mine-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.mine-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:11px}.mine-action{background:#f4f7fb;color:#334155;border:1px solid #e6ebf3;border-radius:11px;padding:9px 8px;font-size:12px;font-weight:800}.mine-action.primary{background:#eef5ff;color:var(--blue);border-color:#dceaff}.mine-action.danger{background:#fff1f2;color:#be123c;border-color:#ffe0e5}.mine-action.warn{background:#fff8e8;color:#a16207;border-color:#fce8b2}.edit-panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}.edit-title{font-size:20px;font-weight:900;margin-bottom:12px}.edit-field{margin-bottom:11px}.edit-field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:5px}.edit-field input,.edit-field textarea,.edit-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 12px;outline:0}.edit-field textarea{min-height:110px;resize:vertical}.edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.edit-save{background:var(--blue);color:#fff;border-radius:12px;padding:12px;font-weight:900}.edit-cancel{background:#eef2f7;color:#475569;border-radius:12px;padding:12px;font-weight:900}.mine-row{display:flex;gap:12px;align-items:center}.mine-thumb{width:76px;height:76px;border-radius:14px;background:#eef5ff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 76px}.mine-thumb img{width:100%;height:100%;object-fit:cover}.mine-info{min-width:0;flex:1}.mine-title{font-weight:900;font-size:15px;line-height:1.2}.mine-price{font-weight:900;font-size:16px;margin-top:5px}.status{display:inline-flex;align-items:center;margin-top:6px;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef5ff;color:var(--blue)}.profile-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px}.profile-item{padding:12px 0;border-bottom:1px solid var(--line)}.profile-item:last-child{border-bottom:0}.profile-label{font-size:12px;color:var(--muted);margin-bottom:4px}.profile-value{font-size:16px;font-weight:800;word-break:break-word}@media(min-width:620px){.detail-photo{height:380px}}.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr)}.nav{background:transparent;color:#7a8494;font-size:10px;font-weight:800;padding:5px 2px}.nav .ni{display:block;font-size:20px;line-height:22px}.nav.active{color:var(--blue)}.toast{position:fixed;z-index:50;left:50%;bottom:95px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1}.back{display:none;margin-bottom:12px;background:transparent;color:var(--blue);font-weight:800;padding:0}.back.show{display:block}@media(min-width:620px){.cats{grid-template-columns:repeat(4,minmax(0,1fr))}.photo{height:210px}}
 </style>
 </head>
 <body>
@@ -5531,9 +5531,12 @@ function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el
 async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();renderDetail(x);hideViews();$('detailView').classList.add('show');window.scrollTo({top:0,behavior:'smooth'})}catch(e){toast('Не удалось открыть объявление')}}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phone=String(x.phone||'').trim();const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phone)contact.push(`<a class="contact-btn" href="tel:${encodeURIComponent(phone)}">📞 Позвонить</a>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">💬 WhatsApp</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">✈️ Telegram</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">📣 Открыть в канале</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:'<div class="photo-empty"><span>📷</span><small>Фото не добавлено</small></div>'}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-tag">${esc(x.category_name||x.category||'Объявление')}</div><div class="detail-title">${esc(x.title||'Объявление')}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;if(photos.length>1){let idx=0;const img='detailImg';const update=()=>{$(img).src='/media/'+encodeURIComponent(x.id)+'/'+idx;$('photoCount').textContent=(idx+1)+'/'+photos.length};$('prevPhoto').onclick=e=>{e.stopPropagation();idx=(idx-1+photos.length)%photos.length;update()};$('nextPhoto').onclick=e=>{e.stopPropagation();idx=(idx+1)%photos.length;update()}}}
 async function load(reset=true){if(state.loading)return;state.loading=true;if(reset){state.page=0;$('list').innerHTML=''}const p=new URLSearchParams({city:state.city,page:state.page,per_page:20});if(state.category)p.set('category',state.category);if(state.q)p.set('q',state.q);try{const r=await apiFetch('/api/listings?'+p);if(!r.ok)throw 0;const data=await r.json();if(reset)$('list').innerHTML='';$('list').insertAdjacentHTML('beforeend',(data.items||[]).map(card).join(''));bindCards();$('moreBtn').style.display=data.has_next?'inline-block':'none';$('countLabel').textContent=data.total_hint?data.total_hint+'+':'';if(reset&&!data.items?.length)$('list').innerHTML='<div class="empty">Пока нет объявлений.<br>Попробуйте другую категорию или город.</div>'}catch(e){if(reset)$('list').innerHTML='<div class="empty">Не удалось загрузить объявления.<br>Попробуйте ещё раз.</div>'}finally{state.loading=false}}
-function statusText(status){const map={published:'Опубликовано',pending:'На модерации',rejected:'Отклонено',draft:'Черновик'};return map[String(status||'').toLowerCase()]||String(status||'Объявление')}
-function mineCard(x){const photo=(x.photos||[])[0];return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||'Объявление')}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div></div>`}
-async function loadMine(){showView('mineView');$('mineList').innerHTML='<div class="empty">Загружаем ваши объявления…</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML='<div class="empty">Откройте MADLOBA MARKET из Telegram, чтобы увидеть свои объявления.</div>';return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML='<div class="empty">У вас пока нет опубликованных объявлений.<br><br>Разместите первое объявление через кнопку «Разместить».</div>';return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id))}catch(e){$('mineList').innerHTML='<div class="empty">Не удалось загрузить ваши объявления. Попробуйте ещё раз.</div>'}}
+function statusText(status){const map={published:'Опубликовано',pending:'На модерации',rejected:'Отклонено',draft:'Черновик',archived:'Снято с публикации'};return map[String(status||'').toLowerCase()]||String(status||'Объявление')}
+function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 Открыть</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ Редактировать</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ Снять</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 Удалить</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||'Объявление')}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${del}</div></div>`}
+async function loadMine(){showView('mineView');$('mineList').innerHTML='<div class="empty">Загружаем ваши объявления…</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML='<div class="empty">Откройте MADLOBA MARKET из Telegram, чтобы увидеть свои объявления.</div>';return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML='<div class="empty">У вас пока нет объявлений.<br><br>Разместите первое объявление через кнопку «Разместить».</div>';return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='unpublish')unpublishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML='<div class="empty">Не удалось загрузить ваши объявления. Попробуйте ещё раз.</div>'}}
+async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ Редактирование объявления</div><div class="edit-field"><label>Описание</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>Цена</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>Валюта</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>Адрес / район</label><input id="editAddress" value="${esc(x.address||'')}"></div><div class="edit-field"><label>Телефон</label><input id="editPhone" inputmode="tel" value="${esc(x.phone||'')}"></div><div class="edit-field"><label>WhatsApp</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>Telegram</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">Отмена</button><button class="edit-save" id="editSave">Сохранить</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value};$('editSave').disabled=true;$('editSave').textContent='Сохраняем…';try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'save_failed')}toast('Объявление сохранено');await loadMine()}catch(e){toast(e.message==='save_failed'?'Не удалось сохранить':'Не удалось сохранить');$('editSave').disabled=false;$('editSave').textContent='Сохранить'}}}catch(e){toast('Не удалось открыть редактирование')}}
+async function unpublishMine(id){if(!confirm('Снять объявление с публикации? Оно исчезнет из каталога.'))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST'});if(!r.ok)throw 0;toast('Объявление снято с публикации');await loadMine()}catch(e){toast('Не удалось снять объявление')}}
+async function deleteMine(id){if(!confirm('Удалить объявление без возможности восстановления?'))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'DELETE'});if(!r.ok)throw 0;toast('Объявление удалено');await loadMine()}catch(e){toast('Не удалось удалить объявление')}}
 async function loadProfile(){showView('profileView');$('profileContent').innerHTML='<div class="empty">Загружаем профиль…</div>';try{const r=await apiFetch('/api/me');if(r.status===401){$('profileContent').innerHTML='<div class="empty">Профиль доступен при запуске Mini App из Telegram.</div>';return}if(!r.ok)throw 0;const u=await r.json();const initials=esc(((u.first_name||'')+' '+(u.last_name||'')).trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'MM');$('profileContent').innerHTML=`<div class="account-head"><div class="account-avatar">${initials}</div><div><div class="account-name">${esc(([u.first_name,u.last_name].filter(Boolean).join(' ')||'Пользователь'))}</div><div class="account-sub">${u.username?'@'+esc(u.username):'Telegram-пользователь'}</div></div></div><div class="profile-card"><div class="profile-item"><div class="profile-label">Telegram ID</div><div class="profile-value">${esc(u.id)}</div></div><div class="profile-item"><div class="profile-label">Город</div><div class="profile-value">${esc(cityNames[state.city]||state.city)}</div></div><div class="profile-item"><div class="profile-label">Статус</div><div class="profile-value">Пользователь MADLOBA MARKET</div></div></div>`}catch(e){$('profileContent').innerHTML='<div class="empty">Не удалось загрузить профиль.</div>'}}
 $('cityBtn').onclick=()=>{state.city=state.city==='batumi'?'tbilisi':'batumi';localStorage.setItem('mm_city',state.city);$('cityName').textContent=cityNames[state.city];load(true);toast('Город: '+cityNames[state.city])};
 $('search').oninput=e=>{state.q=e.target.value.trim();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
@@ -5586,6 +5589,218 @@ def mini_app_me():
     return jsonify(user)
 
 
+def _mini_app_owned_row(listing_id):
+    """Возвращает объявление, если оно принадлежит текущему Telegram-пользователю."""
+    if not supabase_enabled():
+        return None, None, None
+    user = _mini_app_authenticated_user()
+    if not user:
+        return None, None, None
+    user_id = _supabase_user_id(user.get("id"))
+    if not user_id:
+        return None, user, None
+    rows = supabase_request(
+        "GET",
+        "listings",
+        params={
+            "select":"id,user_id,title,description,price,currency,address,metadata,channel_url,channel_message_id,created_at,category_id,city_id,status,phone,whatsapp,telegram",
+            "id":f"eq.{int(listing_id)}",
+            "user_id":f"eq.{user_id}",
+            "limit":"1",
+        },
+    )
+    return (rows[0] if rows else None), user, user_id
+
+
+def _delete_listing_channel_messages(row):
+    """Удаляет связанные сообщения объявления из канала, насколько их IDs сохранены."""
+    ids = []
+    metadata = row.get("metadata") or {}
+    if isinstance(metadata, dict):
+        raw = metadata.get("channel_message_ids") or []
+        if isinstance(raw, list):
+            ids.extend(raw)
+    if row.get("channel_message_id"):
+        ids.append(row.get("channel_message_id"))
+    seen = set()
+    for message_id in ids:
+        try:
+            message_id = int(message_id)
+        except (TypeError, ValueError):
+            continue
+        if message_id in seen:
+            continue
+        seen.add(message_id)
+        if CHANNEL_USERNAME:
+            api("deleteMessage", {"chat_id": CHANNEL_USERNAME, "message_id": message_id})
+
+
+def _sync_edited_listing_to_channel(row, data):
+    """Обновляет текст опубликованного объявления в Telegram, когда это возможно."""
+    if not CHANNEL_USERNAME or not row.get("channel_message_id"):
+        return
+    try:
+        text_value = build_listing(data)
+        photos = data.get("photos") or []
+        if photos:
+            api("editMessageCaption", {
+                "chat_id": CHANNEL_USERNAME,
+                "message_id": row.get("channel_message_id"),
+                "caption": text_value,
+                "parse_mode": "HTML",
+            })
+        else:
+            api("editMessageText", {
+                "chat_id": CHANNEL_USERNAME,
+                "message_id": row.get("channel_message_id"),
+                "text": text_value,
+                "parse_mode": "HTML",
+            })
+    except Exception as error:
+        print("MINI APP CHANNEL SYNC ERROR:", repr(error))
+
+
+@app.get("/api/my-listing/<int:listing_id>")
+def mini_app_my_listing(listing_id):
+    row, user, user_id = _mini_app_owned_row(listing_id)
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not row:
+        return jsonify({"error":"not_found"}), 404
+    item = _attach_catalog_photos([row])[0]
+    item["title"] = row.get("title") or item.get("title") or listing_title(item)
+    item["description"] = row.get("description") or item.get("description") or ""
+    item["price"] = str(row.get("price")) if row.get("price") is not None else item.get("price", "")
+    item["currency"] = row.get("currency") or item.get("currency", "")
+    item["address"] = row.get("address") or item.get("district", "")
+    item["phone"] = row.get("phone") or ""
+    item["whatsapp"] = row.get("whatsapp") or ""
+    item["telegram"] = row.get("telegram") or ""
+    item["status"] = row.get("status") or "draft"
+    item["category_name"] = item.get("category") or "Объявление"
+    return jsonify(item)
+
+
+@app.patch("/api/my-listing/<int:listing_id>")
+def mini_app_update_listing(listing_id):
+    row, user, user_id = _mini_app_owned_row(listing_id)
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not row:
+        return jsonify({"error":"not_found"}), 404
+    payload = request.get_json(silent=True) or {}
+    description = str(payload.get("description", "")).strip()[:5000]
+    address = str(payload.get("address", "")).strip()[:300]
+    phone = str(payload.get("phone", "")).strip()[:80]
+    whatsapp = str(payload.get("whatsapp", "")).strip()[:80]
+    telegram = str(payload.get("telegram", "")).strip()[:80]
+    currency = str(payload.get("currency", row.get("currency") or "USD")).upper().strip()
+    if currency not in {"USD", "GEL", "EUR"}:
+        return jsonify({"error":"invalid_currency"}), 400
+    raw_price = str(payload.get("price", "")).strip().replace(",", ".")
+    price = None
+    if raw_price:
+        try:
+            price = float(raw_price)
+        except ValueError:
+            return jsonify({"error":"invalid_price"}), 400
+        if price < 0 or price > 100000000:
+            return jsonify({"error":"invalid_price"}), 400
+
+    metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
+    metadata["description"] = description
+    metadata["district"] = address
+    metadata["contact"] = phone
+    metadata["whatsapp"] = whatsapp
+    metadata["telegram"] = telegram
+    metadata["currency"] = currency
+    metadata["price"] = raw_price
+    metadata.pop("_telegram_id", None)
+
+    updated = supabase_request(
+        "PATCH",
+        "listings",
+        params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
+        payload={
+            "description": description,
+            "price": price,
+            "currency": currency,
+            "phone": phone,
+            "whatsapp": whatsapp,
+            "telegram": telegram,
+            "address": address,
+            "metadata": metadata,
+        },
+    )
+    if updated is None:
+        return jsonify({"error":"db_update_failed"}), 503
+
+    # Синхронизируем уже опубликованный текст с каналом.
+    if str(row.get("status") or "").lower() == "published":
+        edited = dict(metadata)
+        edited["category_key"] = edited.get("category_key") or ""
+        edited["details"] = dict(edited.get("details") or {})
+        edited["photos"] = list(edited.get("photos") or [])
+        edited["category"] = edited.get("category") or "Объявление"
+        edited["type"] = edited.get("type") or ""
+        edited["subcategory"] = edited.get("subcategory") or ""
+        edited["description"] = description
+        edited["district"] = address
+        edited["contact"] = phone
+        edited["whatsapp"] = whatsapp
+        edited["telegram"] = telegram
+        edited["currency"] = currency
+        edited["price"] = raw_price
+        _sync_edited_listing_to_channel(row, edited)
+
+    return jsonify({"ok":True})
+
+
+@app.post("/api/my-listing/<int:listing_id>/unpublish")
+def mini_app_unpublish_listing(listing_id):
+    row, user, user_id = _mini_app_owned_row(listing_id)
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not row:
+        return jsonify({"error":"not_found"}), 404
+    status = str(row.get("status") or "").lower()
+    if status != "published":
+        return jsonify({"ok":True})
+    _delete_listing_channel_messages(row)
+    updated = supabase_request(
+        "PATCH",
+        "listings",
+        params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
+        payload={"status":"archived","channel_url":"","channel_message_id":None},
+    )
+    if updated is None:
+        return jsonify({"error":"db_update_failed"}), 503
+    return jsonify({"ok":True})
+
+
+@app.delete("/api/my-listing/<int:listing_id>")
+def mini_app_delete_listing(listing_id):
+    row, user, user_id = _mini_app_owned_row(listing_id)
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not row:
+        return jsonify({"error":"not_found"}), 404
+    _delete_listing_channel_messages(row)
+    photos_deleted = supabase_request(
+        "DELETE",
+        "listing_photos",
+        params={"listing_id":f"eq.{listing_id}"},
+    )
+    deleted = supabase_request(
+        "DELETE",
+        "listings",
+        params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
+    )
+    if deleted is None:
+        return jsonify({"error":"db_delete_failed"}), 503
+    return jsonify({"ok":True})
+
+
 @app.get("/api/my-listings")
 def mini_app_my_listings():
     if not supabase_enabled():
@@ -5600,7 +5815,7 @@ def mini_app_my_listings():
         "GET",
         "listings",
         params={
-            "select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status,user_id",
+            "select":"id,title,description,price,currency,address,metadata,channel_url,channel_message_id,created_at,category_id,city_id,status,user_id,phone,whatsapp,telegram",
             "user_id":f"eq.{user_id}",
             "order":"created_at.desc",
             "limit":"100",
