@@ -6140,8 +6140,9 @@ def mini_app_listings():
                 params["price.lte"] = str(float(max_price))
             except ValueError:
                 pass
-        if rooms in {"1", "2", "3"}:
-            params["metadata->details->>rooms"] = f"eq.{rooms}"
+        # Комнаты фильтруем ниже на Python по metadata.details.
+        # JSON-path параметр PostgREST здесь не используем: он может
+        # приводить к HTTP 400 на конфигурации Supabase проекта.
         if district:
             safe_district = district.replace("*", "").replace(",", " ").strip()
             if safe_district:
