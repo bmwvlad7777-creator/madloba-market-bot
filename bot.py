@@ -5661,67 +5661,71 @@ MINI_APP_HTML = r'''<!doctype html>
 .popular-section{margin-top:22px!important}.popular-section .section-head{margin:0 2px 11px!important}.section-link{background:transparent!important;color:var(--blue)!important;font-weight:900!important;font-size:14px!important;padding:4px 0!important}.popular-row{display:flex!important;gap:10px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding:1px 2px 8px!important;scrollbar-width:none!important}.popular-row::-webkit-scrollbar{display:none!important}.popular-card{flex:0 0 145px!important;height:128px!important;background:#fff!important;border:1px solid var(--line)!important;border-radius:18px!important;overflow:hidden!important;text-align:left!important;padding:12px!important;box-shadow:0 7px 20px rgba(15,23,42,.06)!important;scroll-snap-align:start!important}.popular-ico{display:flex!important;width:100%!important;height:64px!important;align-items:center!important;justify-content:center!important;border-radius:13px!important;background:#eef5ff!important;font-size:34px!important;margin-bottom:8px!important}.popular-card b{display:block!important;font-size:13px!important;line-height:1.15!important;color:#111827!important}.popular-card small{display:block!important;color:#7b8494!important;font-size:10px!important;margin-top:3px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.popular-card:nth-child(1) .popular-ico{background:linear-gradient(135deg,#dff1ff,#fff1e8)!important}.popular-card:nth-child(2) .popular-ico{background:linear-gradient(135deg,#e6f4ff,#eef2ff)!important}.popular-card:nth-child(3) .popular-ico{background:linear-gradient(135deg,#eef0ff,#e9f7ff)!important}.popular-card:nth-child(4) .popular-ico{background:linear-gradient(135deg,#fff4e6,#f2f7ff)!important}.popular-card:nth-child(5) .popular-ico{background:linear-gradient(135deg,#e5f8ef,#eaf3ff)!important}.best-section{margin-top:24px!important}.best-section .section-head{margin:0 2px 11px!important}.best-row{display:flex!important;gap:11px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;padding:1px 2px 10px!important;scrollbar-width:none!important}.best-row::-webkit-scrollbar{display:none!important}.best-card{position:relative;flex:0 0 224px!important;background:#fff!important;border:1px solid var(--line)!important;border-radius:20px!important;overflow:hidden!important;box-shadow:0 8px 24px rgba(15,23,42,.07)!important;scroll-snap-align:start!important;cursor:pointer}.best-photo{height:145px!important;background:linear-gradient(135deg,#eaf3ff,#f7f9fc)!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}.best-photo img{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important}.best-photo .photo-empty{width:100%!important;height:100%!important}.best-body{padding:11px 12px 13px!important}.best-tag{display:inline-flex!important;background:#eef5ff!important;color:var(--blue)!important;border-radius:999px!important;padding:4px 7px!important;font-size:10px!important;font-weight:850!important;margin-bottom:6px!important}.best-title{font-size:15px!important;line-height:1.2!important;font-weight:950!important;color:#111827!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;min-height:36px!important}.best-price{font-size:18px!important;font-weight:950!important;margin-top:8px!important}.best-loc{font-size:11px!important;color:#718096!important;margin-top:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.best-card .fav-btn{top:9px!important;right:9px!important;width:38px!important;height:38px!important;line-height:38px!important;font-size:21px!important}.best-empty{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 16px;color:var(--muted);text-align:center}
 @media(max-width:520px){.brand{font-size:19px!important}.city#langSelect{width:100px!important;min-width:100px!important}.city#cityBtn{min-width:118px!important}.hero h1{font-size:29px!important;margin-top:92px!important}.popular-card{flex-basis:142px!important}}
 @media (max-width:420px){.brand{font-size:16px;letter-spacing:-.8px}.city{height:46px;font-size:13px}.city#langSelect{width:64px}.city#cityBtn{min-width:100px}}
+</style>
 
-/* HEADER FINAL FIX — based on original working bot.py.
-   Only layout/visual CSS; no JS or functionality changes. */
+<style id="final-header-polish">
+/* FINAL HEADER POLISH — visual only */
 .top{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:6px!important;
-  width:100%!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
 }
-.top > div:last-child{
+.top>div:last-child{
   display:flex!important;
+  gap:7px!important;
   align-items:center!important;
-  justify-content:flex-end!important;
-  gap:5px!important;
-  flex:0 0 auto!important;
-  min-width:0!important;
+  flex-shrink:0!important;
 }
 .brand{
-  flex:1 1 auto!important;
-  min-width:0!important;
-  white-space:nowrap!important;
+  font-size:22px!important;
+  letter-spacing:-1px!important;
+  gap:4px!important;
+  line-height:1!important;
   overflow:visible!important;
-  font-size:18px!important;
-  letter-spacing:-.75px!important;
 }
-.city{flex:0 0 auto!important;white-space:nowrap!important;}
-.city#langSelect{
-  width:76px!important;
-  min-width:76px!important;
-  padding-left:9px!important;
-  padding-right:25px!important;
-  font-size:14px!important;
+.city{
+  height:48px!important;
+  box-sizing:border-box!important;
+  padding:0 11px!important;
+  font-size:15px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
 }
-.city#cityBtn{
-  width:103px!important;
-  min-width:103px!important;
-  padding-left:12px!important;
-  padding-right:10px!important;
-  font-size:14px!important;
+#langSelect{
+  width:78px!important;
+  min-width:78px!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  text-align:center!important;
+  padding-right:23px!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;
+  background-position:right 9px center!important;
+  background-size:12px 12px!important;
+}
+#cityBtn{
+  min-width:112px!important;
+  width:112px!important;
+  justify-content:center!important;
 }
 @media(max-width:520px){
-  .wrap{padding-left:14px!important;padding-right:14px!important;}
-  .top{gap:5px!important;}
-  .brand{font-size:17px!important;letter-spacing:-.8px!important;}
-  .top > div:last-child{gap:5px!important;}
-  .city{height:46px!important;border-radius:23px!important;}
-  .city#langSelect{width:74px!important;min-width:74px!important;font-size:14px!important;padding-left:8px!important;padding-right:23px!important;}
-  .city#cityBtn{width:103px!important;min-width:103px!important;font-size:14px!important;padding-left:11px!important;}
+  .wrap{padding-left:14px!important;padding-right:14px!important}
+  .top{gap:6px!important;margin-left:0!important;margin-right:0!important}
+  .brand{font-size:20px!important;letter-spacing:-1px!important}
+  #langSelect{width:76px!important;min-width:76px!important}
+  #cityBtn{width:108px!important;min-width:108px!important}
+  .city{height:46px!important;font-size:14px!important;padding-left:9px!important;padding-right:9px!important}
 }
-@media(max-width:380px){
-  .wrap{padding-left:11px!important;padding-right:11px!important;}
-  .brand{font-size:16px!important;}
-  .city#langSelect{width:70px!important;min-width:70px!important;}
-  .city#cityBtn{width:98px!important;min-width:98px!important;}
+@media(max-width:390px){
+  .brand{font-size:19px!important;letter-spacing:-1.05px!important}
+  #langSelect{width:72px!important;min-width:72px!important}
+  #cityBtn{width:104px!important;min-width:104px!important}
+  .top>div:last-child{gap:5px!important}
 }
-
 </style>
 </head>
 <body>
-<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search">🔎 <input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions"><button class="quick-action" data-cat="realestate">🏠 <span>Недвижимость</span></button><button class="quick-action" data-cat="auto">🚗 <span>Авто</span></button><button class="quick-action" data-cat="tech">📱 <span>Техника</span></button><button class="quick-action" data-cat="work">💼 <span>Работа</span></button><button class="quick-action" data-cat="">▦ <span>Все</span></button></div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button">⚙️ <span data-i18n="filters">Фильтры</span><span id="filterActive"></span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><input id="filterDistrict" data-i18n-placeholder="district_placeholder" placeholder="Например: Новый Бульвар"></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
+<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🌐 RU</option><option value="en">🌐 EN</option><option value="ka">🌐 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search">🔎 <input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions"><button class="quick-action" data-cat="realestate">🏠 <span>Недвижимость</span></button><button class="quick-action" data-cat="auto">🚗 <span>Авто</span></button><button class="quick-action" data-cat="tech">📱 <span>Техника</span></button><button class="quick-action" data-cat="work">💼 <span>Работа</span></button><button class="quick-action" data-cat="">▦ <span>Все</span></button></div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button">⚙️ <span data-i18n="filters">Фильтры</span><span id="filterActive"></span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><input id="filterDistrict" data-i18n-placeholder="district_placeholder" placeholder="Например: Новый Бульвар"></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
 <div class="filter-field" style="grid-column:1/-1"><label data-i18n="deal">Сделка</label><select id="autoFilterDeal"><option value="" data-i18n="all">Все</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div>
 <div class="filter-field"><label data-i18n="auto_make">Марка</label><select id="autoFilterMake"><option value="" data-i18n="auto_select_make">Выберите марку</option></select></div>
 <div class="filter-field"><label data-i18n="auto_model">Модель</label><select id="autoFilterModel" disabled><option value="" data-i18n="auto_select_model">Сначала выберите марку</option></select></div>
