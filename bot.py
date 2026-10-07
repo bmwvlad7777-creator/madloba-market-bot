@@ -6135,6 +6135,127 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 #categoriesBlock .cat .ico,.quick-action .quick-icon,.popular-ico{overflow:hidden!important}
 .quick-action .quick-icon .reference-category-icon,#categoriesBlock .cat .ico .reference-category-icon{transform:scale(1.03)!important}
 </style>
+
+<style id="madloba-category-layout-fix">
+/* Final alignment fix for category cards */
+#categoriesBlock .cats{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  width:100%!important;
+  overflow:visible!important;
+}
+#categoriesBlock .cat{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:62px minmax(0,1fr) 20px!important;
+  grid-template-rows:auto auto!important;
+  column-gap:11px!important;
+  row-gap:3px!important;
+  align-items:center!important;
+  min-width:0!important;
+  width:100%!important;
+  min-height:118px!important;
+  height:118px!important;
+  box-sizing:border-box!important;
+  padding:13px 12px!important;
+  overflow:hidden!important;
+}
+#categoriesBlock .cat .ico{
+  grid-column:1!important;
+  grid-row:1 / span 2!important;
+  align-self:center!important;
+  justify-self:center!important;
+  flex:none!important;
+}
+#categoriesBlock .cat b{
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:end!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+#categoriesBlock .cat small{
+  grid-column:2!important;
+  grid-row:2!important;
+  align-self:start!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+#categoriesBlock .cat:after{
+  grid-column:3!important;
+  grid-row:1 / span 2!important;
+  align-self:center!important;
+  justify-self:center!important;
+  position:static!important;
+  margin:0!important;
+  line-height:1!important;
+}
+@media(max-width:480px){
+  #categoriesBlock .cats{gap:10px!important}
+  #categoriesBlock .cat{
+    grid-template-columns:54px minmax(0,1fr) 18px!important;
+    column-gap:9px!important;
+    min-height:112px!important;
+    height:112px!important;
+    padding:12px 10px!important;
+    border-radius:22px!important;
+  }
+  #categoriesBlock .cat .ico{
+    width:54px!important;
+    height:54px!important;
+    border-radius:17px!important;
+  }
+  #categoriesBlock .cat .ico .reference-category-icon{
+    transform:scale(1.0)!important;
+  }
+  #categoriesBlock .cat b{
+    font-size:15px!important;
+    line-height:1.08!important;
+  }
+  #categoriesBlock .cat small{
+    font-size:10.5px!important;
+    line-height:1.2!important;
+  }
+  #categoriesBlock .cat:after{font-size:28px!important}
+}
+
+/* Quick category buttons: three clean cards visible without a cut-off fourth edge */
+.quick-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+  width:100%!important;
+  overflow:visible!important;
+}
+.quick-action{
+  min-width:0!important;
+  width:100%!important;
+  flex:none!important;
+  box-sizing:border-box!important;
+}
+.quick-action .quick-label{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+@media(max-width:480px){
+  .quick-actions{gap:8px!important}
+  .quick-action{height:74px!important;min-height:74px!important;padding:8px 5px!important}
+  .quick-action .quick-icon{width:42px!important;height:42px!important}
+  .quick-action .quick-label{font-size:11px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
