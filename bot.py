@@ -6120,10 +6120,10 @@ def mini_app_listings():
         rooms = str(request.args.get("rooms", "")).strip()
         district = str(request.args.get("district", "")).strip()[:80]
 
-        if deal in {"rent", "seek", "sell", "buy"}:
-            params["metadata->>type_key"] = f"eq.{deal}"
-        if sub in {"apartment", "house", "room", "commercial", "land", "garage"}:
-            params["metadata->>subcategory_key"] = f"eq.{sub}"
+        # Не передаём JSON-пути metadata в PostgREST query params:
+        # на некоторых конфигурациях Supabase это приводит к 400.
+        # deal/sub фильтруем ниже на Python после получения ограниченного
+        # набора кандидатов из Supabase.
         if min_price and max_price:
             try:
                 params["price.gte"] = str(float(min_price))
@@ -6151,9 +6151,11 @@ def mini_app_listings():
     # Берём ограниченный набор кандидатов, уже отфильтрованный Supabase
     # по городу/категории/цене/типу/району.
     has_python_filters = category == "realestate" and (
+        str(request.args.get("deal", "")).strip() in {"rent", "seek", "sell", "buy"} or
+        str(request.args.get("sub", "")).strip() in {"apartment", "house", "room", "commercial", "land", "garage"} or
         str(request.args.get("min_area", "")).strip() or
         str(request.args.get("max_area", "")).strip() or
-        str(request.args.get("rooms", "")).strip() == "4"
+        str(request.args.get("rooms", "")).strip() in {"1", "2", "3", "4"}
     )
 
     if has_python_filters:
@@ -6171,11 +6173,28 @@ def mini_app_listings():
         except ValueError: max_area_n = None
 
         filtered = []
+        selected_deal = str(request.args.get("deal", "")).strip().lower()
+        selected_sub = str(request.args.get("sub", "")).strip().lower()
+        selected_rooms = str(request.args.get("rooms", "")).strip()
         for row in rows:
             meta = row.get("metadata") or {}
-            details = meta.get("details") if isinstance(meta, dict) else {}
-            details = details if isinstance(details, dict) else {}
-            if str(request.args.get("rooms", "")).strip() == "4":
+            meta = meta if isinstance(meta, dict) else {}
+            details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
+
+            if selected_deal and selected_deal in {"rent", "seek", "sell", "buy"}:
+                if str(meta.get("type_key", "")).strip().lower() != selected_deal:
+                    continue
+            if selected_sub and selected_sub in {"apartment", "house", "room", "commercial", "land", "garage"}:
+                if str(meta.get("subcategory_key", "")).strip().lower() != selected_sub:
+                    continue
+
+            if selected_rooms in {"1", "2", "3"}:
+                try:
+                    if float(str(details.get("rooms", "")).replace(",", ".")) != float(selected_rooms):
+                        continue
+                except (TypeError, ValueError):
+                    continue
+            elif selected_rooms == "4":
                 try:
                     if float(str(details.get("rooms", "")).replace(",", ".")) < 4:
                         continue
