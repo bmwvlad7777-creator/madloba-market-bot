@@ -5678,8 +5678,12 @@ def mini_app_my_listing(listing_id):
     item["currency"] = row.get("currency") or item.get("currency", "")
     item["address"] = row.get("address") or item.get("district", "")
     item["phone"] = row.get("phone") or ""
-    item["whatsapp"] = row.get("whatsapp") or ""
-    item["telegram"] = row.get("telegram") or ""
+    # WhatsApp/Telegram в Supabase могут быть boolean-полями.
+    # Для Mini App берём пользовательские контакты из metadata,
+    # где они хранятся как строки.
+    row_metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    item["whatsapp"] = row_metadata.get("whatsapp", "")
+    item["telegram"] = row_metadata.get("telegram", "")
     item["status"] = row.get("status") or "draft"
     item["category_name"] = item.get("category") or "Объявление"
     return jsonify(item)
@@ -5729,8 +5733,6 @@ def mini_app_update_listing(listing_id):
         "price": price,
         "currency": currency,
         "phone": phone,
-        "whatsapp": whatsapp,
-        "telegram": telegram,
         "address": address,
         "metadata": metadata,
     }
