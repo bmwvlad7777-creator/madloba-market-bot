@@ -5527,6 +5527,35 @@ MINI_APP_HTML = r'''<!doctype html>
 .more{margin-bottom:10px}
 @media(max-width:430px){.wrap{padding-top:calc(68px + var(--tg-content-safe-area-inset-top,0px))}.hero{min-height:405px}.hero h1{font-size:36px}.quick-actions{gap:6px}.quick-action{height:64px}.popular-grid{gap:7px}.pc-img{height:76px}.pc-body{padding:8px 7px 9px}.pc-body b{font-size:10px}.pc-body small{font-size:8px}.promo{min-height:178px;padding:21px 17px}.promo h3{font-size:25px}}
 @media(min-width:650px){.hero{border-radius:0 0 34px 34px}.quick-actions{max-width:720px;margin-left:auto;margin-right:auto}.popular-grid{grid-template-columns:repeat(4,1fr)}#homeView:not(.catalog-mode) #list .card{min-width:300px;width:300px}}
+
+/* FINAL PREMIUM HOME OVERRIDES */
+.wrap{max-width:760px;padding:calc(68px + var(--tg-content-safe-area-inset-top,0px)) 0 28px;margin:auto}
+.hero{position:relative;overflow:hidden;margin:0 0 18px;border-radius:0 0 30px 30px;min-height:430px;padding:78px 18px 18px;color:#fff;background-color:#0b73f6!important;background-image:linear-gradient(180deg,rgba(3,20,55,.42) 0%,rgba(3,20,55,.08) 42%,rgba(3,20,55,.48) 100%),url('/app-hero.jpg')!important;background-size:cover!important;background-position:center 48%!important;box-shadow:0 18px 38px rgba(7,88,205,.24)}
+.top{position:absolute;left:0;right:0;top:18px;z-index:10;margin:0;padding:0 16px;display:flex;align-items:center;gap:8px}
+.brand{font-size:18px!important;letter-spacing:-.55px;flex:1 1 auto!important;min-width:0!important;overflow:hidden;text-overflow:ellipsis;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.22)}
+.brand span{color:#a9d0ff!important}
+.top>div:last-child{gap:6px!important}
+.city{font-size:13px!important;padding:9px 10px!important;box-shadow:0 6px 18px rgba(0,0,0,.12)!important}
+.city#langSelect{width:70px!important;flex:0 0 70px}.city#cityBtn{min-width:108px!important;flex:0 0 108px}
+.hero-copy{position:relative;z-index:3;padding-top:72px}
+.hero h1{font-size:38px!important;line-height:1.02!important;max-width:350px;text-shadow:0 3px 16px rgba(0,0,0,.24)}
+.hero p{font-size:16px!important;max-width:340px;margin-bottom:18px;text-shadow:0 2px 10px rgba(0,0,0,.18)}
+.search{height:58px!important;border-radius:20px!important;padding:0 12px 0 15px!important;box-shadow:0 10px 28px rgba(0,0,0,.16)!important}
+.search input{font-size:16px!important}
+.quick-actions{grid-template-columns:repeat(5,1fr)!important;gap:7px!important;margin-top:12px!important}
+.quick-action{height:58px!important;padding:7px 3px!important;border-radius:15px!important;background:rgba(255,255,255,.18)!important;border:1px solid rgba(255,255,255,.28)!important;font-size:10px!important;backdrop-filter:blur(10px)}
+.quick-action span{display:block;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.promo{display:block!important;min-height:178px!important;margin:22px 16px 22px!important;padding:21px 18px!important;border-radius:24px!important;color:#fff!important;background-color:#075bd0!important;background-image:linear-gradient(90deg,rgba(3,74,173,.92) 0%,rgba(5,91,205,.60) 52%,rgba(5,91,205,.08) 100%),url('/app-hero.jpg')!important;background-size:cover!important;background-position:center!important;box-shadow:0 14px 34px rgba(7,88,205,.20)!important}
+.promo h3{font-size:25px!important;line-height:1.02!important}.promo p{color:rgba(255,255,255,.92)!important}
+.home-section-head{display:flex!important;align-items:center;justify-content:space-between;margin:0 16px 10px!important}.home-section-head h2{margin:0;font-size:23px;letter-spacing:-.5px}.home-section-link{font-size:13px;text-decoration:none;font-weight:850}
+.popular-grid{display:flex!important;gap:10px!important;overflow-x:auto!important;overflow-y:hidden!important;padding:2px 16px 10px!important;margin:0 0 18px!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
+.popular-card{min-width:148px!important;width:148px!important;border-radius:18px!important;scroll-snap-align:start;box-shadow:0 8px 20px rgba(15,23,42,.07)!important}
+.pc-img{height:88px!important}.pc-body{padding:10px!important}.pc-body b{font-size:11px!important}.pc-body small{font-size:9px!important}
+.results-head{margin:4px 16px 0!important}.fresh-subtitle{margin:0 16px 10px!important}
+#homeView:not(.catalog-mode) #list{padding-left:16px!important;padding-right:16px!important}
+#homeView:not(.catalog-mode) #list .card{min-width:270px!important;width:270px!important}
+@media(max-width:430px){.hero{min-height:430px}.hero h1{font-size:36px!important}.brand{font-size:17px!important}.city#langSelect{width:68px!important;flex-basis:68px}.city#cityBtn{min-width:104px!important;flex-basis:104px}.quick-action{font-size:9px!important}.quick-action{height:56px!important}.popular-card{min-width:145px!important;width:145px!important}}
+
 </style>
 </head>
 <body>
@@ -5692,6 +5721,23 @@ applyLang();load(true);</body></html>'''
 @app.get("/app")
 def mini_app():
     return Response(MINI_APP_HTML, mimetype="text/html")
+
+
+@app.get("/app-hero.jpg")
+def mini_app_hero():
+    # Serve the embedded Batumi image as a normal asset so mobile WebViews
+    # do not have to parse a huge CSS data URI.
+    try:
+        marker = "data:image/jpeg;base64,"
+        start = MINI_APP_HTML.find(marker)
+        if start < 0:
+            return Response(status=404)
+        start += len(marker)
+        end = MINI_APP_HTML.find("'", start)
+        raw = MINI_APP_HTML[start:end]
+        return Response(base64.b64decode(raw), mimetype="image/jpeg", headers={"Cache-Control":"public, max-age=86400"})
+    except Exception:
+        return Response(status=404)
 
 
 @app.get("/api/config")
