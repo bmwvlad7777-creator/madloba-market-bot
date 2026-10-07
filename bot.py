@@ -6256,6 +6256,164 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
   .quick-action .quick-label{font-size:11px!important}
 }
 </style>
+
+<style id="madloba-final-mobile-polish">
+/* FINAL MOBILE POLISH: quick categories, filter control and icon alignment */
+.quick-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  grid-template-columns:none!important;
+  width:calc(100% + 2px)!important;
+  max-width:none!important;
+  gap:10px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:3px 1px 8px!important;
+  margin-top:12px!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+  scroll-snap-type:x proximity!important;
+}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-action{
+  flex:0 0 116px!important;
+  width:116px!important;
+  min-width:116px!important;
+  max-width:116px!important;
+  height:76px!important;
+  min-height:76px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  scroll-snap-align:start!important;
+}
+.quick-action .quick-icon{
+  flex:0 0 40px!important;
+  width:40px!important;
+  height:40px!important;
+  margin:0 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.quick-action .quick-icon svg{
+  width:30px!important;
+  height:30px!important;
+  display:block!important;
+}
+.quick-action .quick-label{
+  display:block!important;
+  width:100%!important;
+  text-align:center!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.quick-grid{font-size:0!important;letter-spacing:0!important}
+.quick-grid svg{width:29px!important;height:29px!important}
+
+/* Clean filter control — no emoji/gear */
+.filter-btn{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-height:54px!important;
+  padding:8px 14px!important;
+  border-radius:17px!important;
+  background:rgba(255,255,255,.97)!important;
+  border:1px solid #dce7f4!important;
+  color:#1677ee!important;
+  box-shadow:0 8px 22px rgba(31,55,88,.07),inset 0 1px 0 #fff!important;
+  text-align:left!important;
+}
+.filter-btn-icon{
+  width:38px!important;
+  height:38px!important;
+  flex:0 0 38px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:12px!important;
+  background:linear-gradient(145deg,#e9f4ff,#dcecff)!important;
+  color:#1478ed!important;
+  box-shadow:inset 0 1px 0 #fff!important;
+}
+.filter-btn-icon svg{width:23px!important;height:23px!important;display:block!important}
+.filter-btn .filter-chevron{
+  margin-left:auto!important;
+  font-size:26px!important;
+  line-height:1!important;
+  color:#8c9caf!important;
+}
+#filterActive{margin-left:auto!important;font-size:11px!important;color:#718096!important;font-weight:800!important}
+#filterActive:empty{display:none!important}
+#filterActive:not(:empty)+.filter-chevron{margin-left:4px!important}
+
+/* Perfectly centered category icon boxes and stable 3-column card layout */
+#categoriesBlock .cat{
+  grid-template-columns:62px minmax(0,1fr) 20px!important;
+  grid-template-rows:minmax(0,auto) minmax(0,auto)!important;
+  align-items:center!important;
+}
+#categoriesBlock .cat .ico{
+  width:56px!important;
+  height:56px!important;
+  justify-self:center!important;
+  align-self:center!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+#categoriesBlock .cat .ico .reference-category-icon{
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  display:block!important;
+  margin:0!important;
+}
+#categoriesBlock .cat b,
+#categoriesBlock .cat small{
+  grid-column:2!important;
+  min-width:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  padding:0!important;
+  text-align:left!important;
+  justify-self:stretch!important;
+}
+#categoriesBlock .cat b{
+  grid-row:1!important;
+  align-self:end!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  overflow-wrap:anywhere!important;
+}
+#categoriesBlock .cat small{
+  grid-row:2!important;
+  align-self:start!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  overflow-wrap:anywhere!important;
+}
+#categoriesBlock .cat:after{
+  grid-column:3!important;
+  grid-row:1 / span 2!important;
+  justify-self:center!important;
+  align-self:center!important;
+  position:static!important;
+}
+@media(max-width:480px){
+  .quick-action{flex-basis:108px!important;width:108px!important;min-width:108px!important;max-width:108px!important;height:74px!important;min-height:74px!important}
+  .quick-action .quick-icon{width:38px!important;height:38px!important;flex-basis:38px!important}
+  .quick-action .quick-icon svg{width:28px!important;height:28px!important}
+  #categoriesBlock .cat{grid-template-columns:58px minmax(0,1fr) 18px!important;column-gap:9px!important;min-height:108px!important;height:108px!important;padding:11px 10px!important}
+  #categoriesBlock .cat .ico{width:54px!important;height:54px!important}
+  #categoriesBlock .cat b{font-size:15px!important;line-height:1.08!important}
+  #categoriesBlock .cat small{font-size:11px!important;line-height:1.2!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
@@ -6263,8 +6421,8 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 <button class="quick-action" data-cat="auto"><span class="quick-icon" data-icon="auto"></span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
 <button class="quick-action" data-cat="tech"><span class="quick-icon" data-icon="tech"></span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
 <button class="quick-action" data-cat="work"><span class="quick-icon" data-icon="work"></span><span class="quick-label" data-i18n="category_work">Работа</span></button>
-<button class="quick-action" data-cat=""><span class="quick-icon quick-grid">•••</span><span class="quick-label">Все</span></button>
-</div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button">⚙️ <span data-i18n="filters">Фильтры</span><span id="filterActive"></span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><input id="filterDistrict" data-i18n-placeholder="district_placeholder" placeholder="Например: Новый Бульвар"></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
+<button class="quick-action" data-cat=""><span class="quick-icon quick-grid" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="4" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.9"/><rect x="14" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.9"/></svg></span><span class="quick-label">Все</span></button>
+</div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button"><span class="filter-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="17" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/></svg></span><span data-i18n="filters">Фильтры</span><span id="filterActive"></span><span class="filter-chevron" aria-hidden="true">›</span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><input id="filterDistrict" data-i18n-placeholder="district_placeholder" placeholder="Например: Новый Бульвар"></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
 <div class="filter-field" style="grid-column:1/-1"><label data-i18n="deal">Сделка</label><select id="autoFilterDeal"><option value="" data-i18n="all">Все</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div>
 <div class="filter-field"><label data-i18n="auto_make">Марка</label><select id="autoFilterMake"><option value="" data-i18n="auto_select_make">Выберите марку</option></select></div>
 <div class="filter-field"><label data-i18n="auto_model">Модель</label><select id="autoFilterModel" disabled><option value="" data-i18n="auto_select_model">Сначала выберите марку</option></select></div>
