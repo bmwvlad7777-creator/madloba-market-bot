@@ -1105,6 +1105,167 @@ def main_menu():
 
 # CATEGORIES уже объявлен к этому моменту, поэтому каталог можно
 # безопасно синхронизировать при старте приложения.
+
+def listing_matches(item, key, sub):
+    category = item.get("category_key", "")
+    subcategory = item.get("subcategory_key", "")
+
+    if key == "search" and sub == "all":
+        return True
+
+    if key == "search":
+        if sub == "services":
+            return category == "work"
+        if sub == "other":
+            return category not in {
+                "realestate", "auto", "tech", "home", "kids", "work"
+            }
+        return category == sub or (
+            category == "search" and subcategory == sub
+        )
+
+    if sub == "all":
+        return category == key
+
+    return category == key and subcategory == sub
+
+
+def listing_title(item):
+    category = item.get("category", "Объявление")
+    subcategory = item.get("subcategory", "")
+    type_name = item.get("type", "")
+    parts = [category]
+    if subcategory:
+        parts.append(subcategory)
+    if type_name:
+        parts.append(type_name)
+    return " · ".join(parts)
+
+
+def listing_short_text(item):
+    details = item.get("details", {}) or {}
+    lines = [f"<b>#{item.get('id', '')} {esc(listing_title(item))}</b>"]
+
+    detail_parts = []
+    if isinstance(details, dict):
+        for value in details.values():
+            if value not in (None, ""):
+                detail_parts.append(str(value))
+    if detail_parts:
+        lines.append(" · ".join(esc(value) for value in detail_parts))
+
+    price = item.get("price", "")
+    currency = item.get("currency", "")
+    if price:
+        lines.append(f"💰 <b>{esc(price)} {esc(currency)}</b>")
+
+    district = item.get("district", "")
+    if district:
+        lines.append(f"📍 {esc(district)}")
+
+    description = item.get("description", "")
+    if description:
+        compact = " ".join(str(description).split())
+        if len(compact) > 120:
+            compact = compact[:117] + "..."
+        lines.append(esc(compact))
+
+    return "\n".join(lines)
+
+
+def listing_keyboard(key, sub, page, item):
+    rows = []
+    url = item.get("channel_post_url", "")
+    if url:
+        rows.append([{"text": "📣 Открыть в канале", "url": url}])
+    return rows
+
+
+def send_listing_catalog(chat_id, key, sub, page=0):
+    # На всякий случай перечитываем актуальные объявления из Supabase
+    # перед каждым открытием каталога.
+    if supabase_enabled():
+        load_supabase_published_listings()
+
+    matches = [
+        item for item in published_listings
+        if listing_matches(item, key, sub)
+    ]
+
+    per_page = 5
+    total_pages = max(1, (len(matches) + per_page - 1) // per_page)
+    page = max(0, min(int(page), total_pages - 1))
+    start = page * per_page
+    current = matches[start:start + per_page]
+
+    if key == "search":
+        label = (
+            "📋 Все объявления"
+            if sub == "all"
+            else CATEGORIES["search"]["subs"].get(sub, "Раздел")
+        )
+    else:
+        label = (
+            "📋 Все объявления"
+            if sub == "all"
+            else CATEGORIES[key]["subs"].get(sub, "Раздел")
+        )
+
+    if not current:
+        send(
+            chat_id,
+            f"<b>{esc(label)}</b>\n\n"
+            "Пока нет опубликованных объявлений.\n\n"
+            "Разместите первое объявление — и оно появится здесь.",
+            [
+                [{"text": "⬅️ Назад", "callback_data": f"cat_{key}"}],
+                [{"text": "🏠 Главное меню", "callback_data": "back_main"}],
+            ],
+        )
+        return
+
+    send(
+        chat_id,
+        f"<b>{esc(label)}</b>\n\n"
+        f"Найдено: <b>{len(matches)}</b>\n"
+        f"Страница <b>{page + 1}/{total_pages}</b>",
+        [[{"text": "⬅️ Назад", "callback_data": f"cat_{key}"}]],
+    )
+
+    for item in current:
+        photos = item.get("photos", []) or []
+        text_value = listing_short_text(item)
+        keyboard = listing_keyboard(key, sub, page, item)
+        if photos:
+            result = send_album(chat_id, photos, text_value)
+            if result.get("ok") and keyboard:
+                send(chat_id, "Выберите действие:", keyboard)
+            elif not result.get("ok"):
+                send(chat_id, text_value, keyboard)
+        else:
+            send(chat_id, text_value, keyboard)
+
+    navigation = []
+    if page > 0:
+        navigation.append({
+            "text": "⬅️ Предыдущие",
+            "callback_data": f"browsepage_{key}_{sub}_{page - 1}",
+        })
+    if page + 1 < total_pages:
+        navigation.append({
+            "text": "Следующие ➡️",
+            "callback_data": f"browsepage_{key}_{sub}_{page + 1}",
+        })
+
+    keyboard = []
+    if navigation:
+        keyboard.append(navigation)
+    keyboard.append([
+        {"text": "⬅️ Назад", "callback_data": f"cat_{key}"},
+        {"text": "🏠 Меню", "callback_data": "back_main"},
+    ])
+    send(chat_id, "Выберите действие:", keyboard)
+
 load_published_listings()
 
 
@@ -1158,187 +1319,6 @@ def category_menu(
     )
 
     return rows
-
-
-# ============================================================
-# ЛОГИКА ФИЛЬТРА КАТАЛОГА
-# ============================================================
-
-def listing_matches(item, key, sub):
-    """Проверяет, подходит ли объявление выбранному разделу каталога."""
-
-    category = str(item.get("category_key", "") or "").strip().lower()
-    subcategory = str(item.get("subcategory_key", "") or "").strip().lower()
-
-    # Все объявления внутри выбранной большой категории.
-    if sub == "all":
-        return category == key
-
-    # Раздел "Ищу" — это специальный каталог:
-    # сюда должны попадать и обычные объявления соответствующей
-    # категории (например, квартира в недвижимости), и объявления
-    # пользователей с типом "Ищу" в этой категории.
-    if key == "search":
-        if sub == "services":
-            return category == "work" or (
-                category == "search" and subcategory == "services"
-            )
-
-        if sub == "other":
-            standard = {
-                "realestate",
-                "auto",
-                "tech",
-                "home",
-                "kids",
-                "work",
-                "search",
-            }
-            return category not in standard
-
-        return category == sub or (
-            category == "search" and subcategory == sub
-        )
-
-    # Обычные категории: фильтруем по категории + подкатегории.
-    return category == key and subcategory == sub
-
-
-def _catalog_item_text(item):
-    """Безопасная карточка объявления для каталога."""
-
-    try:
-        text = build_listing(item)
-    except Exception as error:
-        print("CATALOG CARD ERROR:", repr(error))
-
-        title = make_title(item) or "Объявление"
-        price = item.get("price", "")
-        currency = CURRENCIES.get(item.get("currency", ""), "")
-        district = item.get("district", "")
-
-        lines = [f"<b>{esc(title)}</b>"]
-        if price:
-            lines.append(f"💰 <b>{esc(price)} {esc(currency)}</b>")
-        if district:
-            lines.append(f"📍 <b>{esc(district)}</b>")
-        text = "\n".join(lines)
-
-    return text
-
-
-def send_listing_catalog(chat_id, key, sub, page=0):
-    """Показывает опубликованные объявления с пагинацией."""
-
-    global published_listings
-
-    # Перед показом каталога обновляем данные из Supabase.
-    # Если Supabase временно недоступен — используем уже загруженные
-    # данные или локальный fallback.
-    if supabase_enabled():
-        if not load_supabase_published_listings():
-            print("CATALOG: Supabase refresh failed, using current cache")
-
-    if not isinstance(published_listings, list):
-        published_listings = []
-
-    filtered = [
-        item
-        for item in published_listings
-        if isinstance(item, dict) and listing_matches(item, key, sub)
-    ]
-
-    # Самые новые сверху. Supabase уже отдаёт их в таком порядке,
-    # а fallback сохраняет порядок публикации.
-    per_page = 5
-    total = len(filtered)
-    total_pages = max(1, (total + per_page - 1) // per_page)
-
-    try:
-        page = max(0, min(int(page), total_pages - 1))
-    except (TypeError, ValueError):
-        page = 0
-
-    start = page * per_page
-    page_items = filtered[start:start + per_page]
-
-    if not page_items:
-        title = CATEGORIES.get(key, {}).get("name", "Объявления")
-        if key == "search" and sub in CATEGORIES.get("search", {}).get("subs", {}):
-            title = CATEGORIES["search"]["subs"][sub]
-
-        send(
-            chat_id,
-            f"<b>{esc(title)}</b>\n\n"
-            "Пока нет опубликованных объявлений.",
-            [[
-                {
-                    "text": "⬅️ Назад",
-                    "callback_data": f"cat_{key}",
-                }
-            ]]
-        )
-        return
-
-    title = CATEGORIES.get(key, {}).get("name", "Объявления")
-    if key == "search" and sub in CATEGORIES.get("search", {}).get("subs", {}):
-        title = CATEGORIES["search"]["subs"][sub]
-
-    send(
-        chat_id,
-        f"<b>{esc(title)}</b>\n"
-        f"<i>Найдено: {total}</i>\n\n"
-        "Выберите объявление:",
-    )
-
-    for item in page_items:
-        card = _catalog_item_text(item)
-        channel_url = str(item.get("channel_post_url", "") or "").strip()
-
-        buttons = []
-        if channel_url.startswith("https://t.me/"):
-            buttons.append({
-                "text": "📢 Открыть в канале",
-                "url": channel_url,
-            })
-
-        if buttons:
-            send(chat_id, card, [buttons])
-        else:
-            send(chat_id, card)
-
-    navigation = []
-
-    if page > 0:
-        navigation.append({
-            "text": "⬅️",
-            "callback_data": f"browsepage_{key}_{sub}_{page - 1}",
-        })
-
-    navigation.append({
-        "text": f"{page + 1}/{total_pages}",
-        "callback_data": "noop",
-    })
-
-    if page < total_pages - 1:
-        navigation.append({
-            "text": "➡️",
-            "callback_data": f"browsepage_{key}_{sub}_{page + 1}",
-        })
-
-    keyboard = [navigation]
-    keyboard.append([
-        {
-            "text": "⬅️ К разделам",
-            "callback_data": f"cat_{key}",
-        }
-    ])
-
-    send(
-        chat_id,
-        "Выберите действие:",
-        keyboard,
-    )
 
 
 # ============================================================
