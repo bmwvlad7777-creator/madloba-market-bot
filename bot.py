@@ -6063,6 +6063,29 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 #categoriesBlock .cat b{color:#162033!important}
 #categoriesBlock .cat small{color:#738197!important}
 #categoriesBlock .cat:after{color:#91a2b7!important}
+
+/* MADLOBA MARKET — premium category presentation */
+#categoriesBlock .section-head{margin:24px 2px 12px;align-items:center}
+#categoriesBlock .section-head h2{display:flex;align-items:center;gap:10px;font-size:27px;letter-spacing:-.8px}
+#categoriesBlock .section-head h2:before{content:"";display:block;width:5px;height:30px;border-radius:99px;background:linear-gradient(180deg,#167DF5,#63B2FF);box-shadow:0 5px 14px rgba(22,125,245,.20)}
+#categoriesBlock #countLabel{display:flex;align-items:center;justify-content:center;min-width:62px;height:36px;padding:0 13px;border:1px solid #D7E8FF;border-radius:999px;background:#F4F9FF;color:#1478F5;font-size:16px;font-weight:900}
+#categoriesBlock #countLabel:after{content:"20+"}
+#categoriesBlock .cat{display:grid;grid-template-columns:68px minmax(0,1fr) 20px;align-items:center;gap:13px;min-height:112px;padding:14px 13px;border:1px solid rgba(218,227,239,.92);border-top:2px solid var(--cat-accent,#60A9FF);border-radius:23px;background:rgba(255,255,255,.98);box-shadow:0 13px 30px rgba(31,55,88,.075),inset 0 1px 0 rgba(255,255,255,.98);overflow:hidden}
+#categoriesBlock .cat .ico{width:62px;height:62px;border-radius:19px;margin:0;display:flex;align-items:center;justify-content:center;background:var(--cat-bg,#EAF4FF);box-shadow:inset 0 1px 0 rgba(255,255,255,.95)}
+#categoriesBlock .cat .ico svg{width:50px;height:50px;display:block}
+#categoriesBlock .cat b{font-size:16px;line-height:1.12;color:#14213A!important;font-weight:950;letter-spacing:-.25px}
+#categoriesBlock .cat small{margin-top:6px;font-size:12px;line-height:1.28;color:#748198!important;padding-right:0}
+#categoriesBlock .cat:after{position:static;content:"›";color:#74839A;font-size:28px;line-height:1;font-weight:400;align-self:center}
+#categoriesBlock .cat:nth-child(1){--cat-accent:#54A8FF;--cat-bg:#EAF4FF}
+#categoriesBlock .cat:nth-child(2){--cat-accent:#4D98FF;--cat-bg:#EAF4FF}
+#categoriesBlock .cat:nth-child(3){--cat-accent:#8B63F5;--cat-bg:#F0E9FF}
+#categoriesBlock .cat:nth-child(4){--cat-accent:#F4A52B;--cat-bg:#FFF2DE}
+#categoriesBlock .cat:nth-child(5){--cat-accent:#F25B78;--cat-bg:#FFE9EF}
+#categoriesBlock .cat:nth-child(6){--cat-accent:#16A58F;--cat-bg:#DDF7F1}
+#categoriesBlock .cat:nth-child(7){--cat-accent:#F2A91E;--cat-bg:#FFF3D8}
+#categoriesBlock .cat:nth-child(8){--cat-accent:#7650E9;--cat-bg:#F0E9FF}
+#categoriesBlock .cat:active{transform:translateY(1px) scale(.992);box-shadow:0 7px 18px rgba(31,55,88,.08)}
+@media(max-width:480px){#categoriesBlock .cat{grid-template-columns:60px minmax(0,1fr) 16px;gap:11px;min-height:104px;padding:12px 11px;border-radius:21px}#categoriesBlock .cat .ico{width:56px;height:56px;border-radius:17px}#categoriesBlock .cat .ico svg{width:46px;height:46px}#categoriesBlock .cat b{font-size:15px}#categoriesBlock .cat small{font-size:11.5px}#categoriesBlock .section-head h2{font-size:25px}}
 </style>
 </head>
 <body>
@@ -6096,14 +6119,14 @@ function t(k){return (I18N[state.lang]&&I18N[state.lang][k])||I18N.ru[k]||k}
 function applyLang(){document.documentElement.lang=state.lang;document.querySelectorAll('[data-i18n]').forEach(el=>el.innerHTML=t(el.dataset.i18n));document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>el.placeholder=t(el.dataset.i18nPlaceholder));$('langSelect').value=state.lang;$('cityName').textContent=cityNames[state.city][state.lang]||cityNames[state.city].ru;updateBestCityLabel();renderCats();renderQuickIcons();bindPopular();updateFilterVisibility()}
 
 const ICONS={
-realestate:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>',
-auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><path d="M5 16.5 6.7 9h10.6l1.7 7.5"/><path d="M4 16.5h16v3H4z"/><circle cx="7.5" cy="19.5" r="1.5"/><circle cx="16.5" cy="19.5" r="1.5"/><path d="M7 12h10"/></svg>',
-tech:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2"/><path d="M10 5h4"/><circle cx="12" cy="18.5" r=".7" fill="currentColor" stroke="none"/></svg>',
-home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5h16v9H4z"/><path d="M7 10.5V8h10v2.5"/><path d="M6 19.5v1.5M18 19.5v1.5"/><path d="M8 14h8"/></svg>',
-kids:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><circle cx="9.5" cy="10" r=".8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10" r=".8" fill="currentColor" stroke="none"/><path d="M9 14c1.8 1.8 4.2 1.8 6 0"/></svg>',
-work:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5h6v2M4 12h16M10 12v2h4v-2"/></svg>',
-give:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.2-7-9.2C5 7.9 6.6 6 8.8 6c1.4 0 2.6.7 3.2 1.8C12.6 6.7 13.8 6 15.2 6 17.4 6 19 7.9 19 10.8 19 15.8 12 20 12 20Z"/></svg>',
-search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=1.9 stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.5 15.5 4.5 4.5"/></svg>'
+realestate:'<svg viewBox="0 0 48 48" fill="none"><path d="M8 22 24 9l16 13v17H8V22Z" fill="#EAF4FF"/><path d="M8 22 24 9l16 13M12 20v19h24V20M20 39V28h8v11" stroke="#1478F5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 15.5h5v7" stroke="#55A8FF" stroke-width="2.5" stroke-linecap="round"/></svg>',
+auto:'<svg viewBox="0 0 48 48" fill="none"><path d="m10 29 3.5-11h21L38 29v9H10v-9Z" fill="#EAF4FF"/><path d="m10 29 3.5-11h21L38 29M8 29h32v9H8v-9ZM15 34h4M29 34h4" stroke="#1478F5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 23h16" stroke="#55A8FF" stroke-width="2.5" stroke-linecap="round"/></svg>',
+tech:'<svg viewBox="0 0 48 48" fill="none"><rect x="13" y="6" width="22" height="36" rx="5" fill="#F0E9FF"/><rect x="13" y="6" width="22" height="36" rx="5" stroke="#6D43E8" stroke-width="2.5"/><path d="M20 11h8M22 36h4" stroke="#9B78FF" stroke-width="2.5" stroke-linecap="round"/></svg>',
+home:'<svg viewBox="0 0 48 48" fill="none"><path d="M7 25h34v13H7V25Z" fill="#FFF1DF"/><path d="M7 25h34v13H7V25ZM11 25v-4h26v4M13 38v3M35 38v3M15 30h18" stroke="#F39A26" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M35 17v8M32 17h6" stroke="#FFB44A" stroke-width="2.5" stroke-linecap="round"/></svg>',
+kids:'<svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="26" r="13" fill="#FFE9EF"/><circle cx="19.5" cy="23" r="1.5" fill="#F25B78"/><circle cx="28.5" cy="23" r="1.5" fill="#F25B78"/><path d="M19 29c3 3 7 3 10 0M17 13l4 4M31 13l-4 4" stroke="#F25B78" stroke-width="2.5" stroke-linecap="round"/></svg>',
+work:'<svg viewBox="0 0 48 48" fill="none"><rect x="7" y="14" width="34" height="25" rx="6" fill="#DDF7F1"/><rect x="7" y="14" width="34" height="25" rx="6" stroke="#119C87" stroke-width="2.5"/><path d="M18 14v-4h12v4M7 23h34M20 23v5h8v-5" stroke="#119C87" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+give:'<svg viewBox="0 0 48 48" fill="none"><rect x="9" y="15" width="30" height="24" rx="4" fill="#FFF3D8"/><path d="M9 22h30M24 15v24M17 15c-3.5 0-5-2.2-3.5-4.5 1.7-2.9 7.4.3 10.5 4.5M31 15c3.5 0 5-2.2 3.5-4.5-1.7-2.9-7.4.3-10.5 4.5" stroke="#F3A91E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+search:'<svg viewBox="0 0 48 48" fill="none"><circle cx="21" cy="21" r="12" fill="#F0E9FF"/><circle cx="21" cy="21" r="12" stroke="#7046E8" stroke-width="2.5"/><path d="m30 30 9 9" stroke="#7046E8" stroke-width="3" stroke-linecap="round"/></svg>'
 };
 const cats=[['realestate','realestate'],['auto','auto'],['tech','tech'],['home','home'],['kids','kids'],['work','work'],['give','give'],['search','search']];
 const cityNames={batumi:{ru:'Batumi',en:'Batumi',ka:'ბათუმი'},tbilisi:{ru:'Tbilisi',en:'Tbilisi',ka:'თბილისი'}};
