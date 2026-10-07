@@ -5506,7 +5506,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
 <style>
 :root{--blue:#0b73f6;--text:#111827;--muted:#6b7280;--bg:#f5f7fb;--line:#e8edf5}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif}body{min-height:100vh;padding-bottom:88px}button,input{font:inherit}button{border:0;cursor:pointer}.wrap{max-width:760px;margin:auto;padding:14px 16px 24px}.top{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:4px 0 16px}.brand{font-weight:900;font-size:18px;letter-spacing:-.55px;white-space:nowrap;flex:1;min-width:0}.brand span{color:var(--blue)}.top>div:last-child{display:flex;gap:5px;align-items:center;flex:0 0 auto}.city{display:flex;align-items:center;justify-content:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 9px;font-weight:800;font-size:14px;white-space:nowrap}.city#langSelect{width:72px;padding-left:6px;padding-right:6px}.city#cityBtn{min-width:112px}.hero{background:linear-gradient(135deg,#0b73f6,#2d8cff);border-radius:24px;padding:20px;color:#fff;box-shadow:0 12px 30px rgba(11,115,246,.22);margin-bottom:16px}.hero h1{font-size:25px;line-height:1.05;margin:0 0 7px;font-weight:900}.hero p{margin:0 0 16px;opacity:.9;font-size:14px}.search{display:flex;align-items:center;gap:9px;background:#fff;border-radius:15px;padding:0 13px;height:50px;color:#111}.search input{border:0;outline:0;width:100%;background:transparent;font-size:16px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px}.section-head h2{font-size:18px;margin:0;font-weight:900}.section-head small{color:var(--muted)}.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;text-align:left;min-height:86px;box-shadow:0 4px 14px rgba(15,23,42,.035)}.cat .ico{font-size:25px;display:block;margin-bottom:7px}.cat b{font-size:14px}.cat small{display:block;color:var(--muted);margin-top:3px}.list{display:grid;gap:12px}.card{cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 5px 18px rgba(15,23,42,.045)}.card{position:relative}.fav-btn{position:absolute;z-index:3;top:12px;right:12px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);border:1px solid rgba(232,237,245,.95);box-shadow:0 5px 14px rgba(15,23,42,.12);font-size:23px;line-height:42px;padding:0}.fav-btn.active{color:#ef4444}.detail-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.detail-fav{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:#f7f9fc;border:1px solid #e8edf5;font-size:25px}.detail-fav.active{color:#ef4444;background:#fff1f2;border-color:#ffe0e5}.fav-card{position:relative}.fav-remove{position:absolute;right:12px;top:12px;width:38px;height:38px;border-radius:50%;background:#fff1f2;color:#ef4444;border:1px solid #ffe0e5;font-size:20px}.fav-empty{padding:50px 18px;text-align:center}.fav-empty .heart{font-size:46px;display:block;margin-bottom:10px}.fav-empty b{display:block;font-size:18px;margin-bottom:6px}.fav-empty span{color:var(--muted);font-size:14px}.photo{height:170px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);display:flex;align-items:center;justify-content:center;font-size:38px;color:#9bb8df;overflow:hidden}.photo img{width:100%;height:100%;object-fit:cover;display:block}.photo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#9bb8df}.photo-empty span{font-size:34px}.photo-empty small{font-size:12px;color:#94a3b8}.cardbody{padding:14px}.tag{font-size:12px;color:var(--blue);font-weight:800;margin-bottom:5px}.title{font-size:17px;font-weight:900;margin-bottom:6px}.desc{font-size:14px;color:#4b5563;line-height:1.4}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:14px;padding:9px 8px;min-width:0}.spec-value{font-size:15px;font-weight:900;color:#111827;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spec-label{font-size:10px;color:#7b8494;margin-top:3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pill{background:#f4f7fb;border-radius:999px;padding:6px 9px;font-size:12px;color:#475569}.price{margin-top:12px;font-size:19px;font-weight:900}.loc{color:#64748b;font-size:13px;margin-top:6px}.more{text-align:center;margin:16px 0}.more button{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 18px;font-weight:800}.empty{text-align:center;padding:35px 15px;color:var(--muted)}.detail{display:none}.detail.show{display:block}.detail-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}.detail-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800}.detail-photo{height:290px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);border-radius:22px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}.detail-photo img{width:100%;height:100%;object-fit:cover}.detail-photo .photo-empty{height:100%;width:100%}.detail-photo .photo-empty span{font-size:42px}.detail-photo .photo-empty small{font-size:13px}.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(17,24,39,.58);color:#fff;font-size:22px}.gallery-btn.prev{left:12px}.gallery-btn.next{right:12px}.gallery-count{position:absolute;right:12px;bottom:12px;background:rgba(17,24,39,.65);color:#fff;border-radius:999px;padding:5px 9px;font-size:12px}.detail-body{background:#fff;border:1px solid var(--line);border-radius:22px;margin-top:12px;padding:18px;box-shadow:0 5px 18px rgba(15,23,42,.045)}.detail-tag{color:var(--blue);font-size:13px;font-weight:800;margin-bottom:7px}.detail-title{font-size:24px;line-height:1.15;font-weight:900;margin-bottom:10px}.detail-price{font-size:25px;font-weight:900;margin:12px 0}.detail-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.detail-spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:15px;padding:11px 10px;min-width:0}.detail-spec-value{font-size:17px;font-weight:900;line-height:1.15;word-break:break-word}.detail-spec-label{font-size:11px;color:#7b8494;margin-top:4px;line-height:1.15}.detail-desc{font-size:15px;line-height:1.55;color:#374151;white-space:pre-wrap;margin-top:14px}.detail-loc{font-size:14px;color:#64748b;margin-top:10px}.contacts{display:grid;gap:9px;margin-top:18px}.contact-btn{display:block;text-align:center;text-decoration:none;background:var(--blue);color:#fff;border-radius:14px;padding:13px 14px;font-weight:900}.contact-btn.secondary{background:#eef5ff;color:var(--blue)}.view{display:none}.view.show{display:block}.account-head{display:flex;align-items:center;gap:12px;margin:8px 0 16px}.account-avatar{width:52px;height:52px;border-radius:50%;background:#eaf3ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900}.account-name{font-size:20px;font-weight:900}.account-sub{font-size:13px;color:var(--muted);margin-top:3px}.view-title{font-size:25px;font-weight:900;margin:4px 0 16px}.view-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800;margin-bottom:14px}.mine-list{display:grid;gap:10px}.mine-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.mine-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:11px}.mine-action{background:#f4f7fb;color:#334155;border:1px solid #e6ebf3;border-radius:11px;padding:9px 8px;font-size:12px;font-weight:800}.mine-action.primary{background:#eef5ff;color:var(--blue);border-color:#dceaff}.mine-action.danger{background:#fff1f2;color:#be123c;border-color:#ffe0e5}.mine-action.warn{background:#fff8e8;color:#a16207;border-color:#fce8b2}.edit-panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}.edit-title{font-size:20px;font-weight:900;margin-bottom:12px}.edit-field{margin-bottom:11px}.edit-field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:5px}.edit-field input,.edit-field textarea,.edit-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 12px;outline:0}.edit-field textarea{min-height:110px;resize:vertical}.edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.edit-save{background:var(--blue);color:#fff;border-radius:12px;padding:12px;font-weight:900}.edit-cancel{background:#eef2f7;color:#475569;border-radius:12px;padding:12px;font-weight:900}.mine-row{display:flex;gap:12px;align-items:center}.mine-thumb{width:76px;height:76px;border-radius:14px;background:#eef5ff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 76px}.mine-thumb img{width:100%;height:100%;object-fit:cover}.mine-info{min-width:0;flex:1}.mine-title{font-weight:900;font-size:15px;line-height:1.2}.mine-price{font-weight:900;font-size:16px;margin-top:5px}.status{display:inline-flex;align-items:center;margin-top:6px;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef5ff;color:var(--blue)}.profile-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px}.profile-item{padding:12px 0;border-bottom:1px solid var(--line)}.profile-item:last-child{border-bottom:0}.profile-label{font-size:12px;color:var(--muted);margin-bottom:4px}.profile-value{font-size:16px;font-weight:800;word-break:break-word}@media(min-width:620px){.detail-photo{height:380px}}.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr)}.nav{background:transparent;color:#7a8494;font-size:10px;font-weight:800;padding:5px 2px}.nav .ni{display:block;font-size:20px;line-height:22px}.nav.active{color:var(--blue)}.toast{position:fixed;z-index:50;left:50%;bottom:95px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1}.results-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}.sort-select{display:none;border:1px solid #dfe6ef;border-radius:12px;background:#fff;color:var(--blue);padding:9px 10px;font-weight:800;max-width:165px}.results-head .section-head{margin:0;flex:1}.filter-bar{display:none;margin:10px 0 14px}.filter-bar.show{display:block}.filter-btn{width:100%;background:#fff;border:1px solid var(--line);border-radius:15px;padding:12px 14px;color:var(--blue);font-weight:900;text-align:left;box-shadow:0 4px 14px rgba(15,23,42,.04)}.filter-panel{display:none;background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:8px;box-shadow:0 10px 24px rgba(15,23,42,.08)}.filter-panel.show{display:block}.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.filter-field{display:flex;flex-direction:column;gap:5px}.filter-field.full{grid-column:1/-1}.filter-field label{font-size:12px;color:var(--muted);font-weight:800}.filter-field input,.filter-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 10px;outline:0;color:var(--text)}.filter-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.filter-apply{background:var(--blue);color:#fff;border-radius:12px;padding:11px;font-weight:900}.filter-reset{background:#eef2f7;color:#475569;border-radius:12px;padding:11px;font-weight:900}.filter-active{font-size:11px;color:var(--muted);margin-top:6px;padding-left:2px}.back{display:none;margin-bottom:12px;background:transparent;color:var(--blue);font-weight:800;padding:0}.back.show{display:block}@media(min-width:620px){.cats{grid-template-columns:repeat(4,minmax(0,1fr))}.photo{height:210px}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif}body{min-height:100vh;padding-bottom:88px}button,input{font:inherit}button{border:0;cursor:pointer}.wrap{max-width:760px;margin:auto;padding:14px 16px 24px}.top{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:4px 0 16px}.brand{font-weight:900;font-size:18px;letter-spacing:-.55px;white-space:nowrap;flex:1;min-width:0}.brand span{color:var(--blue)}.top>div:last-child{display:flex;gap:5px;align-items:center;flex:0 0 auto}.city{display:flex;align-items:center;justify-content:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 9px;font-weight:800;font-size:14px;white-space:nowrap}.city#langSelect{width:72px;padding-left:6px;padding-right:6px}.city#cityBtn{min-width:112px}.hero{background:linear-gradient(135deg,#0b73f6,#2d8cff);border-radius:24px;padding:20px;color:#fff;box-shadow:0 12px 30px rgba(11,115,246,.22);margin-bottom:16px}.hero h1{font-size:25px;line-height:1.05;margin:0 0 7px;font-weight:900}.hero p{margin:0 0 16px;opacity:.9;font-size:14px}.search{display:flex;align-items:center;gap:9px;background:#fff;border-radius:15px;padding:0 13px;height:50px;color:#111}.search input{border:0;outline:0;width:100%;background:transparent;font-size:16px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 10px}.section-head h2{font-size:18px;margin:0;font-weight:900}.section-head small{color:var(--muted)}.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;text-align:left;min-height:86px;box-shadow:0 4px 14px rgba(15,23,42,.035)}.cat .ico{font-size:25px;display:block;margin-bottom:7px}.cat b{font-size:14px}.cat small{display:block;color:var(--muted);margin-top:3px}.list{display:grid;gap:12px}.card{cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 5px 18px rgba(15,23,42,.045)}.card{position:relative}.fav-btn{position:absolute;z-index:3;top:12px;right:12px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.94);border:1px solid rgba(232,237,245,.95);box-shadow:0 5px 14px rgba(15,23,42,.12);font-size:23px;line-height:42px;padding:0}.fav-btn.active{color:#ef4444}.detail-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.detail-fav{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:#f7f9fc;border:1px solid #e8edf5;font-size:25px}.detail-fav.active{color:#ef4444;background:#fff1f2;border-color:#ffe0e5}.fav-card{position:relative}.fav-remove{position:absolute;right:12px;top:12px;width:38px;height:38px;border-radius:50%;background:#fff1f2;color:#ef4444;border:1px solid #ffe0e5;font-size:20px}.fav-empty{padding:50px 18px;text-align:center}.fav-empty .heart{font-size:46px;display:block;margin-bottom:10px}.fav-empty b{display:block;font-size:18px;margin-bottom:6px}.fav-empty span{color:var(--muted);font-size:14px}.photo{height:170px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);display:flex;align-items:center;justify-content:center;font-size:38px;color:#9bb8df;overflow:hidden}.photo img{width:100%;height:100%;object-fit:cover;display:block}.photo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#9bb8df}.photo-empty span{font-size:34px}.photo-empty small{font-size:12px;color:#94a3b8}.cardbody{padding:14px}.tag{font-size:12px;color:var(--blue);font-weight:800;margin-bottom:5px}.title{font-size:17px;font-weight:900;margin-bottom:6px}.desc{font-size:14px;color:#4b5563;line-height:1.4}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:14px;padding:9px 8px;min-width:0}.spec-value{font-size:15px;font-weight:900;color:#111827;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spec-label{font-size:10px;color:#7b8494;margin-top:3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pill{background:#f4f7fb;border-radius:999px;padding:6px 9px;font-size:12px;color:#475569}.price{margin-top:12px;font-size:19px;font-weight:900}.loc{color:#64748b;font-size:13px;margin-top:6px}.more{text-align:center;margin:16px 0}.more button{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 18px;font-weight:800}.empty{text-align:center;padding:35px 15px;color:var(--muted)}.detail{display:none}.detail.show{display:block}.detail-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}.detail-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800}.detail-photo{height:290px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);border-radius:22px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}.detail-photo img{width:100%;height:100%;object-fit:cover}.detail-photo .photo-empty{height:100%;width:100%}.detail-photo .photo-empty span{font-size:42px}.detail-photo .photo-empty small{font-size:13px}.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(17,24,39,.58);color:#fff;font-size:22px}.gallery-btn.prev{left:12px}.gallery-btn.next{right:12px}.gallery-count{position:absolute;right:12px;bottom:12px;background:rgba(17,24,39,.65);color:#fff;border-radius:999px;padding:5px 9px;font-size:12px}.detail-body{background:#fff;border:1px solid var(--line);border-radius:22px;margin-top:12px;padding:18px;box-shadow:0 5px 18px rgba(15,23,42,.045)}.detail-tag{color:var(--blue);font-size:13px;font-weight:800;margin-bottom:7px}.detail-title{font-size:24px;line-height:1.15;font-weight:900;margin-bottom:10px}.detail-price{font-size:25px;font-weight:900;margin:12px 0}.detail-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.detail-spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:15px;padding:11px 10px;min-width:0}.detail-spec-value{font-size:17px;font-weight:900;line-height:1.15;word-break:break-word}.detail-spec-label{font-size:11px;color:#7b8494;margin-top:4px;line-height:1.15}.detail-desc{font-size:15px;line-height:1.55;color:#374151;white-space:pre-wrap;margin-top:14px}.detail-loc{font-size:14px;color:#64748b;margin-top:10px}.contacts{display:grid;gap:9px;margin-top:18px}.contact-btn{display:block;text-align:center;text-decoration:none;background:var(--blue);color:#fff;border-radius:14px;padding:13px 14px;font-weight:900}.contact-btn.secondary{background:#eef5ff;color:var(--blue)}.view{display:none}.view.show{display:block}.account-head{display:flex;align-items:center;gap:12px;margin:8px 0 16px}.account-avatar{width:52px;height:52px;border-radius:50%;background:#eaf3ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900}.account-name{font-size:20px;font-weight:900}.account-sub{font-size:13px;color:var(--muted);margin-top:3px}.view-title{font-size:25px;font-weight:900;margin:4px 0 16px}.view-back{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--blue);font-weight:800;margin-bottom:14px}.mine-list{display:grid;gap:10px}.mine-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.mine-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:11px}.mine-action{background:#f4f7fb;color:#334155;border:1px solid #e6ebf3;border-radius:11px;padding:9px 8px;font-size:12px;font-weight:800}.mine-action.primary{background:#eef5ff;color:var(--blue);border-color:#dceaff}.mine-action.danger{background:#fff1f2;color:#be123c;border-color:#ffe0e5}.mine-action.warn{background:#fff8e8;color:#a16207;border-color:#fce8b2}.edit-panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}.edit-title{font-size:20px;font-weight:900;margin-bottom:12px}.edit-field{margin-bottom:11px}.edit-field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:5px}.edit-field input,.edit-field textarea,.edit-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 12px;outline:0}.edit-field textarea{min-height:110px;resize:vertical}.edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.edit-save{background:var(--blue);color:#fff;border-radius:12px;padding:12px;font-weight:900}.edit-cancel{background:#eef2f7;color:#475569;border-radius:12px;padding:12px;font-weight:900}.mine-row{display:flex;gap:12px;align-items:center}.mine-thumb{width:76px;height:76px;border-radius:14px;background:#eef5ff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 76px}.mine-thumb img{width:100%;height:100%;object-fit:cover}.mine-info{min-width:0;flex:1}.mine-title{font-weight:900;font-size:15px;line-height:1.2}.mine-price{font-weight:900;font-size:16px;margin-top:5px}.status{display:inline-flex;align-items:center;margin-top:6px;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef5ff;color:var(--blue)}.profile-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px}.profile-item{padding:12px 0;border-bottom:1px solid var(--line)}.profile-item:last-child{border-bottom:0}.profile-label{font-size:12px;color:var(--muted);margin-bottom:4px}.profile-value{font-size:16px;font-weight:800;word-break:break-word}@media(min-width:620px){.detail-photo{height:380px}}.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr)}.nav{background:transparent;color:#7a8494;font-size:10px;font-weight:800;padding:5px 2px}.nav .ni{display:block;font-size:20px;line-height:22px}.nav.active{color:var(--blue)}.toast{position:fixed;z-index:50;left:50%;bottom:95px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1}.results-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}.sort-select{display:none;border:1px solid #dfe6ef;border-radius:12px;background:#fff;color:var(--blue);padding:9px 10px;font-weight:800;max-width:165px}.results-head .section-head{margin:0;flex:1}.filter-bar{display:none;margin:10px 0 14px}.filter-bar.show{display:block}.filter-btn{width:100%;background:#fff;border:1px solid var(--line);border-radius:15px;padding:12px 14px;color:var(--blue);font-weight:900;text-align:left;box-shadow:0 4px 14px rgba(15,23,42,.04)}.filter-panel{display:none;background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:8px;box-shadow:0 10px 24px rgba(15,23,42,.08)}.filter-panel.show{display:block}.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.filter-field{display:flex;flex-direction:column;gap:5px}.filter-field.full{grid-column:1/-1}.filter-field label{font-size:12px;color:var(--muted);font-weight:800}.filter-field input,.filter-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 10px;outline:0;color:var(--text);min-height:46px}.filter-field select:disabled{color:#9aa3b1;background:#f1f4f8}.filter-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;align-items:stretch}.filter-actions button{min-height:48px;width:100%}.filter-apply{background:var(--blue);color:#fff;border-radius:12px;padding:11px;font-weight:900}.filter-reset{background:#eef2f7;color:#475569;border-radius:12px;padding:11px;font-weight:900}.filter-active{font-size:11px;color:var(--muted);margin-top:6px;padding-left:2px}.back{display:none;margin-bottom:12px;background:transparent;color:var(--blue);font-weight:800;padding:0}.back.show{display:block}@media(max-width:480px){.filter-actions{grid-template-columns:1fr 1fr}.filter-reset,.filter-apply{font-size:15px}}@media(min-width:620px){.cats{grid-template-columns:repeat(4,minmax(0,1fr))}.photo{height:210px}}
 </style>
 </head>
 <body>
@@ -5546,48 +5546,6 @@ function showHome(){hideViews();$('homeView').style.display='block';$('detailVie
 function showView(id){hideViews();$(id).classList.add('show')}
 function realEstateFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','rooms','min_area','max_area','district'].includes(k)&&String(v||'').trim()!=='')}
 function autoFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','make','model','min_price','max_price','min_year','max_year','min_mileage','max_mileage'].includes(k)&&String(v||'').trim()!=='')}
-const AUTO_CATALOG={
- Toyota:['Camry','Corolla','RAV4','Prius','Land Cruiser','Land Cruiser Prado','C-HR','Yaris','Highlander','Hilux','Aqua','Vitz'],
- BMW:['3 Series','5 Series','7 Series','X1','X3','X5','X6','X7','i3','i4','iX'],
- Mercedes-Benz:['C-Class','E-Class','S-Class','A-Class','GLA','GLC','GLE','GLS','V-Class','Sprinter'],
- Audi:['A3','A4','A5','A6','A7','A8','Q3','Q5','Q7','Q8'],
- Volkswagen:['Golf','Passat','Jetta','Tiguan','Touareg','Polo','T-Roc','Transporter'],
- Hyundai:['Elantra','Sonata','Tucson','Santa Fe','Kona','i30','Ioniq','Palisade'],
- Kia:['Rio','Cerato','K5','Sportage','Sorento','Seltos','Soul','Carnival'],
- Nissan:['Qashqai','X-Trail','Juke','Note','Altima','Sentra','Pathfinder','Patrol'],
- Honda:['Civic','Accord','CR-V','HR-V','Fit','Pilot'],
- Ford:['Focus','Fusion','Mondeo','Kuga','Escape','Explorer','Mustang','Ranger'],
- Chevrolet:['Cruze','Malibu','Aveo','Equinox','Captiva','Tahoe','Camaro'],
- Lexus:['IS','ES','GS','LS','NX','RX','GX','LX','UX'],
- Mazda:['Mazda 3','Mazda 6','CX-3','CX-5','CX-9','MX-5'],
- Subaru:['Impreza','Legacy','Forester','Outback','XV','Crosstrek'],
- Mitsubishi:['Lancer','Outlander','ASX','Pajero','Eclipse Cross'],
- Volvo:['S60','S90','XC40','XC60','XC90'],
- Renault:['Logan','Sandero','Duster','Kaptur','Arkana','Megane'],
- Peugeot:['208','308','3008','5008','508'],
- Skoda:['Fabia','Octavia','Superb','Karoq','Kodiaq'],
- Jeep:['Renegade','Compass','Cherokee','Grand Cherokee','Wrangler'],
- Land Rover:['Range Rover','Range Rover Sport','Discovery','Discovery Sport','Defender','Freelander'],
- Porsche:['Cayenne','Macan','Panamera','911','Taycan'],
- Tesla:['Model 3','Model S','Model X','Model Y'],
- Geely:['Coolray','Atlas','Monjaro','Emgrand'],
- Chery:['Tiggo 4','Tiggo 7','Tiggo 8','Arrizo 5'],
- BYD:['Atto 3','Han','Seal','Song Plus','Tang'],
- Daewoo:['Matiz','Nexia','Gentra'],
- Dacia:['Duster','Logan','Sandero'],
- Fiat:['500','Punto','Tipo','Doblo','Ducato'],
- Suzuki:['Swift','Vitara','Jimny','SX4','S-Cross'],
- Infiniti:['Q50','QX50','QX60','QX80'],
- Acura:['TLX','MDX','RDX'],
- Cadillac:['CT5','XT4','XT5','Escalade'],
- Genesis:['G70','G80','G90','GV70','GV80'],
- Jaguar:['XE','XF','F-Pace','E-Pace'],
- Mini:['Cooper','Countryman','Clubman'],
- Tesla:['Model 3','Model S','Model X','Model Y'],
- Lada:['Niva','Vesta','Granta','Largus','XRAY']
-};
-const AUTO_MAKES=Object.keys(AUTO_CATALOG).sort((a,b)=>a.localeCompare(b));
-
 async function loadAutoOptions(make=''){
  try{
   const p=new URLSearchParams({city:state.city});
@@ -5596,30 +5554,15 @@ async function loadAutoOptions(make=''){
   if(!r.ok)throw 0;
   const data=await r.json();
   const makeEl=$('autoFilterMake'), modelEl=$('autoFilterModel');
-  const dbMakes=(data.makes||[]).map(String);
-  const allMakes=[...new Set([...AUTO_MAKES,...dbMakes])].sort((a,b)=>a.localeCompare(b));
   if(!make){
    const current=state.filters.make||'';
-   makeEl.innerHTML=`<option value="">${esc(t('auto_select_make'))}</option>`+allMakes.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+   makeEl.innerHTML=`<option value="">${esc(t('auto_select_make'))}</option>`+(data.makes||[]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
    makeEl.value=current;
   }
-  const catalogModels=make && AUTO_CATALOG[make] ? AUTO_CATALOG[make] : [];
-  const dbModels=(data.models||[]).map(String);
-  const allModels=[...new Set([...catalogModels,...dbModels])].sort((a,b)=>a.localeCompare(b));
-  modelEl.innerHTML=`<option value="">${esc(t('auto_select_model'))}</option>`+allModels.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  modelEl.innerHTML=`<option value="">${esc(t('auto_select_model'))}</option>`+(data.models||[]).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
   modelEl.disabled=!make;
   if(make && state.filters.model)modelEl.value=state.filters.model;
- }catch(e){
-  const makeEl=$('autoFilterMake'), modelEl=$('autoFilterModel');
-  const current=state.filters.make||'';
-  if(!make){
-   makeEl.innerHTML=`<option value="">${esc(t('auto_select_make'))}</option>`+AUTO_MAKES.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
-   makeEl.value=current;
-  }
-  const catalogModels=make && AUTO_CATALOG[make] ? AUTO_CATALOG[make] : [];
-  modelEl.innerHTML=`<option value="">${esc(t('auto_select_model'))}</option>`+catalogModels.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
-  modelEl.disabled=!make;
- }
+ }catch(e){}
 }
 function syncFilterUI(){
  const f=state.filters;
@@ -5661,7 +5604,7 @@ async function unpublishMine(id){if(!confirm(t('hide_confirm')))return;try{const
 async function republishMine(id){if(!confirm(t('republish_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/republish',{method:'POST'});if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}toast(t('republish_ok'));await loadMine()}catch(e){toast(e.message==='channel_publish_failed'?t('channel_fail'):t('republish_fail'))}}
 async function deleteMine(id){if(!confirm(t('delete_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'DELETE'});if(!r.ok)throw 0;toast(t('delete_ok'));await loadMine()}catch(e){toast(t('delete_fail'))}}
 async function loadProfile(){showView('profileView');$('profileContent').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/me');if(r.status===401){$('profileContent').innerHTML=`<div class="empty">${t('profile_telegram')}</div>`;return}if(!r.ok)throw 0;const u=await r.json();const initials=esc(((u.first_name||'')+' '+(u.last_name||'')).trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'MM');$('profileContent').innerHTML=`<div class="account-head"><div class="account-avatar">${initials}</div><div><div class="account-name">${esc(([u.first_name,u.last_name].filter(Boolean).join(' ')||t('user')))}</div><div class="account-sub">${u.username?'@'+esc(u.username):t('telegram_user')}</div></div></div><div class="profile-card"><div class="profile-item"><div class="profile-label">${t('telegram_id')}</div><div class="profile-value">${esc(u.id)}</div></div><div class="profile-item"><div class="profile-label">${t('city')}</div><div class="profile-value">${esc(cityNames[state.city][state.lang]||state.city)}</div></div><div class="profile-item"><div class="profile-label">${t('status')}</div><div class="profile-value">${t('status_user')}</div></div></div>`}catch(e){$('profileContent').innerHTML=`<div class="empty">${t('profile_fail')}</div>`}}
-$('cityBtn').onclick=()=>{state.city=state.city==='batumi'?'tbilisi':'batumi';localStorage.setItem('mm_city',state.city);$('cityName').textContent=cityNames[state.city][state.lang];state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:''};updateFilterVisibility();load(true);toast(t('city_changed')+cityNames[state.city][state.lang])};
+$('cityBtn').onclick=()=>{state.city=state.city==='batumi'?'tbilisi':'batumi';localStorage.setItem('mm_city',state.city);$('cityName').textContent=cityNames[state.city][state.lang];state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};updateFilterVisibility();load(true);toast(t('city_changed')+cityNames[state.city][state.lang])};
 $('langSelect').onchange=e=>{state.lang=e.target.value;localStorage.setItem('mm_lang',state.lang);applyLang();load(true);};
 $('search').oninput=e=>{state.q=e.target.value.trim();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
 $('sortSelect').onchange=()=>{state.sort=$('sortSelect').value;load(true)};
@@ -5678,7 +5621,7 @@ $('filterApply').onclick=()=>{
 };
 $('filterReset').onclick=()=>{state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};syncFilterUI();load(true)};
 $('moreBtn').onclick=()=>{state.page++;load(false)};
-$('backBtn').onclick=()=>{state.category='';state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:''};$('sortSelect').value='new';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};
+$('backBtn').onclick=()=>{state.category='';state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};$('sortSelect').value='new';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};
 $('detailBack').onclick=()=>showHome();
 $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
@@ -6183,18 +6126,69 @@ def mini_app_my_listings():
 
 @app.get("/api/auto-options")
 def mini_app_auto_options():
-    """Марки и модели из реально опубликованных авто-объявлений."""
-    if not supabase_enabled():
-        return jsonify({"makes": [], "models": []})
+    """Возвращает марки и модели для фильтра Авто. Марки берутся из опубликованных
+    объявлений; если объявлений пока нет, показываем базовый список популярных марок,
+    чтобы пользователь мог выбрать марку уже сейчас. Модели остаются привязанными
+    к реально найденным объявлениям.
+    """
     city = str(request.args.get("city", DEFAULT_CITY_SLUG)).strip().lower()
     if city not in {"batumi", "tbilisi"}:
         city = DEFAULT_CITY_SLUG
+
+    # Базовый список марок — нужен для нового каталога, когда авто-объявлений ещё нет.
+    fallback_makes = [
+        "Audi", "BMW", "Chevrolet", "Citroen", "Ford", "Honda", "Hyundai",
+        "Jeep", "Kia", "Land Rover", "Lexus", "Mazda", "Mercedes-Benz",
+        "Mitsubishi", "Nissan", "Opel", "Peugeot", "Porsche", "Renault",
+        "Skoda", "Subaru", "Suzuki", "Tesla", "Toyota", "Volkswagen", "Volvo",
+        "BYD", "Chery", "Geely", "Genesis", "GMC", "Infiniti", "Isuzu",
+        "Jaguar", "RAM", "Seat", "SsangYong", "UAZ", "VAZ", "Lada", "Moskvich",
+        "Другой",
+    ]
+    fallback_models = {
+        "audi": ["A3", "A4", "A5", "A6", "A7", "A8", "Q3", "Q5", "Q7", "Q8"],
+        "bmw": ["1 Series", "2 Series", "3 Series", "4 Series", "5 Series", "7 Series", "X1", "X3", "X5", "X6"],
+        "chevrolet": ["Cruze", "Malibu", "Camaro", "Equinox", "Tahoe", "Trailblazer"],
+        "ford": ["Focus", "Fusion", "Mustang", "Explorer", "Escape", "F-150"],
+        "honda": ["Civic", "Accord", "CR-V", "HR-V", "Pilot"],
+        "hyundai": ["Elantra", "Sonata", "Tucson", "Santa Fe", "Kona", "Palisade"],
+        "jeep": ["Renegade", "Compass", "Cherokee", "Grand Cherokee", "Wrangler"],
+        "kia": ["Rio", "Cerato", "K5", "Sportage", "Sorento", "Seltos"],
+        "land rover": ["Range Rover", "Range Rover Sport", "Velar", "Evoque", "Discovery", "Defender"],
+        "lexus": ["IS", "ES", "NX", "RX", "GX", "LX"],
+        "mazda": ["Mazda 3", "Mazda 6", "CX-3", "CX-5", "CX-9"],
+        "mercedes-benz": ["A-Class", "C-Class", "E-Class", "S-Class", "GLA", "GLC", "GLE"],
+        "mitsubishi": ["Lancer", "Outlander", "Pajero", "ASX"],
+        "nissan": ["Qashqai", "X-Trail", "Juke", "Pathfinder", "Altima"],
+        "opel": ["Astra", "Corsa", "Insignia", "Mokka", "Grandland"],
+        "peugeot": ["208", "308", "3008", "5008"],
+        "porsche": ["911", "Cayenne", "Macan", "Panamera", "Taycan"],
+        "renault": ["Clio", "Megane", "Duster", "Captur", "Koleos"],
+        "skoda": ["Fabia", "Octavia", "Superb", "Karoq", "Kodiaq"],
+        "subaru": ["Impreza", "Forester", "Outback", "XV"],
+        "suzuki": ["Swift", "Vitara", "Jimny", "SX4"],
+        "tesla": ["Model 3", "Model Y", "Model S", "Model X"],
+        "toyota": ["Corolla", "Camry", "RAV4", "Land Cruiser", "Prius", "C-HR", "Highlander", "Hilux"],
+        "volkswagen": ["Golf", "Passat", "Jetta", "Tiguan", "Touareg", "Polo"],
+        "volvo": ["S60", "S90", "XC40", "XC60", "XC90"],
+        "byd": ["Dolphin", "Atto 3", "Seal", "Han"],
+        "chery": ["Tiggo 4", "Tiggo 7", "Tiggo 8"],
+        "geely": ["Coolray", "Atlas", "Monjaro"],
+        "genesis": ["G70", "G80", "G90", "GV70", "GV80"],
+        "infiniti": ["Q50", "QX50", "QX60", "QX80"],
+        "jaguar": ["XE", "XF", "F-Pace", "E-Pace"],
+        "lada": ["Vesta", "Granta", "Niva", "Niva Travel"],
+    }
+
+    if not supabase_enabled():
+        return jsonify({"makes": fallback_makes, "models": []})
+
     city_id = _supabase_city_id(city)
     category_id = _supabase_category_id("auto")
     if not city_id or not category_id:
-        return jsonify({"makes": [], "models": []})
+        return jsonify({"makes": fallback_makes, "models": []})
 
-    make_filter = str(request.args.get("make", "")).strip().lower()
+    make_filter = str(request.args.get("make", "")).strip().casefold()
     rows = supabase_request(
         "GET",
         "listings",
@@ -6207,7 +6201,7 @@ def mini_app_auto_options():
         },
     )
     if rows is None:
-        return jsonify({"makes": [], "models": [], "error":"db_unavailable"}), 503
+        return jsonify({"makes": fallback_makes, "models": [], "error":"db_unavailable"}), 503
 
     pairs = set()
     for row in rows:
@@ -6215,30 +6209,41 @@ def mini_app_auto_options():
         if not isinstance(meta, dict):
             continue
         details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
+
         make = str(details.get("make") or "").strip()
         model = str(details.get("model") or "").strip()
         combined = str(details.get("make_model") or "").strip()
 
-        if not make and combined:
+        if (not make or not model) and combined:
+            # Поддержка старого формата "Toyota Camry".
             parts = combined.split()
-            make = parts[0] if parts else ""
-            model = " ".join(parts[1:]) if len(parts) > 1 else ""
+            if not make and parts:
+                make = parts[0]
+            if not model and len(parts) > 1:
+                model = " ".join(parts[1:])
 
         if not make:
             title = str(row.get("title") or "").strip()
             if title:
-                parts = title.split("·", 1)[0].strip().split()
-                make = parts[0] if parts else ""
-                model = " ".join(parts[1:]) if len(parts) > 1 else model
+                clean = title.split("·", 1)[0].strip()
+                parts = clean.split()
+                if parts:
+                    make = parts[0]
+                    model = " ".join(parts[1:]) if len(parts) > 1 else model
 
         if make:
             pairs.add((make, model))
 
-    makes = sorted({make for make, _ in pairs}, key=str.casefold)
+    db_makes = {make for make, _ in pairs if make}
+    makes = sorted(db_makes or set(fallback_makes), key=str.casefold)
+
     models = sorted(
-        {model for make, model in pairs if make_filter and make.casefold() == make_filter and model},
+        {model for make, model in pairs
+         if make_filter and make.casefold() == make_filter and model},
         key=str.casefold,
     )
+    if make_filter and not models:
+        models = fallback_models.get(make_filter, [])
     return jsonify({"makes": makes, "models": models})
 
 
