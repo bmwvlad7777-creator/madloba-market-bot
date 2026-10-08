@@ -6926,6 +6926,86 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 .filter-btn .filter-chevron{font-size:20px!important;}
 @media(max-width:520px){.hero{min-height:365px!important;} .quick-action{height:54px!important;min-height:54px!important;max-height:54px!important;} }
 </style>
+<style id="final-quick-category-row-fix">
+/* FINAL: compact horizontal quick-category pills — icon + label on one row */
+.quick-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:8px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:2px 34px 5px 2px!important;
+  margin-top:10px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+  scroll-snap-type:x proximity!important;
+}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-action{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:max-content!important;
+  max-width:none!important;
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+  padding:6px 13px!important;
+  border-radius:999px!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  overflow:visible!important;
+  white-space:nowrap!important;
+  box-sizing:border-box!important;
+  background:rgba(255,255,255,.94)!important;
+  border:1px solid rgba(255,255,255,.96)!important;
+  box-shadow:0 5px 15px rgba(15,23,42,.09),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.quick-action:before{display:none!important}
+.quick-action .quick-icon{
+  flex:0 0 25px!important;
+  width:25px!important;
+  height:25px!important;
+  margin:0!important;
+  border-radius:8px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#eef5ff!important;
+}
+.quick-action .quick-icon svg{width:18px!important;height:18px!important}
+.quick-action .quick-icon .reference-category-icon{width:19px!important;height:19px!important;max-width:19px!important;max-height:19px!important}
+.quick-action .quick-label{
+  display:block!important;
+  font-size:12.5px!important;
+  line-height:1!important;
+  font-weight:900!important;
+  letter-spacing:-.15px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  color:#16233a!important;
+}
+.quick-action.active{
+  background:#edf6ff!important;
+  color:#1476ed!important;
+  border-color:#bcdcff!important;
+  box-shadow:0 6px 16px rgba(20,111,232,.11),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.quick-action.active .quick-icon{background:#e1efff!important;color:#1476ed!important}
+.quick-action.active .quick-label{color:#1476ed!important}
+@media(max-width:520px){
+  .quick-action{height:44px!important;min-height:44px!important;max-height:44px!important;padding:6px 12px!important;gap:6px!important}
+  .quick-action .quick-icon{flex-basis:24px!important;width:24px!important;height:24px!important}
+  .quick-action .quick-icon svg{width:17px!important;height:17px!important}
+  .quick-action .quick-icon .reference-category-icon{width:18px!important;height:18px!important;max-width:18px!important;max-height:18px!important}
+  .quick-action .quick-label{font-size:12px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
