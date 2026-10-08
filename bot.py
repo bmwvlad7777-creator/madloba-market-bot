@@ -6770,6 +6770,32 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 /* POPULAR CATEGORIES — CLEAN, UNIFORM ICON SYSTEM */
 .popular-row{display:flex!important;flex-wrap:nowrap!important;gap:12px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory!important;scroll-snap-stop:always!important;scroll-padding-left:2px!important;padding:0 2px 8px!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important}.popular-row::-webkit-scrollbar{display:none!important}.popular-card{flex:0 0 158px!important;width:158px!important;min-width:158px!important;max-width:158px!important;height:184px!important;min-height:184px!important;max-height:184px!important;padding:10px!important;box-sizing:border-box!important;display:grid!important;grid-template-rows:100px 38px 14px!important;gap:5px!important;align-content:start!important;overflow:hidden!important;scroll-snap-align:start!important}.popular-ico{width:100%!important;height:100px!important;min-height:100px!important;max-height:100px!important;margin:0!important;padding:0!important;border-radius:16px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;box-sizing:border-box!important;background:linear-gradient(145deg,#eef7ff 0%,#e6f0ff 55%,#f6f8ff 100%)!important}.popular-ico .popular-normalized-icon{display:block!important;width:84px!important;height:84px!important;min-width:84px!important;min-height:84px!important;max-width:84px!important;max-height:84px!important;object-fit:contain!important;object-position:center center!important;margin:0 auto!important;padding:0!important;border:0!important;border-radius:14px!important;flex:0 0 84px!important}.popular-ico img.reference-category-icon,.popular-ico img:not(.popular-normalized-icon),.popular-ico svg{display:none!important}.popular-card b{width:100%!important;min-width:0!important;min-height:38px!important;max-height:38px!important;margin:0!important;padding:0 2px!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;text-overflow:ellipsis!important;font-size:14px!important;line-height:1.15!important;text-align:left!important}.popular-card small{width:100%!important;min-width:0!important;margin:0!important;padding:0 2px!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:10px!important;line-height:14px!important}@media(max-width:480px){.popular-card{flex-basis:158px!important;width:158px!important;min-width:158px!important;max-width:158px!important}}
 </style>
+<style id="madloba-soft-category-icons">
+/* Soft rounded category icons — visual polish only */
+#categoriesBlock .cat .ico{
+  width:64px!important;
+  height:64px!important;
+  border-radius:22px!important;
+  background:linear-gradient(145deg,#f5f9ff 0%,#edf5ff 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 5px 14px rgba(45,91,140,.055)!important;
+}
+#categoriesBlock .cat .ico .reference-category-icon{
+  width:88%!important;
+  height:88%!important;
+  max-width:88%!important;
+  max-height:88%!important;
+  margin:auto!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  transform:none!important;
+  border-radius:19px!important;
+  filter:saturate(.82) brightness(1.025)!important;
+}
+@media(max-width:480px){
+  #categoriesBlock .cat .ico{width:56px!important;height:56px!important;border-radius:20px!important}
+  #categoriesBlock .cat .ico .reference-category-icon{width:86%!important;height:86%!important;max-width:86%!important;max-height:86%!important;border-radius:17px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
