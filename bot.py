@@ -1476,124 +1476,6 @@ def category_menu(
 
 
 # ============================================================
-# СПИСКИ МАРОК И МОДЕЛЕЙ ДЛЯ ТЕХНИКИ
-# ============================================================
-
-# Не пытаемся заставить пользователя вручную печатать каждую модель.
-# Сначала выбирается марка, затем конкретная модель.
-# Для редких/новых моделей всегда остаётся вариант ручного ввода.
-TECH_BRANDS = {
-    "phones": {
-        "apple": ("🍎 Apple", ["iPhone 17", "iPhone 17 Pro", "iPhone 17 Pro Max", "iPhone Air", "iPhone 16", "iPhone 16 Pro", "iPhone 16 Pro Max", "iPhone 15", "iPhone 15 Pro", "iPhone 15 Pro Max", "iPad Pro", "iPad Air", "iPad 11", "iPad mini"]),
-        "samsung": ("📱 Samsung", ["Galaxy S26", "Galaxy S26+", "Galaxy S26 Ultra", "Galaxy S25", "Galaxy S25 Ultra", "Galaxy A56", "Galaxy A36", "Galaxy A26", "Galaxy Z Fold7", "Galaxy Z Flip7", "Galaxy Tab S11", "Galaxy Tab S11 Ultra"]),
-        "xiaomi": ("📱 Xiaomi", ["Xiaomi 17", "Xiaomi 17 Pro", "Xiaomi 17 Ultra", "Xiaomi 15", "Xiaomi 15 Ultra", "Redmi Note 15", "Redmi Note 15 Pro", "Redmi Note 15 Pro+", "Poco F7", "Poco X7", "Xiaomi Pad 7"]),
-        "google": ("🔵 Google", ["Pixel 10", "Pixel 10 Pro", "Pixel 10 Pro XL", "Pixel 10a", "Pixel 9", "Pixel 9 Pro", "Pixel 9 Pro XL", "Pixel Tablet"]),
-        "huawei": ("🔴 Huawei", ["Pura 80", "Pura 80 Pro", "Pura 80 Ultra", "Mate 70", "Mate 70 Pro", "Nova 13", "MatePad Pro"]),
-        "honor": ("🟦 Honor", ["Magic7 Pro", "Magic V5", "Honor 400", "Honor 400 Pro", "Honor 200", "Honor 200 Pro", "Pad V9"]),
-        "oneplus": ("🟢 OnePlus", ["OnePlus 13", "OnePlus 13R", "OnePlus 12", "OnePlus Nord 5", "OnePlus Pad 2"]),
-        "oppo": ("🟢 OPPO", ["Find X8 Pro", "Find X8", "Reno 14", "Reno 14 Pro", "Reno 13", "Pad 4 Pro"]),
-        "vivo": ("🔵 vivo", ["X200 Pro", "X200", "V50", "V50 Lite", "X100 Pro", "Pad5"]),
-        "motorola": ("🟥 Motorola", ["Razr 60 Ultra", "Razr 60", "Edge 60 Pro", "Edge 60", "Moto G86"]),
-        "realme": ("🟡 Realme", ["GT 7 Pro", "GT 7", "14 Pro+", "14 Pro", "Pad 2"]),
-        "nothing": ("⚪ Nothing", ["Phone (3)", "Phone (3a)", "Phone (3a) Pro", "Phone (2a)"]),
-    },
-    "computers": {
-        "apple": ("🍎 Apple", ["MacBook Air 13 M4", "MacBook Air 15 M4", "MacBook Pro 14 M4", "MacBook Pro 16 M4", "Mac mini M4", "iMac M4", "Mac Studio"]),
-        "lenovo": ("🔴 Lenovo", ["ThinkPad X1 Carbon", "ThinkPad T14", "ThinkPad E14", "Yoga Slim 7", "Yoga Pro 7", "Legion 5", "Legion 7", "IdeaPad Slim 5"]),
-        "asus": ("🟦 ASUS", ["Zenbook 14", "Vivobook 15", "Vivobook S 14", "ROG Zephyrus G14", "ROG Zephyrus G16", "ROG Strix G16", "TUF Gaming A15"]),
-        "hp": ("🔵 HP", ["Spectre x360 14", "Envy 14", "Pavilion 15", "ProBook 450", "EliteBook 840", "Victus 15", "Omen 16"]),
-        "dell": ("🔵 Dell", ["XPS 13", "XPS 14", "Inspiron 15", "Latitude 5450", "Latitude 7450", "Alienware m16", "G15"]),
-        "acer": ("🟢 Acer", ["Swift Go 14", "Aspire 5", "Nitro V 15", "Nitro 16", "Predator Helios Neo 16"]),
-        "msi": ("⬛ MSI", ["Modern 14", "Prestige 14", "Katana 15", "Cyborg 15", "Vector 16", "Stealth 16"]),
-        "microsoft": ("🟦 Microsoft", ["Surface Laptop", "Surface Pro", "Surface Laptop Studio"]),
-        "huawei": ("🔴 Huawei", ["MateBook X Pro", "MateBook 14", "MateBook D 16"]),
-    },
-    "tv": {
-        "samsung": ("📱 Samsung", ["QLED", "Neo QLED", "OLED S90", "OLED S95", "The Frame", "Crystal UHD"]),
-        "lg": ("🟣 LG", ["OLED C5", "OLED G5", "QNED", "NanoCell", "UHD"]),
-        "sony": ("🔵 Sony", ["BRAVIA 5", "BRAVIA 8", "BRAVIA 9", "X90L", "A80L"]),
-        "tcl": ("🟦 TCL", ["C6K", "C7K", "C8K", "C855", "P7K"]),
-        "hisense": ("🟥 Hisense", ["U7", "U8", "E7", "A7"]),
-        "philips": ("🔷 Philips", ["The One", "OLED+", "Ambilight 4K"]),
-        "xiaomi": ("📱 Xiaomi", ["TV A Pro", "TV S Mini LED", "TV S Pro Mini LED"]),
-    },
-    "appliances": {
-        "bosch": ("🔵 Bosch", ["Холодильник", "Стиральная машина", "Посудомоечная машина", "Духовой шкаф", "Варочная панель"]),
-        "samsung": ("📱 Samsung", ["Холодильник", "Стиральная машина", "Сушильная машина", "Пылесос"]),
-        "lg": ("🟣 LG", ["Холодильник", "Стиральная машина", "Сушильная машина", "Пылесос"]),
-        "beko": ("🟦 Beko", ["Холодильник", "Стиральная машина", "Посудомоечная машина", "Духовой шкаф"]),
-        "electrolux": ("🟦 Electrolux", ["Холодильник", "Стиральная машина", "Посудомоечная машина", "Духовой шкаф"]),
-        "siemens": ("🔵 Siemens", ["Холодильник", "Стиральная машина", "Посудомоечная машина", "Духовой шкаф"]),
-        "midea": ("🔴 Midea", ["Кондиционер", "Холодильник", "Стиральная машина", "Посудомоечная машина"]),
-        "haier": ("🔵 Haier", ["Холодильник", "Стиральная машина", "Кондиционер"]),
-        "whirlpool": ("🔵 Whirlpool", ["Холодильник", "Стиральная машина", "Посудомоечная машина"]),
-    },
-    "photo": {
-        "canon": ("🔴 Canon", ["EOS R5", "EOS R6", "EOS R8", "EOS R50", "EOS 90D", "PowerShot G7 X"]),
-        "sony": ("🔵 Sony", ["A7 IV", "A7 V", "A7R V", "A7S III", "A6700", "ZV-E10 II"]),
-        "nikon": ("🟡 Nikon", ["Z8", "Z6 III", "Z5 II", "Z50 II", "D850"]),
-        "fujifilm": ("🟦 Fujifilm", ["X-T5", "X-T50", "X100VI", "X-S20", "GFX100 II"]),
-        "panasonic": ("🔵 Panasonic", ["Lumix S5 II", "Lumix S9", "Lumix GH7"]),
-        "gopro": ("⚫ GoPro", ["HERO13 Black", "HERO12 Black", "MAX"]),
-        "dji": ("⚫ DJI", ["Osmo Pocket 3", "Osmo Action 5 Pro", "Osmo Action 4"]),
-    },
-    "other": {
-        "apple": ("🍎 Apple", ["AirPods Pro", "AirPods Max", "Apple Watch", "Apple Watch Ultra", "AirTag"]),
-        "sony": ("🔵 Sony", ["PlayStation 5", "PlayStation 5 Pro", "WH-1000XM5", "WF-1000XM5"]),
-        "microsoft": ("🟦 Microsoft", ["Xbox Series X", "Xbox Series S"]),
-        "nintendo": ("🔴 Nintendo", ["Switch 2", "Switch OLED", "Switch"]),
-        "garmin": ("🟢 Garmin", ["Fenix 8", "Forerunner 965", "Venu 3"]),
-        "jbl": ("🔵 JBL", ["Charge 5", "Charge 6", "Flip 7", "PartyBox"]),
-        "dyson": ("🟣 Dyson", ["V15 Detect", "Gen5detect", "Airwrap", "Supersonic"]),
-    },
-}
-
-
-def tech_brand_menu(sub):
-    rows = []
-    brands = TECH_BRANDS.get(sub, {})
-    items = list(brands.items())
-    for i in range(0, len(items), 2):
-        row = []
-        for brand_key, (label, _) in items[i:i + 2]:
-            row.append({"text": label, "callback_data": f"techbrand_{brand_key}"})
-        rows.append(row)
-    rows.append([{"text": "✏️ Ввести марку вручную", "callback_data": "tech_manual_brand"}])
-    rows.append([{"text": "⬅️ Назад", "callback_data": "tech_back_detail"}])
-    return rows
-
-
-def tech_model_menu(sub, brand_key):
-    brand = TECH_BRANDS.get(sub, {}).get(brand_key)
-    if not brand:
-        return []
-    models = brand[1]
-    rows = []
-    for i in range(0, len(models), 2):
-        row = []
-        for index, model in enumerate(models[i:i + 2], start=i):
-            row.append({"text": model, "callback_data": f"techmodel_{brand_key}_{index}"})
-        rows.append(row)
-    rows.append([{"text": "✏️ Ввести модель вручную", "callback_data": "tech_manual_model"}])
-    rows.append([{"text": "⬅️ Выбрать другую марку", "callback_data": "tech_back_brand"}])
-    return rows
-
-
-def tech_model_value(sub, brand_key, index):
-    brand = TECH_BRANDS.get(sub, {}).get(brand_key)
-    if not brand:
-        return None
-    models = brand[1]
-    try:
-        index = int(index)
-    except (TypeError, ValueError):
-        return None
-    if 0 <= index < len(models):
-        return models[index]
-    return None
-
-
-# ============================================================
 # КАТЕГОРИЯ ПРИ СОЗДАНИИ
 # ============================================================
 
@@ -2025,27 +1907,18 @@ def ask_detail(
 
     if index < len(fields):
 
-        field_key, label = fields[index]
-
-        # Для техники вместо ручного ввода показываем
-        # последовательный выбор: категория → марка → модель.
-        if (
-            data.get("category_key") == "tech"
-            and field_key == "brand_model"
-        ):
-            ask(
-                chat_id,
-                f"detail_{index}",
-                f"<b>{index + 3} · {esc(label)}</b>\n\n"
-                "Сначала выберите марку:",
-                tech_brand_menu(data.get("subcategory_key", "other"))
-            )
-            return
+        _, label = fields[
+            index
+        ]
 
         ask(
+
             chat_id,
+
             f"detail_{index}",
-            f"<b>{index + 3} · {esc(label)}</b>\n\n"
+
+            f"<b>{index + 3} · "
+            f"{esc(label)}</b>\n\n"
             "Введите значение."
         )
 
@@ -3956,21 +3829,6 @@ def process_text(
 
 
     # ========================================================
-    # РУЧНОЙ ВВОД МАРКИ / МОДЕЛИ ТЕХНИКИ
-    # ========================================================
-
-    if step == "tech_manual_brand":
-        data.setdefault("details", {})["brand"] = text
-        states[chat_id]["step"] = "tech_manual_model"
-        send(chat_id, "<b>📱 Модель</b>\n\nВведите модель.")
-        return True
-
-    if step == "tech_manual_model":
-        data.setdefault("details", {})["brand_model"] = f"{data['details'].get('brand', '').strip()} {text}".strip()
-        ask_detail(chat_id, 1)
-        return True
-
-    # ========================================================
     # ХАРАКТЕРИСТИКИ
     # ========================================================
 
@@ -5465,75 +5323,6 @@ def handle(
 
 
     # ========================================================
-    # ВЫБОР МАРКИ / МОДЕЛИ ТЕХНИКИ
-    # ========================================================
-
-    if data == "tech_manual_brand":
-        if chat_id in states:
-            states[chat_id]["step"] = "tech_manual_brand"
-            send(chat_id, "<b>📱 Марка</b>\n\nВведите марку вручную.")
-        return
-
-    if data == "tech_manual_model":
-        if chat_id in states:
-            states[chat_id]["step"] = "tech_manual_model"
-            send(chat_id, "<b>📱 Модель</b>\n\nВведите модель вручную.")
-        return
-
-    if data == "tech_back_detail":
-        if chat_id in states:
-            ask_detail(chat_id, 0)
-        return
-
-    if data == "tech_back_brand":
-        if chat_id in states:
-            sub = states[chat_id]["data"].get("subcategory_key", "other")
-            send(chat_id, "<b>📱 Марка и модель</b>\n\nВыберите марку:", tech_brand_menu(sub))
-            states[chat_id]["step"] = "detail_0"
-        return
-
-    if data.startswith("techbrand_"):
-        if chat_id not in states:
-            return
-        brand_key = data[len("techbrand_"):]
-        listing = states[chat_id]["data"]
-        if listing.get("category_key") != "tech":
-            return
-        sub = listing.get("subcategory_key", "other")
-        brand = TECH_BRANDS.get(sub, {}).get(brand_key)
-        if not brand:
-            return
-        listing.setdefault("details", {})["brand"] = brand[0]
-        states[chat_id]["step"] = "detail_0"
-        send(
-            chat_id,
-            f"<b>📱 {esc(brand[0])}</b>\n\nВыберите модель:",
-            tech_model_menu(sub, brand_key)
-        )
-        return
-
-    if data.startswith("techmodel_"):
-        if chat_id not in states:
-            return
-        parts = data.split("_", 2)
-        if len(parts) != 3:
-            return
-        brand_key, index = parts[1], parts[2]
-        listing = states[chat_id]["data"]
-        if listing.get("category_key") != "tech":
-            return
-        sub = listing.get("subcategory_key", "other")
-        brand = TECH_BRANDS.get(sub, {}).get(brand_key)
-        model = tech_model_value(sub, brand_key, index)
-        if not brand or not model:
-            return
-        listing.setdefault("details", {})["brand"] = brand[0]
-        listing["details"]["brand_model"] = f"{brand[0].split(' ', 1)[-1]} {model}"
-        # Выбор завершён — переходим к следующей характеристике.
-        ask_detail(chat_id, 1)
-        return
-
-    # ========================================================
     # ОТДЕЛЬНАЯ ХАРАКТЕРИСТИКА
     # ========================================================
 
@@ -6980,6 +6769,242 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 
 /* POPULAR CATEGORIES — CLEAN, UNIFORM ICON SYSTEM */
 .popular-row{display:flex!important;flex-wrap:nowrap!important;gap:12px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory!important;scroll-snap-stop:always!important;scroll-padding-left:2px!important;padding:0 2px 8px!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important}.popular-row::-webkit-scrollbar{display:none!important}.popular-card{flex:0 0 158px!important;width:158px!important;min-width:158px!important;max-width:158px!important;height:184px!important;min-height:184px!important;max-height:184px!important;padding:10px!important;box-sizing:border-box!important;display:grid!important;grid-template-rows:100px 38px 14px!important;gap:5px!important;align-content:start!important;overflow:hidden!important;scroll-snap-align:start!important}.popular-ico{width:100%!important;height:100px!important;min-height:100px!important;max-height:100px!important;margin:0!important;padding:0!important;border-radius:16px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;box-sizing:border-box!important;background:linear-gradient(145deg,#eef7ff 0%,#e6f0ff 55%,#f6f8ff 100%)!important}.popular-ico .popular-normalized-icon{display:block!important;width:84px!important;height:84px!important;min-width:84px!important;min-height:84px!important;max-width:84px!important;max-height:84px!important;object-fit:contain!important;object-position:center center!important;margin:0 auto!important;padding:0!important;border:0!important;border-radius:14px!important;flex:0 0 84px!important}.popular-ico img.reference-category-icon,.popular-ico img:not(.popular-normalized-icon),.popular-ico svg{display:none!important}.popular-card b{width:100%!important;min-width:0!important;min-height:38px!important;max-height:38px!important;margin:0!important;padding:0 2px!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;text-overflow:ellipsis!important;font-size:14px!important;line-height:1.15!important;text-align:left!important}.popular-card small{width:100%!important;min-width:0!important;margin:0!important;padding:0 2px!important;display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:10px!important;line-height:14px!important}@media(max-width:480px){.popular-card{flex-basis:158px!important;width:158px!important;min-width:158px!important;max-width:158px!important}}
+</style>
+
+<style id="madloba-final-quick-filter-polish">
+/* Final visual polish: compact quick categories + lighter filter control */
+.quick-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:10px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+  padding:3px 34px 5px 2px!important;
+  margin-top:10px!important;
+  position:relative!important;
+  scroll-snap-type:x proximity!important;
+}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-actions:after{
+  content:"";
+  position:absolute!important;
+  z-index:5!important;
+  right:0!important;
+  top:0!important;
+  bottom:0!important;
+  width:30px!important;
+  pointer-events:none!important;
+  background:linear-gradient(90deg,rgba(20,60,100,0),rgba(20,60,100,.18))!important;
+  border-radius:0 14px 14px 0!important;
+}
+.quick-action{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  height:50px!important;
+  min-height:50px!important;
+  max-height:50px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  padding:7px 14px!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.94)!important;
+  color:#17233a!important;
+  border:1px solid rgba(255,255,255,.95)!important;
+  box-shadow:0 5px 16px rgba(15,23,42,.10),inset 0 1px 0 rgba(255,255,255,.95)!important;
+  backdrop-filter:blur(12px)!important;
+  scroll-snap-align:start!important;
+}
+.quick-action .quick-icon{
+  width:28px!important;
+  height:28px!important;
+  flex:0 0 28px!important;
+  border-radius:9px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#edf5ff!important;
+  color:#1678f5!important;
+  box-shadow:none!important;
+}
+.quick-action .quick-icon svg{
+  width:21px!important;
+  height:21px!important;
+}
+.quick-action .quick-icon .reference-category-icon{
+  width:22px!important;
+  height:22px!important;
+  max-width:22px!important;
+  max-height:22px!important;
+}
+.quick-action .quick-label{
+  width:auto!important;
+  font-size:12.5px!important;
+  line-height:1!important;
+  font-weight:850!important;
+  color:#17233a!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.quick-action.active{
+  background:#eef6ff!important;
+  border-color:#cfe4ff!important;
+  color:#1678f5!important;
+  box-shadow:0 5px 14px rgba(11,115,246,.10)!important;
+}
+.quick-action.active .quick-icon{background:#e1efff!important;color:#1678f5!important}
+.quick-action.active .quick-label{color:#1678f5!important}
+
+/* Filter should read as a light secondary control, not a second large card. */
+.filter-bar{
+  display:none!important;
+  margin-top:10px!important;
+}
+.filter-bar.show{
+  display:flex!important;
+  align-items:center!important;
+}
+.filter-btn{
+  width:auto!important;
+  min-height:46px!important;
+  height:46px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:6px 13px 6px 8px!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.92)!important;
+  border:1px solid rgba(218,229,242,.95)!important;
+  color:#1677ee!important;
+  font-size:14px!important;
+  font-weight:850!important;
+  box-shadow:0 5px 16px rgba(15,23,42,.08),inset 0 1px 0 #fff!important;
+  text-align:left!important;
+}
+.filter-btn-icon{
+  width:32px!important;
+  height:32px!important;
+  flex:0 0 32px!important;
+  border-radius:10px!important;
+  background:#eaf4ff!important;
+  color:#1478ed!important;
+  box-shadow:none!important;
+}
+.filter-btn-icon svg{width:19px!important;height:19px!important}
+.filter-btn .filter-chevron{
+  margin-left:2px!important;
+  font-size:22px!important;
+  line-height:1!important;
+  color:#8b9aab!important;
+}
+#filterActive{
+  margin-left:2px!important;
+  font-size:10px!important;
+  color:#718096!important;
+  font-weight:800!important;
+}
+#filterActive:not(:empty)+.filter-chevron{margin-left:1px!important}
+</style>
+
+<style id="final-home-quick-fix">
+/* Final mobile balance: keep quick labels fully visible and make filters secondary. */
+.quick-actions{padding:3px 34px 7px 2px!important;margin-top:9px!important;gap:9px!important;}
+.quick-action{height:54px!important;min-height:54px!important;max-height:54px!important;padding:7px 14px!important;overflow:visible!important;}
+.quick-action .quick-icon{width:27px!important;height:27px!important;flex-basis:27px!important;border-radius:9px!important;}
+.quick-action .quick-icon svg{width:20px!important;height:20px!important;}
+.quick-action .quick-icon .reference-category-icon{width:21px!important;height:21px!important;max-width:21px!important;max-height:21px!important;}
+.quick-action .quick-label{font-size:12.5px!important;line-height:1.1!important;display:block!important;white-space:nowrap!important;overflow:visible!important;}
+.filter-bar{margin-top:7px!important;}
+.filter-btn{height:44px!important;min-height:44px!important;padding:5px 12px 5px 7px!important;font-size:13.5px!important;gap:7px!important;box-shadow:0 4px 12px rgba(15,23,42,.07),inset 0 1px 0 #fff!important;}
+.filter-btn-icon{width:30px!important;height:30px!important;flex-basis:30px!important;border-radius:9px!important;}
+.filter-btn-icon svg{width:18px!important;height:18px!important;}
+.filter-btn .filter-chevron{font-size:20px!important;}
+@media(max-width:520px){.hero{min-height:365px!important;} .quick-action{height:54px!important;min-height:54px!important;max-height:54px!important;} }
+</style>
+<style id="final-quick-category-row-fix">
+/* FINAL: compact horizontal quick-category pills — icon + label on one row */
+.quick-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:8px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:2px 34px 5px 2px!important;
+  margin-top:10px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+  scroll-snap-type:x proximity!important;
+}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-action{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:max-content!important;
+  max-width:none!important;
+  height:46px!important;
+  min-height:46px!important;
+  max-height:46px!important;
+  padding:6px 13px!important;
+  border-radius:999px!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  overflow:visible!important;
+  white-space:nowrap!important;
+  box-sizing:border-box!important;
+  background:rgba(255,255,255,.94)!important;
+  border:1px solid rgba(255,255,255,.96)!important;
+  box-shadow:0 5px 15px rgba(15,23,42,.09),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.quick-action:before{display:none!important}
+.quick-action .quick-icon{
+  flex:0 0 25px!important;
+  width:25px!important;
+  height:25px!important;
+  margin:0!important;
+  border-radius:8px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#eef5ff!important;
+}
+.quick-action .quick-icon svg{width:18px!important;height:18px!important}
+.quick-action .quick-icon .reference-category-icon{width:19px!important;height:19px!important;max-width:19px!important;max-height:19px!important}
+.quick-action .quick-label{
+  display:block!important;
+  font-size:12.5px!important;
+  line-height:1!important;
+  font-weight:900!important;
+  letter-spacing:-.15px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  color:#16233a!important;
+}
+.quick-action.active{
+  background:#edf6ff!important;
+  color:#1476ed!important;
+  border-color:#bcdcff!important;
+  box-shadow:0 6px 16px rgba(20,111,232,.11),inset 0 1px 0 rgba(255,255,255,.95)!important;
+}
+.quick-action.active .quick-icon{background:#e1efff!important;color:#1476ed!important}
+.quick-action.active .quick-label{color:#1476ed!important}
+@media(max-width:520px){
+  .quick-action{height:44px!important;min-height:44px!important;max-height:44px!important;padding:6px 12px!important;gap:6px!important}
+  .quick-action .quick-icon{flex-basis:24px!important;width:24px!important;height:24px!important}
+  .quick-action .quick-icon svg{width:17px!important;height:17px!important}
+  .quick-action .quick-icon .reference-category-icon{width:18px!important;height:18px!important;max-width:18px!important;max-height:18px!important}
+  .quick-action .quick-label{font-size:12px!important}
+}
 </style>
 </head>
 <body>
