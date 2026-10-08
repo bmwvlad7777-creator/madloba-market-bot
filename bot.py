@@ -6069,7 +6069,7 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 #categoriesBlock .section-head h2{display:flex;align-items:center;gap:10px;font-size:27px;letter-spacing:-.8px}
 #categoriesBlock .section-head h2:before{content:"";display:block;width:5px;height:30px;border-radius:99px;background:linear-gradient(180deg,#167DF5,#63B2FF);box-shadow:0 5px 14px rgba(22,125,245,.20)}
 #categoriesBlock #countLabel{display:flex;align-items:center;justify-content:center;min-width:62px;height:36px;padding:0 13px;border:1px solid #D7E8FF;border-radius:999px;background:#F4F9FF;color:#1478F5;font-size:16px;font-weight:900}
-#categoriesBlock #countLabel:after{content:"20+"}
+#categoriesBlock #countLabel:after{content:""}
 #categoriesBlock .cat{display:grid;grid-template-columns:68px minmax(0,1fr) 20px;align-items:center;gap:13px;min-height:112px;padding:14px 13px;border:1px solid rgba(218,227,239,.92);border-top:2px solid var(--cat-accent,#60A9FF);border-radius:23px;background:rgba(255,255,255,.98);box-shadow:0 13px 30px rgba(31,55,88,.075),inset 0 1px 0 rgba(255,255,255,.98);overflow:hidden}
 #categoriesBlock .cat .ico{width:62px;height:62px;border-radius:19px;margin:0;display:flex;align-items:center;justify-content:center;background:var(--cat-bg,#EAF4FF);box-shadow:inset 0 1px 0 rgba(255,255,255,.95)}
 #categoriesBlock .cat .ico svg{width:50px;height:50px;display:block}
