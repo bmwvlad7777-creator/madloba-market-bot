@@ -6918,7 +6918,46 @@ $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
 $('profileBack').onclick=()=>showHome();
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home')showHome();else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
-applyLang();load(true);</script></body></html>'''
+applyLang();load(true);</script><style id="madloba-unified-category-colors">
+/* Unified category palette: calm blue, less visual noise */
+#categoriesBlock .cat{
+  --cat-accent:#3B82F6!important;
+  --cat-bg:#EAF3FF!important;
+  border-top-color:#3B82F6!important;
+}
+#categoriesBlock .cat:nth-child(1),
+#categoriesBlock .cat:nth-child(2),
+#categoriesBlock .cat:nth-child(3),
+#categoriesBlock .cat:nth-child(4),
+#categoriesBlock .cat:nth-child(5),
+#categoriesBlock .cat:nth-child(6),
+#categoriesBlock .cat:nth-child(7),
+#categoriesBlock .cat:nth-child(8){
+  --cat-accent:#3B82F6!important;
+  --cat-bg:#EAF3FF!important;
+}
+#categoriesBlock .cat .ico{
+  background:#EAF3FF!important;
+  color:#1678F5!important;
+}
+#categoriesBlock .cat .ico .reference-category-icon,
+.quick-action .quick-icon .reference-category-icon{
+  filter:saturate(.68) contrast(.98)!important;
+}
+.quick-action .quick-icon{
+  background:#EAF3FF!important;
+  color:#1678F5!important;
+}
+.quick-action:nth-child(1),
+.quick-action:nth-child(2),
+.quick-action:nth-child(3),
+.quick-action:nth-child(4),
+.quick-action:nth-child(5){
+  --qbg:#EAF3FF!important;
+  --qcolor:#1678F5!important;
+}
+</style>
+</body></html>'''
 
 
 
