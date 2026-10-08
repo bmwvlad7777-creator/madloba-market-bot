@@ -6885,7 +6885,7 @@ function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').fo
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,6);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
-async function load(reset=true){if(state.loading)return;state.loading=true;if(reset){state.page=0;$('list').innerHTML=''}const p=new URLSearchParams({city:state.city,page:state.page,per_page:20,sort:state.sort});if(state.category)p.set('category',state.category);if(state.q)p.set('q',state.q);if(['realestate','auto'].includes(state.category)){Object.entries(state.filters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(!r.ok)throw 0;const data=await r.json();if(reset)$('list').innerHTML='';if(reset)renderBestListings(data.items||[]);$('list').insertAdjacentHTML('beforeend',(data.items||[]).map(card).join(''));bindCards();$('moreBtn').style.display=data.has_next?'inline-block':'none';$('countLabel').textContent=state.category?'':(data.total_hint?data.total_hint+'+':'');$('resultsCount').textContent=data.items&&data.items.length?(data.items.length+(data.has_next?'+':'')):'0';if(reset&&!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([])}}catch(e){if(reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{state.loading=false}}
+async function load(reset=true){if(state.loading)return;state.loading=true;if(reset){state.page=0;$('list').innerHTML=''}const p=new URLSearchParams({city:state.city,page:state.page,per_page:20,sort:state.sort});if(state.category)p.set('category',state.category);if(state.q)p.set('q',state.q);if(['realestate','auto'].includes(state.category)){Object.entries(state.filters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(!r.ok)throw 0;const data=await r.json();let items=Array.isArray(data.items)?data.items:[];if(state.category){items=items.filter(x=>String(x.category_key||'').trim().toLowerCase()===state.category)}if(reset)$('list').innerHTML='';if(reset)renderBestListings(items);$('list').insertAdjacentHTML('beforeend',items.map(card).join(''));bindCards();$('moreBtn').style.display=data.has_next?'inline-block':'none';$('countLabel').textContent=state.category?'':(data.total_hint?data.total_hint+'+':'');$('resultsCount').textContent=items.length?(items.length+(data.has_next?'+':'')):'0';if(reset&&!items.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([])}}catch(e){if(reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const republish=st==='archived'?`<button class="mine-action primary" data-action="republish">📣 ${t('republish')}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
@@ -6925,7 +6925,14 @@ applyLang();load(true);</script></body></html>'''
 
 @app.get("/app")
 def mini_app():
-    return Response(MINI_APP_HTML, mimetype="text/html")
+    return Response(
+        MINI_APP_HTML,
+        mimetype="text/html",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )
 
 
 @app.get("/api/config")
@@ -7789,18 +7796,30 @@ def mini_app_listings():
         has_next = len(filtered) > offset + per_page
         rows = page_rows
     else:
-        offset = page * per_page
-        params["offset"] = str(offset)
-        params["limit"] = str(per_page + 1)
-        rows = supabase_request("GET", "listings", params=params)
-        if rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
-        has_next = len(rows) > per_page
-        rows = rows[:per_page]
+        # Для категорий не доверяем category_id: старые объявления могли
+        # получить неверный ID категории. Источником истины здесь является
+        # metadata.category_key, который записывается при создании объявления.
+        # Поэтому сначала берём кандидатов только по городу/статусу, а затем
+        # строго фильтруем их по category_key ниже.
+        if category:
+            candidate_limit = min(1000, max(100, (page + 1) * per_page * 10 + 1))
+            params.pop("category_id", None)
+            params["offset"] = "0"
+            params["limit"] = str(candidate_limit)
+            rows = supabase_request("GET", "listings", params=params)
+            if rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
+        else:
+            offset = page * per_page
+            params["offset"] = str(offset)
+            params["limit"] = str(per_page + 1)
+            rows = supabase_request("GET", "listings", params=params)
+            if rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
+            has_next = len(rows) > per_page
+            rows = rows[:per_page]
 
-    # Дополнительная проверка категории по metadata.
-    # Это защищает Mini App от старых объявлений, у которых category_id
-    # в Supabase мог быть сохранён неверно, но category_key в metadata верный.
+    # Строгая фильтрация категории по metadata.category_key.
     if category:
         category_rows = []
         for row in rows:
@@ -7809,7 +7828,9 @@ def mini_app_listings():
             row_category = str(meta.get("category_key", "")).strip().lower()
             if row_category == category:
                 category_rows.append(row)
-        rows = category_rows
+        offset = page * per_page
+        has_next = len(category_rows) > offset + per_page
+        rows = category_rows[offset:offset + per_page]
 
     favorite_ids = set()
     current_user = _mini_app_authenticated_user()
