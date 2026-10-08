@@ -7032,6 +7032,19 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 .quick-action.active{border-color:#bcdcff!important;box-shadow:0 6px 18px rgba(20,111,232,.15),0 0 0 2px rgba(20,111,232,.05)!important}
 .quick-action.active .quick-label{color:#1678f5!important}
 #genericFilterFields{display:none}
+
+/* FINAL QUICK CATEGORY BACKGROUND FIX */
+.quick-action{
+  background:#ffffff!important;
+  background-image:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  opacity:1!important;
+}
+.quick-action.active{
+  background:#ffffff!important;
+  background-image:none!important;
+}
 </style>
 </head>
 <body>
@@ -8476,3 +8489,4 @@ if __name__ == "__main__":
         )
     )
     
+
