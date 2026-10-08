@@ -6866,8 +6866,7 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
   margin-top:10px!important;
 }
 .filter-bar.show{
-  display:flex!important;
-  align-items:center!important;
+  display:block!important;
 }
 .filter-btn{
   width:auto!important;
@@ -7005,6 +7004,13 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
   .quick-action .quick-icon .reference-category-icon{width:18px!important;height:18px!important;max-width:18px!important;max-height:18px!important}
   .quick-action .quick-label{font-size:12px!important}
 }
+</style>
+<style id="final-filter-layout-fix">
+/* Filter opens below the compact category pills, never beside them. */
+.filter-bar.show{display:block!important;}
+.filter-bar .filter-btn{display:inline-flex!important;width:auto!important;}
+.filter-bar .filter-panel{position:static!important;display:none;background:#fff;width:100%;max-width:none;margin-top:8px!important;box-sizing:border-box;}
+.filter-bar .filter-panel.show{display:block!important;}
 </style>
 </head>
 <body>
