@@ -7798,6 +7798,19 @@ def mini_app_listings():
         has_next = len(rows) > per_page
         rows = rows[:per_page]
 
+    # Дополнительная проверка категории по metadata.
+    # Это защищает Mini App от старых объявлений, у которых category_id
+    # в Supabase мог быть сохранён неверно, но category_key в metadata верный.
+    if category:
+        category_rows = []
+        for row in rows:
+            meta = row.get("metadata") or {}
+            meta = meta if isinstance(meta, dict) else {}
+            row_category = str(meta.get("category_key", "")).strip().lower()
+            if row_category == category:
+                category_rows.append(row)
+        rows = category_rows
+
     favorite_ids = set()
     current_user = _mini_app_authenticated_user()
     if current_user and rows:
