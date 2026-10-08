@@ -6911,6 +6911,21 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 #filterActive:not(:empty)+.filter-chevron{margin-left:1px!important}
 </style>
 
+<style id="final-home-quick-fix">
+/* Final mobile balance: keep quick labels fully visible and make filters secondary. */
+.quick-actions{padding:3px 34px 7px 2px!important;margin-top:9px!important;gap:9px!important;}
+.quick-action{height:54px!important;min-height:54px!important;max-height:54px!important;padding:7px 14px!important;overflow:visible!important;}
+.quick-action .quick-icon{width:27px!important;height:27px!important;flex-basis:27px!important;border-radius:9px!important;}
+.quick-action .quick-icon svg{width:20px!important;height:20px!important;}
+.quick-action .quick-icon .reference-category-icon{width:21px!important;height:21px!important;max-width:21px!important;max-height:21px!important;}
+.quick-action .quick-label{font-size:12.5px!important;line-height:1.1!important;display:block!important;white-space:nowrap!important;overflow:visible!important;}
+.filter-bar{margin-top:7px!important;}
+.filter-btn{height:44px!important;min-height:44px!important;padding:5px 12px 5px 7px!important;font-size:13.5px!important;gap:7px!important;box-shadow:0 4px 12px rgba(15,23,42,.07),inset 0 1px 0 #fff!important;}
+.filter-btn-icon{width:30px!important;height:30px!important;flex-basis:30px!important;border-radius:9px!important;}
+.filter-btn-icon svg{width:18px!important;height:18px!important;}
+.filter-btn .filter-chevron{font-size:20px!important;}
+@media(max-width:520px){.hero{min-height:365px!important;} .quick-action{height:54px!important;min-height:54px!important;max-height:54px!important;} }
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
