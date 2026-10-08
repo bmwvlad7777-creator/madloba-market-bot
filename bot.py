@@ -7061,6 +7061,105 @@ applyLang();load(true);</script><style id="madloba-unified-category-colors">
   --qcolor:#1678F5!important;
 }
 </style>
+
+<style id="final-quick-category-fix">
+/* FINAL QUICK CATEGORY TEXT/CHIP FIX */
+.quick-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:3px 1px 6px!important;
+  margin-top:10px!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-action{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:max-content!important;
+  max-width:none!important;
+  height:46px!important;
+  min-height:46px!important;
+  padding:5px 11px!important;
+  border-radius:999px!important;
+  display:inline-flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  background:rgba(255,255,255,.94)!important;
+  color:#172033!important;
+  border:1px solid rgba(255,255,255,.82)!important;
+  box-shadow:0 4px 12px rgba(15,23,42,.08)!important;
+}
+.quick-action:before{display:none!important}
+.quick-action .quick-icon{
+  width:24px!important;
+  height:24px!important;
+  min-width:24px!important;
+  flex:0 0 24px!important;
+  border-radius:8px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#eef6ff!important;
+  color:#1678f5!important;
+  overflow:hidden!important;
+}
+.quick-action .quick-icon .reference-category-icon{
+  width:21px!important;
+  height:21px!important;
+  max-width:21px!important;
+  max-height:21px!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  display:block!important;
+}
+.quick-action .quick-icon svg{width:18px!important;height:18px!important}
+.quick-action .quick-label{
+  display:inline-block!important;
+  width:auto!important;
+  min-width:max-content!important;
+  max-width:none!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  color:#172033!important;
+  opacity:1!important;
+  visibility:visible!important;
+  font-size:12px!important;
+  line-height:1!important;
+  font-weight:850!important;
+  letter-spacing:-.15px!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.quick-action.active{
+  background:#eef5ff!important;
+  color:#1678f5!important;
+  border-color:#cfe3ff!important;
+  box-shadow:0 4px 12px rgba(22,120,245,.10)!important;
+}
+.quick-action.active .quick-icon{background:#dfeeff!important;color:#1678f5!important}
+.quick-action.active .quick-label{color:#1678f5!important}
+.quick-grid{font-size:0!important}
+@media(max-width:520px){
+  .quick-action{height:44px!important;min-height:44px!important;padding:5px 10px!important}
+  .quick-action .quick-icon{width:23px!important;height:23px!important;min-width:23px!important;flex-basis:23px!important}
+  .quick-action .quick-icon .reference-category-icon{width:20px!important;height:20px!important;max-width:20px!important;max-height:20px!important}
+  .quick-action .quick-label{font-size:11.5px!important}
+}
+</style>
 </body></html>'''
 
 
