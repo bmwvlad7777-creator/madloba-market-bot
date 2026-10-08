@@ -6796,6 +6796,31 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
   #categoriesBlock .cat .ico .reference-category-icon{width:86%!important;height:86%!important;max-width:86%!important;max-height:86%!important;border-radius:17px!important}
 }
 </style>
+
+<style id="madloba-final-home-density">
+/* Final home hierarchy: compact quick filters, calmer search, lighter main categories */
+.search{height:54px!important;border-radius:18px!important}
+.search-icon{width:34px!important;height:34px!important;flex-basis:34px!important}
+.search-icon svg{width:18px!important;height:18px!important}
+.quick-actions{display:flex!important;grid-template-columns:none!important;flex-wrap:nowrap!important;gap:8px!important;margin-top:10px!important;padding:2px 1px 3px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important}
+.quick-actions::-webkit-scrollbar{display:none!important}
+.quick-action{flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;height:44px!important;min-height:44px!important;padding:5px 11px!important;border-radius:999px!important;background:rgba(255,255,255,.92)!important;color:#172033!important;border:1px solid rgba(255,255,255,.72)!important;box-shadow:0 4px 12px rgba(15,23,42,.08)!important;backdrop-filter:blur(12px)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;font-size:12px!important;font-weight:850!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
+.quick-action .quick-icon{width:24px!important;height:24px!important;flex:0 0 24px!important;border-radius:8px!important;background:#eef6ff!important;color:#1678f5!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+.quick-action .quick-icon .reference-category-icon{width:22px!important;height:22px!important;max-width:22px!important;max-height:22px!important;object-fit:contain!important;margin:0!important}
+.quick-action .quick-icon svg{width:18px!important;height:18px!important}
+.quick-action.active{background:#eef5ff!important;color:#1678f5!important;border-color:#cfe3ff!important;box-shadow:0 4px 12px rgba(22,120,245,.10)!important}
+.quick-action.active .quick-icon{background:#dfeeff!important;color:#1678f5!important}
+#categoriesBlock .cat .ico{width:48px!important;height:48px!important;border-radius:17px!important}
+#categoriesBlock .cat .ico .reference-category-icon{width:82%!important;height:82%!important;max-width:82%!important;max-height:82%!important;border-radius:14px!important}
+@media(max-width:480px){
+  .hero{padding-bottom:14px!important}
+  .search{height:54px!important}
+  .quick-action{height:44px!important;min-height:44px!important;padding:5px 10px!important;font-size:11.5px!important}
+  .quick-action .quick-icon{width:23px!important;height:23px!important;flex-basis:23px!important}
+  .quick-action .quick-icon .reference-category-icon{width:21px!important;height:21px!important;max-width:21px!important;max-height:21px!important}
+  #categoriesBlock .cat .ico{width:48px!important;height:48px!important;border-radius:17px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
