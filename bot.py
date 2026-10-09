@@ -7325,6 +7325,28 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 @supports not (overflow:clip){html,body{overflow-x:hidden!important;}}
 .wrap{width:100%!important;max-width:760px!important;min-width:0!important;}
 </style>
+<style id="madloba-category-panel-separation-v1">
+/* Separate the category panel visually from the Batumi photo underneath. */
+.quick-actions{
+  background:#ffffff!important;
+  background-image:none!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  border:1px solid rgba(92,157,255,.68)!important;
+  border-radius:24px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 8px 22px rgba(20,111,232,.10)!important;
+}
+.quick-action{
+  background:transparent!important;
+  border-color:transparent!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+.quick-action.active{
+  background:linear-gradient(180deg,#f5f9ff,#eaf3ff)!important;
+  border-color:#dbeaff!important;
+}
+</style>
 <style id="madloba-category-icon-system">
 /* Unified MADLOBA MARKET category icon system: same proportions, stroke and pastel palette. */
 .cat .ico{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:linear-gradient(145deg,#f2f8ff 0%,#eaf2ff 58%,#f8faff 100%)!important;border:1px solid rgba(202,220,246,.78)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 3px 8px rgba(29,78,137,.06)!important}
