@@ -7272,10 +7272,14 @@ body::before{content:"";position:absolute;z-index:0;pointer-events:none;top:0;le
 </style>
 <style id="targeted-filter-city-polish-v1">
 /* Visual-only: lift the filter control away from the hero's lower edge. */
-.filter-bar{position:relative!important;top:-8px!important;margin-bottom:-8px!important;}
+.filter-bar{position:relative!important;top:-6px!important;margin-bottom:-6px!important;}
 /* Use a cleaner system typeface for the city selector and its options. */
 #citySelect{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-weight:750!important;letter-spacing:-.2px!important;color:#1478f5!important;}
 #citySelect option{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-size:16px!important;font-weight:600!important;color:#172033!important;background:#fff!important;}
+/* Prevent the whole Mini App viewport from sliding sideways; inner carousels remain swipeable. */
+html,body{width:100%!important;max-width:100%!important;overflow-x:clip!important;}
+@supports not (overflow:clip){html,body{overflow-x:hidden!important;}}
+.wrap{width:100%!important;max-width:760px!important;min-width:0!important;}
 </style>
 </head>
 <body>
