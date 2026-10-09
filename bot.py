@@ -7156,6 +7156,41 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 .best-title{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important;text-overflow:ellipsis!important;min-height:32px!important;max-height:32px!important;font-size:12.5px!important;line-height:1.22!important}
 @media(max-width:380px){.quick-action{flex-basis:62px!important;width:62px!important;min-width:62px!important;max-width:62px!important}.quick-more{flex-basis:54px!important;width:54px!important;min-width:54px!important;max-width:54px!important}}
 </style>
+
+<style id="madloba-all-categories-top-only">
+/* All eight categories are visible together under search; no inert More button. */
+.quick-actions{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  grid-auto-rows:minmax(70px,auto)!important;
+  gap:7px 4px!important;
+  width:100%!important;box-sizing:border-box!important;
+  overflow:visible!important;overflow-x:visible!important;overflow-y:visible!important;
+  padding:10px 8px!important;margin-top:12px!important;
+  border-radius:20px!important;background:rgba(255,255,255,.96)!important;
+  border:1px solid rgba(230,237,247,.9)!important;
+  box-shadow:0 8px 22px rgba(15,23,42,.11)!important;
+  touch-action:auto!important;scroll-snap-type:none!important;
+}
+.quick-actions:after{display:none!important;content:none!important}
+.quick-action{
+  display:flex!important;flex:initial!important;width:100%!important;min-width:0!important;max-width:none!important;
+  height:70px!important;min-height:70px!important;max-height:70px!important;
+  flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;
+  gap:4px!important;padding:1px 2px!important;margin:0!important;overflow:hidden!important;
+  border:0!important;border-radius:12px!important;background:transparent!important;box-shadow:none!important;
+  white-space:normal!important;touch-action:manipulation!important;
+}
+.quick-action .quick-icon{flex:0 0 40px!important;width:40px!important;height:40px!important;max-width:40px!important;max-height:40px!important;margin:0!important;border-radius:13px!important}
+.quick-action .quick-icon svg{width:27px!important;height:27px!important}
+.quick-action .quick-icon .reference-category-icon{width:37px!important;height:37px!important;max-width:37px!important;max-height:37px!important;object-fit:contain!important}
+.quick-action .quick-label{display:-webkit-box!important;width:100%!important;max-width:100%!important;min-height:21px!important;max-height:23px!important;overflow:hidden!important;text-overflow:clip!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;font-size:10px!important;line-height:1.1!important;font-weight:850!important;text-align:center!important;color:#19263c!important}
+.quick-action.active{background:#eef6ff!important;box-shadow:inset 0 0 0 1px #cfe3ff!important}
+.quick-action.active .quick-label{color:#1476ed!important}
+/* The same categories are already available at the top, so remove the duplicate lower block. */
+#categoriesBlock{display:none!important}
+@media(max-width:380px){.quick-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px 2px!important;padding:8px 5px!important}.quick-action{height:68px!important;min-height:68px!important;max-height:68px!important}.quick-action .quick-icon{flex-basis:37px!important;width:37px!important;height:37px!important;max-width:37px!important;max-height:37px!important}.quick-action .quick-label{font-size:9.5px!important}}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
@@ -7164,7 +7199,9 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 <button class="quick-action" data-cat="tech"><span class="quick-icon" data-icon="tech"></span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
 <button class="quick-action" data-cat="home"><span class="quick-icon" data-icon="home"></span><span class="quick-label" data-i18n="category_home">Дом и мебель</span></button>
 <button class="quick-action" data-cat="kids"><span class="quick-icon" data-icon="kids"></span><span class="quick-label" data-i18n="category_kids">Детское</span></button>
-<button class="quick-more" id="quickMore" type="button"><span class="quick-more-icon">›</span><span class="quick-label" data-i18n="more_categories">Ещё</span></button>
+<button class="quick-action" data-cat="work"><span class="quick-icon" data-icon="work"></span><span class="quick-label" data-i18n="category_work">Работа и услуги</span></button>
+<button class="quick-action" data-cat="give"><span class="quick-icon" data-icon="give"></span><span class="quick-label" data-i18n="category_give">Отдам</span></button>
+<button class="quick-action" data-cat="search"><span class="quick-icon" data-icon="search"></span><span class="quick-label" data-i18n="category_search">Ищу</span></button>
 </div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button"><span class="filter-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="17" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/></svg></span><span data-i18n="filters">Фильтры</span><span id="filterActive"></span><span class="filter-chevron" aria-hidden="true">›</span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><select id="filterDistrict"><option value="" data-i18n="all">Все районы</option><option value="old_batumi">Старый Батуми</option><option value="new_boulevard">Новый Бульвар</option><option value="khimshiashvili">Химшиашвили</option><option value="bagrationi">Багратиони</option><option value="angisa">Ангиса</option><option value="airport">Аэропорт</option><option value="gonio">Гонио</option><option value="kvariati">Квариати</option><option value="makhinjauri">Махинджаури</option></select></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
 <div class="filter-field" style="grid-column:1/-1"><label data-i18n="deal">Сделка</label><select id="autoFilterDeal"><option value="" data-i18n="all">Все</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div>
 <div class="filter-field"><label data-i18n="auto_make">Марка</label><select id="autoFilterMake"><option value="" data-i18n="auto_select_make">Выберите марку</option></select></div>
