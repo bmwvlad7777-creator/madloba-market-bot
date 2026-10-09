@@ -6131,7 +6131,7 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 .quick-actions::-webkit-scrollbar{display:none!important}
 .quick-action{flex:0 0 158px!important;min-width:158px!important;height:76px!important;min-height:76px!important;display:flex!important;align-items:center!important;gap:11px!important;text-align:left!important;padding:10px 12px!important;border-radius:19px!important;background:rgba(255,255,255,.93)!important;color:#152238!important;border:1px solid rgba(255,255,255,.9)!important;box-shadow:0 8px 22px rgba(15,23,42,.12),inset 0 1px 0 rgba(255,255,255,.9)!important;backdrop-filter:blur(12px)!important}
 .quick-action .quick-icon{width:46px!important;height:46px!important;flex:0 0 46px!important;border-radius:15px!important;display:flex!important;align-items:center!important;justify-content:center!important;background:var(--qbg,#EAF4FF)!important;color:var(--qcolor,#1478F5)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.9)!important}
-.quick-action .quick-icon svg{width:34px!important;height:34px!important;display:block!important}
+.quick-action .quick-icon svg{width:39px!important;height:39px!important;display:block!important}
 .quick-action .quick-label{font-size:13px!important;font-weight:900!important;line-height:1.08!important;color:#16233a!important;white-space:normal!important}
 .quick-action:nth-child(1){--qbg:#E7F3FF;--qcolor:#1678F5}
 .quick-action:nth-child(2){--qbg:#E4F8FF;--qcolor:#138BDA}
@@ -7326,11 +7326,11 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 .wrap{width:100%!important;max-width:760px!important;min-width:0!important;}
 </style>
 <style id="madloba-category-icon-system">
-/* Unified MADLOBA MARKET category icon system: same proportions, stroke and pastel palette. */
-.cat .ico{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:linear-gradient(145deg,#f2f8ff 0%,#eaf2ff 58%,#f8faff 100%)!important;border:1px solid rgba(202,220,246,.78)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 3px 8px rgba(29,78,137,.06)!important}
-.cat .ico .mm-category-svg{display:block!important;width:37px!important;height:37px!important;max-width:37px!important;max-height:37px!important;flex:0 0 37px!important;object-fit:contain!important}
+/* MADLOBA MARKET category icons: larger, vivid illustrations with consistent pastel tiles. */
+.cat .ico{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:linear-gradient(145deg,#f7fbff 0%,#e7f2ff 55%,#fff8ff 100%)!important;border:1px solid rgba(190,216,250,.92)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 5px 12px rgba(29,78,137,.10)!important}
+.cat .ico .mm-category-svg{display:block!important;width:42px!important;height:42px!important;max-width:42px!important;max-height:42px!important;flex:0 0 42px!important;object-fit:contain!important;filter:drop-shadow(0 2px 1px rgba(32,74,126,.10))!important}
 .quick-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important}
-.quick-icon .mm-category-svg{display:block!important;width:25px!important;height:25px!important;max-width:25px!important;max-height:25px!important}
+.quick-icon .mm-category-svg{display:block!important;width:39px!important;height:39px!important;max-width:39px!important;max-height:39px!important;filter:drop-shadow(0 2px 1px rgba(32,74,126,.12))!important}
 .popular-ico .mm-category-svg{display:block!important;width:76px!important;height:76px!important;max-width:76px!important;max-height:76px!important;object-fit:contain!important}
 .popular-ico img.reference-category-icon,.popular-ico img.popular-normalized-icon{display:none!important}
 </style>
