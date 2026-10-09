@@ -6914,7 +6914,8 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 .quick-action .quick-icon svg{width:20px!important;height:20px!important;}
 .quick-action .quick-icon .reference-category-icon{width:21px!important;height:21px!important;max-width:21px!important;max-height:21px!important;}
 .quick-action .quick-label{font-size:12.5px!important;line-height:1.1!important;display:block!important;white-space:nowrap!important;overflow:visible!important;}
-.filter-bar{margin-top:7px!important;}
+.filter-bar{margin-top:8px!important;}
+.search-icon{padding:0!important;background:linear-gradient(180deg,#f5faff,#eaf4ff)!important;appearance:none;-webkit-appearance:none;cursor:pointer;}
 .filter-btn{height:44px!important;min-height:44px!important;padding:5px 12px 5px 7px!important;font-size:13.5px!important;gap:7px!important;box-shadow:0 4px 12px rgba(15,23,42,.07),inset 0 1px 0 #fff!important;}
 .filter-btn-icon{width:30px!important;height:30px!important;flex-basis:30px!important;border-radius:9px!important;}
 .filter-btn-icon svg{width:18px!important;height:18px!important;}
@@ -7283,7 +7284,7 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 </style>
 </head>
 <body>
-<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
+<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
 <button class="quick-action" data-cat="realestate"><span class="quick-icon" data-icon="realestate"></span><span class="quick-label" data-i18n="category_realestate">Недвижимость</span></button>
 <button class="quick-action" data-cat="auto"><span class="quick-icon" data-icon="auto"></span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
 <button class="quick-action" data-cat="tech"><span class="quick-icon" data-icon="tech"></span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
@@ -7468,7 +7469,10 @@ async function loadProfile(){setActiveNav('profile');showView('profileView');$('
 bindPopular();
 $('citySelect').value=state.city;Array.from($('citySelect').options).forEach(opt=>{const cityKey=opt.value;opt.textContent='📍 '+(cityNames[cityKey][state.lang]||cityNames[cityKey].en)});$('citySelect').onchange=e=>{const nextCity=e.target.value;if(!['batumi','tbilisi'].includes(nextCity))return;state.city=nextCity;localStorage.setItem('mm_city',state.city);updateBestCityLabel();state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};updateFilterVisibility();load(true);toast(t('city_changed')+(cityNames[state.city][state.lang]||cityNames[state.city].en))};
 $('langSelect').onchange=e=>{state.lang=e.target.value;localStorage.setItem('mm_lang',state.lang);applyLang();load(true);};
+function submitSearch(){state.q=$('search').value.trim();clearTimeout(window.__search);load(true);const target=$('resultsTitle');if(target)target.scrollIntoView({behavior:'smooth',block:'start'});}
 $('search').oninput=e=>{state.q=e.target.value.trim();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
+$('search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submitSearch();$('search').blur()}};
+$('searchSubmit').onclick=submitSearch;
 $('sortSelect').onchange=()=>{state.sort=$('sortSelect').value;load(true)};
 $('filterToggle').onclick=()=>{if(!state.category)return;const open=$('filterPanel').classList.toggle('show');$('filterToggle').classList.toggle('open',open);};
 $('genericFilterSub').onchange=()=>{state.filters.sub=$('genericFilterSub').value;syncGenericFilterOptions()};
