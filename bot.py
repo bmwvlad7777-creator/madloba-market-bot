@@ -6859,7 +6859,7 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 /* Filter should read as a light secondary control, not a second large card. */
 .filter-bar{
   display:none!important;
-  margin-top:10px!important;
+  margin-top:14px!important; /* a few pixels more breathing room below the category panel */
 }
 .filter-bar.show{
   display:block!important;
