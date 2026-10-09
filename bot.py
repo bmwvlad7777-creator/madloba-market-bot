@@ -7592,7 +7592,7 @@ def _admin_stats_payload():
 @app.get("/admin")
 def mini_app_admin_page():
     # The HTML shell itself has no private data. Every data request is authenticated server-side.
-    return Response(r"""<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MADLOBA MARKET — Admin</title><script src="https://telegram.org/js/telegram-web-app.js"></script><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#eef3f9;color:#142033;margin:0;padding:20px}.wrap{max-width:760px;margin:auto}.head,.card{background:white;border:1px solid #e0e8f2;border-radius:18px;padding:18px;margin-bottom:12px}.head h1{margin:0 0 6px;font-size:23px}.muted{color:#68788d;font-size:13px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{background:white;border:1px solid #e0e8f2;border-radius:16px;padding:15px;min-width:0}.metric span{display:block;color:#68788d;font-size:12px;margin-bottom:8px}.metric b{font-size:26px;overflow-wrap:anywhere}.status{padding:14px;border-radius:12px;background:#fff4df;color:#815600;margin-bottom:12px}.refresh{width:100%;padding:14px;border:0;border-radius:13px;background:#1478f5;color:white;font-size:15px;font-weight:800;margin:14px 0}.section{font-weight:900;margin:20px 0 10px}@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}</style></head><body><main class="wrap"><div class="head"><h1>MADLOBA MARKET</h1><div class="muted">Административная панель · статистика</div></div><div id="status" class="status">Проверяем доступ…</div><div id="content" hidden><div class="section">Пользователи и объявления</div><div class="grid" id="mainStats"></div><div class="section">Посещения за период</div><div class="grid" id="visitStats"></div><div class="section">Будущие платные услуги</div><div class="grid" id="orderStats"></div><div class="muted">Оплата не подключена. Заказы здесь только учитываются, автоматическое списание средств отсутствует.</div><button class="refresh" onclick="loadStats()">Обновить статистику</button></div></main><script>const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();async function loadStats(){const status=document.getElementById('status');status.textContent='Загружаем статистику…';const initData=tg?.initData||'';try{const r=await fetch('/api/admin/stats',{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(r.status===401||r.status===403){status.textContent='Доступ закрыт. Открой эту страницу внутри Telegram под аккаунтом администратора.';return}if(!r.ok)throw new Error(d.error||'Ошибка загрузки');status.hidden=true;document.getElementById('content').hidden=false;const metric=(label,value)=>`<div class="metric"><span>${label}</span><b>${Number(value||0).toLocaleString('ru-RU')}</b></div>`;document.getElementById('mainStats').innerHTML=metric('Всего пользователей',d.users_total)+metric('Всего объявлений',d.listings_total)+metric('Активные объявления',d.listings_active)+metric('На модерации',d.listings_pending)+metric('Другие статусы',d.listings_other);document.getElementById('visitStats').innerHTML=metric('Открытия сегодня',d.opens_today)+metric('Открытия за 7 дней',d.opens_7d)+metric('Уникальные за 7 дней',d.unique_visitors_7d)+metric('Просмотры сегодня',d.listing_views_today)+metric('Просмотры за 7 дней',d.listing_views_7d);document.getElementById('orderStats').innerHTML=metric('Всего заказов',d.orders_total)+metric('Ожидают оплаты',d.orders_pending)+metric('Отмечены оплаченными',d.orders_paid);if(!d.analytics_available){const n=document.createElement('div');n.className='status';n.textContent='Таблица статистики пока недоступна. Проверь, что SQL выполнен в том же проекте Supabase.';document.getElementById('content').prepend(n)} }catch(e){status.textContent='Не удалось загрузить данные. Проверь соединение с Supabase и открой панель внутри Telegram.'}}loadStats();</script></body></html>""", mimetype="text/html")
+    return Response(r"""<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MADLOBA MARKET — Admin</title><script src="https://telegram.org/js/telegram-web-app.js"></script><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#eef3f9;color:#142033;margin:0;padding:20px}.wrap{max-width:760px;margin:auto}.head,.card{background:white;border:1px solid #e0e8f2;border-radius:18px;padding:18px;margin-bottom:12px}.head h1{margin:0 0 6px;font-size:23px}.muted{color:#68788d;font-size:13px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{background:white;border:1px solid #e0e8f2;border-radius:16px;padding:15px;min-width:0}.metric span{display:block;color:#68788d;font-size:12px;margin-bottom:8px}.metric b{font-size:26px;overflow-wrap:anywhere}.status{padding:14px;border-radius:12px;background:#fff4df;color:#815600;margin-bottom:12px}.refresh{width:100%;padding:14px;border:0;border-radius:13px;background:#1478f5;color:white;font-size:15px;font-weight:800;margin:14px 0}.section{font-weight:900;margin:20px 0 10px}@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}</style></head><body><main class="wrap"><div class="head"><h1>MADLOBA MARKET</h1><div class="muted">Административная панель · статистика</div></div><div id="status" class="status">Проверяем доступ…</div><div id="content" hidden><div class="section">Пользователи и объявления</div><div class="grid" id="mainStats"></div><div class="section">Посещения за период</div><div class="grid" id="visitStats"></div><div class="section">Будущие платные услуги</div><div class="grid" id="orderStats"></div><div class="muted">Оплата не подключена. Заказы здесь только учитываются, автоматическое списание средств отсутствует.</div><div class="section">Последние пользователи</div><div id="adminUsers" class="card">Загружаем пользователей…</div><div class="section">Последние объявления</div><div id="adminListings" class="card">Загружаем объявления…</div><button class="refresh" onclick="loadStats()">Обновить статистику</button></div></main><script>const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();async function loadStats(){const status=document.getElementById('status');status.textContent='Загружаем статистику…';const initData=tg?.initData||'';try{const r=await fetch('/api/admin/stats',{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(r.status===401||r.status===403){status.textContent='Доступ закрыт. Открой эту страницу внутри Telegram под аккаунтом администратора.';return}if(!r.ok)throw new Error(d.error||'Ошибка загрузки');status.hidden=true;document.getElementById('content').hidden=false;const metric=(label,value)=>`<div class="metric"><span>${label}</span><b>${Number(value||0).toLocaleString('ru-RU')}</b></div>`;document.getElementById('mainStats').innerHTML=metric('Всего пользователей',d.users_total)+metric('Всего объявлений',d.listings_total)+metric('Активные объявления',d.listings_active)+metric('На модерации',d.listings_pending)+metric('Другие статусы',d.listings_other);document.getElementById('visitStats').innerHTML=metric('Открытия сегодня',d.opens_today)+metric('Открытия за 7 дней',d.opens_7d)+metric('Уникальные за 7 дней',d.unique_visitors_7d)+metric('Просмотры сегодня',d.listing_views_today)+metric('Просмотры за 7 дней',d.listing_views_7d);document.getElementById('orderStats').innerHTML=metric('Всего заказов',d.orders_total)+metric('Ожидают оплаты',d.orders_pending)+metric('Отмечены оплаченными',d.orders_paid);if(!d.analytics_available){const n=document.createElement('div');n.className='status';n.textContent='Таблица статистики пока недоступна. Проверь, что SQL выполнен в том же проекте Supabase.';document.getElementById('content').prepend(n)} await loadAdminLists(initData); }catch(e){status.textContent='Не удалось загрузить данные. Проверь соединение с Supabase и открой панель внутри Telegram.'}}async function loadAdminLists(initData){const headers={'X-Telegram-Init-Data':initData};const usersBox=document.getElementById('adminUsers'),listingsBox=document.getElementById('adminListings');try{const r=await fetch('/api/admin/data?kind=users',{headers});const d=await r.json();if(!r.ok)throw new Error('users');usersBox.innerHTML=(d.items||[]).length?(d.items||[]).map(x=>`<div style="padding:10px 0;border-bottom:1px solid #e7edf5"><b>Telegram ID: ${esc(x.telegram_id||'—')}</b><div class="muted">Пользователь ID: ${esc(x.id||'—')}</div></div>`).join(''):'Пользователей пока нет';}catch(e){usersBox.textContent='Не удалось загрузить пользователей'}try{const r=await fetch('/api/admin/data?kind=listings',{headers});const d=await r.json();if(!r.ok)throw new Error('listings');listingsBox.innerHTML=(d.items||[]).length?(d.items||[]).map(x=>`<div style="padding:10px 0;border-bottom:1px solid #e7edf5"><b>#${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">Статус: ${esc(x.status||'—')} · Владелец: ${esc(x.telegram_id||'не указан')}</div><div class="muted">${esc(x.price||'Цена не указана')} ${esc(x.currency||'')} · ${esc(x.address||'')}</div></div>`).join(''):'Объявлений пока нет';}catch(e){listingsBox.textContent='Не удалось загрузить объявления'}}function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}loadStats();</script></body></html>""", mimetype="text/html")
 
 
 @app.get("/api/admin/stats")
@@ -7603,6 +7603,50 @@ def mini_app_admin_stats():
     if not _is_admin_telegram_user(user):
         return jsonify({"error":"admin_only"}), 403
     return jsonify(_admin_stats_payload())
+
+
+@app.get("/api/admin/data")
+def mini_app_admin_data():
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error":"admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"error":"db_unavailable"}), 503
+
+    kind = (request.args.get("kind") or "").strip().lower()
+    if kind == "users":
+        rows = supabase_request("GET", "users", params={
+            "select":"id,telegram_id", "order":"id.desc", "limit":"50"
+        })
+        if rows is None:
+            return jsonify({"error":"users_unavailable"}), 503
+        return jsonify({"items": rows})
+
+    if kind == "listings":
+        rows = supabase_request("GET", "listings", params={
+            "select":"id,user_id,title,status,price,currency,address,created_at",
+            "order":"created_at.desc", "limit":"50"
+        })
+        if rows is None:
+            return jsonify({"error":"listings_unavailable"}), 503
+        user_ids = {str(row.get("user_id")) for row in rows if row.get("user_id")}
+        owner_map = {}
+        if user_ids:
+            owners = supabase_request("GET", "users", params={
+                "select":"id,telegram_id", "id":f"in.({','.join(user_ids)})", "limit":"1000"
+            })
+            if isinstance(owners, list):
+                owner_map = {str(owner.get("id")): owner.get("telegram_id") for owner in owners}
+        items = []
+        for row in rows:
+            item = dict(row)
+            item["telegram_id"] = owner_map.get(str(row.get("user_id")), "")
+            items.append(item)
+        return jsonify({"items": items})
+
+    return jsonify({"error":"invalid_kind"}), 400
 
 
 @app.get("/app")
