@@ -7641,7 +7641,19 @@ def mini_app_admin_data():
         })
         if not isinstance(rows, list) or not rows:
             return jsonify({"error":"listing_not_found"}), 404
-        return jsonify({"item":rows[0]})
+        item = dict(rows[0])
+        # Prefer the event log for the admin-facing view count. This does not
+        # mutate listings or change the publication flow; analytics stays optional.
+        try:
+            view_events = supabase_request("GET", "mm_analytics_events", params={
+                "select":"id", "event_type":"eq.listing_view",
+                "listing_id":f"eq.{listing_id}", "limit":"100000"
+            })
+            if isinstance(view_events, list):
+                item["views_count"] = len(view_events)
+        except Exception as error:
+            print("MADLOBA LISTING VIEW COUNT ERROR:", repr(error))
+        return jsonify({"item":item})
 
     if kind == "users":
         rows = supabase_request("GET", "users", params={
