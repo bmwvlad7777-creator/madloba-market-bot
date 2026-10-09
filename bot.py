@@ -7273,7 +7273,7 @@ body::before{content:"";position:absolute;z-index:0;pointer-events:none;top:0;le
 </style>
 <style id="targeted-filter-city-polish-v1">
 /* Visual-only: lift the filter control away from the hero's lower edge. */
-.filter-bar{position:relative!important;top:-6px!important;margin-bottom:-6px!important;}
+.filter-bar{position:relative!important;top:-4px!important;margin-bottom:-4px!important;}
 /* Use a cleaner system typeface for the city selector and its options. */
 #citySelect{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-weight:750!important;letter-spacing:-.2px!important;color:#1478f5!important;}
 #citySelect option{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-size:16px!important;font-weight:600!important;color:#172033!important;background:#fff!important;}
@@ -7457,7 +7457,7 @@ function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').fo
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
-async function load(reset=true){if(reset){state.page=0;$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort});if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
+async function load(reset=true){if(reset){state.page=0;$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort});/* A text search is global: do not constrain it to the last selected category or its filters. */if(requestCategory&&!requestQ)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory&&!requestQ){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const republish=st==='archived'?`<button class="mine-action primary" data-action="republish">📣 ${t('republish')}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
@@ -7469,8 +7469,9 @@ async function loadProfile(){setActiveNav('profile');showView('profileView');$('
 bindPopular();
 $('citySelect').value=state.city;Array.from($('citySelect').options).forEach(opt=>{const cityKey=opt.value;opt.textContent='📍 '+(cityNames[cityKey][state.lang]||cityNames[cityKey].en)});$('citySelect').onchange=e=>{const nextCity=e.target.value;if(!['batumi','tbilisi'].includes(nextCity))return;state.city=nextCity;localStorage.setItem('mm_city',state.city);updateBestCityLabel();state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};updateFilterVisibility();load(true);toast(t('city_changed')+(cityNames[state.city][state.lang]||cityNames[state.city].en))};
 $('langSelect').onchange=e=>{state.lang=e.target.value;localStorage.setItem('mm_lang',state.lang);applyLang();load(true);};
-function submitSearch(){state.q=$('search').value.trim();clearTimeout(window.__search);load(true);const target=$('resultsTitle');if(target)target.scrollIntoView({behavior:'smooth',block:'start'});}
-$('search').oninput=e=>{state.q=e.target.value.trim();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
+function activateGlobalSearch(){if(!state.q)return;if(state.category){state.category='';setQuickActive('');$('backBtn').classList.remove('show');updateFilterVisibility();$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');}}
+function submitSearch(){state.q=$('search').value.trim();activateGlobalSearch();clearTimeout(window.__search);load(true);const target=$('resultsTitle');if(target)target.scrollIntoView({behavior:'smooth',block:'start'});}
+$('search').oninput=e=>{state.q=e.target.value.trim();activateGlobalSearch();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
 $('search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submitSearch();$('search').blur()}};
 $('searchSubmit').onclick=submitSearch;
 $('sortSelect').onchange=()=>{state.sort=$('sortSelect').value;load(true)};
@@ -8199,10 +8200,35 @@ def mini_app_listings():
     if category_id:
         params["category_id"] = f"eq.{category_id}"
 
-    if q:
-        safe_q = q.replace("*", "").replace(",", " ").strip()
-        if safe_q:
-            params["or"] = f"(title.ilike.*{safe_q}*,description.ilike.*{safe_q}*,address.ilike.*{safe_q}*)"
+    # Search is applied in Python to the candidate rows so it can match
+    # title, description, address and saved metadata consistently, including
+    # Russian category/subcategory details. Avoid fragile PostgREST `or`
+    # syntax for free-text input.
+    def _matches_search(row):
+        if not q:
+            return True
+        metadata = row.get("metadata") or {}
+        try:
+            metadata_text = json.dumps(metadata, ensure_ascii=False, default=str)
+        except (TypeError, ValueError):
+            metadata_text = str(metadata)
+        haystack = " ".join((
+            str(row.get("title") or ""),
+            str(row.get("description") or ""),
+            str(row.get("address") or ""),
+            metadata_text,
+        )).casefold()
+        synonym_groups = {
+            "квартира": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
+            "квартиры": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
+            "квартиру": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
+            "телефон": ("телефон", "телефоны", "phone", "smartphone"),
+            "телефоны": ("телефон", "телефоны", "phone", "smartphone"),
+            "машина": ("машина", "авто", "автомобиль", "car", "auto"),
+            "автомобиль": ("машина", "авто", "автомобиль", "car", "auto"),
+        }
+        terms = [term.casefold() for term in q.split() if term.strip()]
+        return all(any(alias in haystack for alias in synonym_groups.get(term, (term,))) for term in terms)
 
     sort_mode = str(request.args.get("sort", "new")).strip().lower()
     if sort_mode not in {"new", "price_asc", "price_desc"}:
@@ -8247,6 +8273,8 @@ def mini_app_listings():
         selected_sub = str(request.args.get("sub", "")).strip().lower()
         selected_rooms = str(request.args.get("rooms", "")).strip()
         for row in rows:
+            if not _matches_search(row):
+                continue
             meta = row.get("metadata") or {}
             meta = meta if isinstance(meta, dict) else {}
             details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
@@ -8340,6 +8368,8 @@ def mini_app_listings():
 
         filtered = []
         for row in rows:
+            if not _matches_search(row):
+                continue
             meta = row.get("metadata") or {}
             meta = meta if isinstance(meta, dict) else {}
             details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
@@ -8388,6 +8418,8 @@ def mini_app_listings():
         max_price_n = _generic_num(request.args.get("max_price", ""))
         filtered = []
         for row in rows:
+            if not _matches_search(row):
+                continue
             meta = row.get("metadata") or {}
             meta = meta if isinstance(meta, dict) else {}
             details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
@@ -8420,6 +8452,37 @@ def mini_app_listings():
         page_rows = filtered[offset:offset + per_page]
         has_next = len(filtered) > offset + per_page
         rows = page_rows
+    elif q:
+        # Fetch a bounded candidate set for text search, then filter before
+        # pagination so matches aren't missed just because they are not in the
+        # first page returned by Supabase.
+        candidate_limit = 1000
+        search_params = dict(params)
+        search_params["limit"] = str(candidate_limit)
+        all_candidates = []
+        # The project may contain several thousand ads. Read in bounded pages
+        # so older matching listings aren't hidden behind the newest 1,000.
+        for candidate_offset in range(0, 10000, candidate_limit):
+            search_params["offset"] = str(candidate_offset)
+            batch = supabase_request("GET", "listings", params=search_params)
+            if batch is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
+            all_candidates.extend(batch)
+            if len(batch) < candidate_limit:
+                break
+        rows = [row for row in all_candidates if _matches_search(row)]
+        def _search_price(row):
+            try:
+                return float(str(row.get("price") or "").replace(",", ".").strip())
+            except (TypeError, ValueError):
+                return None
+        if sort_mode == "price_asc":
+            rows.sort(key=lambda r: (_search_price(r) is None, _search_price(r) if _search_price(r) is not None else 0))
+        elif sort_mode == "price_desc":
+            rows.sort(key=lambda r: (_search_price(r) is not None, _search_price(r) if _search_price(r) is not None else 0), reverse=True)
+        offset = page * per_page
+        has_next = len(rows) > offset + per_page
+        rows = rows[offset:offset + per_page]
     else:
         offset = page * per_page
         params["offset"] = str(offset)
