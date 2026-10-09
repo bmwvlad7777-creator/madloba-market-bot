@@ -36,6 +36,12 @@ ADMIN_CHAT_ID = os.environ.get(
     ""
 ).strip()
 
+# Администраторы Mini App задаются в Render как список Telegram ID через запятую.
+ADMIN_TELEGRAM_IDS = {
+    value.strip() for value in os.environ.get("ADMIN_TELEGRAM_IDS", "8630460120").split(",")
+    if value.strip().isdigit()
+}
+
 # Максимальное количество фотографий
 MAX_PHOTOS = 8
 
@@ -7447,7 +7453,7 @@ function favButton(x,detail=false){const active=isFav(x);const cls=detail?'detai
 function localizedCategory(v){const m={'Недвижимость':'category_realestate','Авто':'category_auto','Техника':'category_tech','Дом и мебель':'category_home','Детское':'category_kids','Работа и услуги':'category_work','Отдам':'category_give','Ищу':'category_search'};return m[v]?t(m[v]):(v||t('no_listing'))}
 function card(x){const photo=(x.photos||[])[0];const title=x.title||x.category||t('no_listing');const d=x.details||{};const specs=detailSpecs(d,false);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="title">${esc(title)}</div>${x.description?`<div class="desc">${esc(String(x.description).slice(0,180))}</div>`:''}${specs?`<div class="meta">${specs}</div>`:''}${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${x.address?`<div class="loc">📍 ${esc(x.address)}</div>`:''}</div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
-async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();renderDetail(x);hideViews();$('detailView').classList.add('show');window.scrollTo({top:0,behavior:'smooth'})}catch(e){toast(t('open_fail'))}}
+async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();apiFetch('/api/analytics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'listing_view',listing_id:id})}).catch(()=>{});renderDetail(x);hideViews();$('detailView').classList.add('show');window.scrollTo({top:0,behavior:'smooth'})}catch(e){toast(t('open_fail'))}}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phone=String(x.phone||'').trim();const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phone)contact.push(`<a class="contact-btn" href="tel:${encodeURIComponent(phone)}">${t('contact_call')}</a>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(x.title||t('no_listing'))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{e.stopPropagation();toggleFavorite(x.id,fav,x)};if(photos.length>1){let idx=0;const img='detailImg';const update=()=>{$(img).src='/media/'+encodeURIComponent(x.id)+'/'+idx;$('photoCount').textContent=(idx+1)+'/'+photos.length};$('prevPhoto').onclick=e=>{e.stopPropagation();idx=(idx-1+photos.length)%photos.length;update()};$('nextPhoto').onclick=e=>{e.stopPropagation();idx=(idx+1)%photos.length;update()}}}
 async function toggleFavorite(id,button,x=null){try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}}
 function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
@@ -7465,7 +7471,7 @@ async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encode
 async function unpublishMine(id){if(!confirm(t('hide_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST'});if(!r.ok)throw 0;toast(t('hide_ok'));await loadMine()}catch(e){toast(t('hide_fail'))}}
 async function republishMine(id){if(!confirm(t('republish_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/republish',{method:'POST'});if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}toast(t('republish_ok'));await loadMine()}catch(e){toast(e.message==='channel_publish_failed'?t('channel_fail'):t('republish_fail'))}}
 async function deleteMine(id){if(!confirm(t('delete_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'DELETE'});if(!r.ok)throw 0;toast(t('delete_ok'));await loadMine()}catch(e){toast(t('delete_fail'))}}
-async function loadProfile(){setActiveNav('profile');showView('profileView');$('profileContent').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/me');if(r.status===401){$('profileContent').innerHTML=`<div class="empty">${t('profile_telegram')}</div>`;return}if(!r.ok)throw 0;const u=await r.json();const initials=esc(((u.first_name||'')+' '+(u.last_name||'')).trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'MM');$('profileContent').innerHTML=`<div class="account-head"><div class="account-avatar">${initials}</div><div><div class="account-name">${esc(([u.first_name,u.last_name].filter(Boolean).join(' ')||t('user')))}</div><div class="account-sub">${u.username?'@'+esc(u.username):t('telegram_user')}</div></div></div><div class="profile-card"><div class="profile-item"><div class="profile-label">${t('telegram_id')}</div><div class="profile-value">${esc(u.id)}</div></div><div class="profile-item"><div class="profile-label">${t('city')}</div><div class="profile-value">${esc(cityNames[state.city][state.lang]||state.city)}</div></div><div class="profile-item"><div class="profile-label">${t('status')}</div><div class="profile-value">${t('status_user')}</div></div></div>`}catch(e){$('profileContent').innerHTML=`<div class="empty">${t('profile_fail')}</div>`}}
+async function loadProfile(){setActiveNav('profile');showView('profileView');$('profileContent').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/me');if(r.status===401){$('profileContent').innerHTML=`<div class="empty">${t('profile_telegram')}</div>`;return}if(!r.ok)throw 0;const u=await r.json();const initials=esc(((u.first_name||'')+' '+(u.last_name||'')).trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'MM');$('profileContent').innerHTML=`<div class="account-head"><div class="account-avatar">${initials}</div><div><div class="account-name">${esc(([u.first_name,u.last_name].filter(Boolean).join(' ')||t('user')))}</div><div class="account-sub">${u.username?'@'+esc(u.username):t('telegram_user')}</div></div></div><div class="profile-card"><div class="profile-item"><div class="profile-label">${t('telegram_id')}</div><div class="profile-value">${esc(u.id)}</div></div><div class="profile-item"><div class="profile-label">${t('city')}</div><div class="profile-value">${esc(cityNames[state.city][state.lang]||state.city)}</div></div><div class="profile-item"><div class="profile-label">${t('status')}</div><div class="profile-value">${t('status_user')}</div></div></div>`;if(u.is_admin)$('profileContent').insertAdjacentHTML('beforeend','<button type="button" class="primary-button" style="width:100%;margin-top:14px" onclick="window.location.href=\'/admin\'">🛡️ Админ-панель</button>')}catch(e){$('profileContent').innerHTML=`<div class="empty">${t('profile_fail')}</div>`}}
 bindPopular();
 $('citySelect').value=state.city;Array.from($('citySelect').options).forEach(opt=>{const cityKey=opt.value;opt.textContent='📍 '+(cityNames[cityKey][state.lang]||cityNames[cityKey].en)});$('citySelect').onchange=e=>{const nextCity=e.target.value;if(!['batumi','tbilisi'].includes(nextCity))return;state.city=nextCity;localStorage.setItem('mm_city',state.city);updateBestCityLabel();state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};updateFilterVisibility();load(true);toast(t('city_changed')+(cityNames[state.city][state.lang]||cityNames[state.city].en))};
 $('langSelect').onchange=e=>{state.lang=e.target.value;localStorage.setItem('mm_lang',state.lang);applyLang();load(true);};
@@ -7497,7 +7503,7 @@ $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
 $('profileBack').onclick=()=>showHome();
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home')showHome();else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
-applyLang();load(true);</script></body></html>'''
+applyLang();if(tgInit())apiFetch('/api/analytics/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'app_open'})}).catch(()=>{});load(true);</script></body></html>'''
 
 
 
@@ -7510,6 +7516,102 @@ def mini_app():
 @app.get("/api/config")
 def mini_app_config():
     return jsonify({"city":"batumi","per_page":MINI_APP_PER_PAGE,"app_url":MINI_APP_URL})
+
+# ============================================================
+# ADMIN PANEL + ANALYTICS (payments are not enabled)
+# ============================================================
+
+ADMIN_HTML = r'''<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta name="theme-color" content="#0b73f6"><title>MADLOBA MARKET — Admin</title><script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{color-scheme:light;--blue:#0b73f6;--ink:#14243b;--muted:#738198;--line:#e7edf5;--bg:#f4f7fb}*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}.wrap{max-width:980px;margin:auto;padding:18px 14px 40px}.head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.brand{font-weight:900;letter-spacing:.4px}.brand span{color:var(--blue)}.sub{color:var(--muted);font-size:13px;margin-top:4px}.btn{border:0;border-radius:12px;background:var(--blue);color:white;font-weight:700;padding:11px 14px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{background:white;border:1px solid var(--line);border-radius:17px;padding:16px;min-width:0}.label{font-size:12px;color:var(--muted);font-weight:650}.num{font-size:28px;font-weight:850;margin-top:9px;letter-spacing:-.7px}.section{font-size:17px;font-weight:800;margin:24px 0 10px}.wide{grid-column:1/-1}.rows{display:grid;gap:9px}.row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}.row:last-child{border-bottom:0}.muted{color:var(--muted)}.notice{padding:14px;border-radius:13px;background:#fff7df;color:#77540b;font-size:13px;line-height:1.5;margin-bottom:14px}.error{padding:22px;background:white;border:1px solid var(--line);border-radius:16px;line-height:1.5}.pill{display:inline-block;background:#eaf3ff;color:#075fc9;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:700}@media(min-width:640px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.wrap{padding-top:26px}}
+</style></head><body><main class="wrap"><header class="head"><div><div class="brand">MADLOBA <span>MARKET</span></div><div class="sub">Панель администратора</div></div><button class="btn" onclick="load()">Обновить</button></header><div id="content"><div class="error">Загружаем статистику…</div></div></main>
+<script>
+const tg=window.Telegram?.WebApp;try{tg?.ready();tg?.expand()}catch(e){}
+async function load(){const root=document.getElementById('content');root.innerHTML='<div class="error">Загружаем статистику…</div>';try{const r=await fetch('/api/admin/stats',{headers:{'X-Telegram-Init-Data':tg?.initData||''}});const d=await r.json();if(!r.ok){root.innerHTML='<div class="error"><b>Нет доступа</b><br>Открой панель из Mini App MADLOBA MARKET в Telegram под аккаунтом администратора.</div>';return}const n=v=>Number(v||0).toLocaleString('ru-RU');root.innerHTML=`<div class="notice">Режим подготовки: платёжный провайдер не подключён. Оплата не принимается. Статистика посещений начнёт накапливаться после установки этой версии и SQL-таблиц.</div><div class="grid"><div class="card"><div class="label">Всего пользователей</div><div class="num">${n(d.users_total)}</div></div><div class="card"><div class="label">Объявлений всего</div><div class="num">${n(d.listings_total)}</div></div><div class="card"><div class="label">Активные объявления</div><div class="num">${n(d.listings_published)}</div></div><div class="card"><div class="label">На модерации</div><div class="num">${n(d.listings_pending)}</div></div><div class="card"><div class="label">Открытия приложения сегодня</div><div class="num">${n(d.visits_today)}</div></div><div class="card"><div class="label">Открытия приложения за 7 дней</div><div class="num">${n(d.visits_7d)}</div></div><div class="card"><div class="label">Просмотры объявлений сегодня</div><div class="num">${n(d.listing_views_today)}</div></div><div class="card"><div class="label">Просмотры объявлений за 7 дней</div><div class="num">${n(d.listing_views_7d)}</div></div></div><div class="section">Состояние системы</div><div class="card rows"><div class="row"><span>Supabase</span><b>${d.supabase_enabled?'Подключён':'Не настроен'}</b></div><div class="row"><span>Учёт посещений</span><b>${d.analytics_enabled?'Активен':'Ожидает SQL-таблицу'}</b></div><div class="row"><span>Приём оплаты</span><span class="pill">Выключен</span></div><div class="row"><span>Будущие заказы</span><span class="muted">Структура будет добавлена отдельно</span></div></div><div class="section">Примечание</div><div class="card muted" style="font-size:13px;line-height:1.55">Показатели отражают данные, которые реально записаны в базе. Посещения до включения аналитики задним числом не появятся. Список пользователей и управление объявлениями добавим следующим безопасным этапом.</div>`}catch(e){root.innerHTML='<div class="error">Не удалось загрузить статистику. Проверь подключение и повтори попытку.</div>'}}
+load();
+</script></body></html>'''
+
+
+def _is_admin_user(user):
+    try:
+        return bool(user and str(user.get("id", "")).isdigit() and str(user.get("id")) in ADMIN_TELEGRAM_IDS)
+    except Exception:
+        return False
+
+
+@app.get("/admin")
+def admin_panel_page():
+    # The page itself contains no private data; all data APIs independently enforce admin auth.
+    return Response(ADMIN_HTML, mimetype="text/html")
+
+
+def _analytics_count(event_type, since_iso):
+    rows = supabase_request("GET", "mm_analytics_events", params={
+        "select":"id", "event_type":f"eq.{event_type}",
+        "created_at":f"gte.{since_iso}", "limit":"10000"
+    })
+    return len(rows) if isinstance(rows, list) else None
+
+
+@app.post("/api/analytics/event")
+def mini_app_analytics_event():
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not supabase_enabled():
+        return jsonify({"ok":False,"error":"db_unavailable"}), 503
+    payload = request.get_json(silent=True) or {}
+    event_type = str(payload.get("event_type", ""))[:40]
+    if event_type not in {"app_open", "listing_view"}:
+        return jsonify({"error":"invalid_event"}), 400
+    event = {"event_type":event_type, "telegram_id":int(user["id"])}
+    listing_id = payload.get("listing_id")
+    if event_type == "listing_view":
+        if not str(listing_id or "").isdigit():
+            return jsonify({"error":"invalid_listing_id"}), 400
+        event["listing_id"] = int(listing_id)
+    created = supabase_request("POST", "mm_analytics_events", payload=event)
+    if created is None:
+        return jsonify({"ok":False,"error":"analytics_table_missing"}), 503
+    return jsonify({"ok":True})
+
+
+@app.get("/api/admin/stats")
+def admin_stats_api():
+    user = _mini_app_authenticated_user()
+    if not _is_admin_user(user):
+        return jsonify({"error":"forbidden"}), 403 if user else 401
+    if not supabase_enabled():
+        return jsonify({"error":"supabase_not_configured"}), 503
+
+    def fetch_count(table, select="id", extra=None):
+        params = {"select":select, "limit":"10000"}
+        if extra:
+            params.update(extra)
+        rows = supabase_request("GET", table, params=params)
+        return len(rows) if isinstance(rows, list) else None
+
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    week = (now - timedelta(days=7)).isoformat()
+    users_total = fetch_count("users")
+    listings_total = fetch_count("listings")
+    listings_published = fetch_count("listings", extra={"status":"eq.published"})
+    listings_pending = fetch_count("listings", extra={"status":"eq.pending"})
+    visits_today = _analytics_count("app_open", today)
+    visits_7d = _analytics_count("app_open", week)
+    listing_views_today = _analytics_count("listing_view", today)
+    listing_views_7d = _analytics_count("listing_view", week)
+    return jsonify({
+        "users_total":users_total, "listings_total":listings_total,
+        "listings_published":listings_published, "listings_pending":listings_pending,
+        "visits_today":visits_today, "visits_7d":visits_7d,
+        "listing_views_today":listing_views_today, "listing_views_7d":listing_views_7d,
+        "supabase_enabled":True,
+        "analytics_enabled":all(v is not None for v in [visits_today,visits_7d,listing_views_today,listing_views_7d]),
+    })
 
 
 def _mini_app_authenticated_user():
@@ -7537,6 +7639,7 @@ def mini_app_me():
         return jsonify({"error":"invalid_init_data"}), 401
     if supabase_enabled():
         _supabase_user_id(user.get("id"))
+    user["is_admin"] = _is_admin_user(user)
     return jsonify(user)
 
 
