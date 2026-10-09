@@ -7250,6 +7250,20 @@ body::before{content:"";position:absolute;z-index:0;pointer-events:none;top:0;le
 .quick-actions{border:1px solid rgba(92,157,255,.72)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 0 0 3px rgba(48,139,255,.07),0 10px 28px rgba(20,111,232,.15)!important;background:rgba(255,255,255,.95)!important;}
 .quick-action.active{background:linear-gradient(180deg,rgba(240,247,255,.98),rgba(226,239,255,.94))!important;box-shadow:inset 0 0 0 1px rgba(87,155,255,.36),0 3px 10px rgba(20,111,232,.08)!important;}
 </style>
+<style id="madloba-final-header-and-hero-spacing-v5">
+/* Visual-only refinement: improve logo contrast and keep the category panel inside the hero. */
+.top{position:relative!important;z-index:3!important;}
+.brand-main{color:#ffffff!important;text-shadow:0 2px 10px rgba(4,18,40,.62)!important;}
+.brand-market{color:#2f91ff!important;text-shadow:0 2px 10px rgba(4,18,40,.58)!important;}
+.top .city{position:relative!important;z-index:4!important;}
+.hero h1{margin-top:38px!important;}
+.hero{padding-top:18px!important;padding-bottom:28px!important;overflow:visible!important;}
+.quick-actions{position:relative!important;z-index:3!important;margin-bottom:0!important;}
+@media(max-width:619px){
+  .hero h1{margin-top:38px!important;}
+  .hero{padding-bottom:30px!important;}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
