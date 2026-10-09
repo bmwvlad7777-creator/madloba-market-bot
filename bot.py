@@ -7132,6 +7132,30 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 @media(min-width:620px){#categoriesBlock .cats{grid-template-columns:repeat(4,minmax(0,1fr))!important}.best-photo{height:150px!important;max-height:150px!important}}
 </style>
 
+<style id="madloba-home-polish-v2">
+/* Targeted polish only: make quick category strip genuinely swipeable and the arrow advance horizontally. */
+.quick-actions{
+  width:100%!important;box-sizing:border-box!important;justify-content:flex-start!important;
+  overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important;
+  overscroll-behavior-x:contain!important;scroll-behavior:smooth!important;
+  scroll-padding-left:8px!important;scroll-padding-right:8px!important;
+  padding-left:8px!important;padding-right:8px!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.quick-action,.quick-more{flex-shrink:0!important;scroll-snap-align:start!important;touch-action:pan-x!important}
+.quick-action{flex-basis:66px!important;width:66px!important;min-width:66px!important;max-width:66px!important}
+.quick-action .quick-label,.quick-more .quick-label{
+  width:100%!important;max-width:100%!important;white-space:normal!important;
+  overflow:hidden!important;text-overflow:clip!important;overflow-wrap:normal!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;
+  font-size:9.5px!important;line-height:1.12!important;min-height:21px!important;max-height:21px!important;
+}
+.quick-more{flex-basis:58px!important;width:58px!important;min-width:58px!important;max-width:58px!important;cursor:pointer!important}
+/* Keep listing titles inside their cards and make the two-line truncation deliberate. */
+.best-body{min-width:0!important;overflow:hidden!important}
+.best-title{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important;text-overflow:ellipsis!important;min-height:32px!important;max-height:32px!important;font-size:12.5px!important;line-height:1.22!important}
+@media(max-width:380px){.quick-action{flex-basis:62px!important;width:62px!important;min-width:62px!important;max-width:62px!important}.quick-more{flex-basis:54px!important;width:54px!important;min-width:54px!important;max-width:54px!important}}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 KA</option></select><button class="city" id="cityBtn">📍 <span id="cityName">Batumi</span>⌄</button></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
@@ -7285,7 +7309,7 @@ function renderQuickIcons(){document.querySelectorAll('.quick-icon[data-icon],.p
 function resetHomeCarousels(){const q=document.querySelector('.quick-actions');const p=document.querySelector('.popular-row');if(q)q.scrollLeft=0;if(p)p.scrollLeft=0}
 function setQuickActive(cat){document.querySelectorAll('.quick-action').forEach(b=>b.classList.toggle('active',(b.dataset.cat||'')===(cat||'')))}
 function renderCats(){$('cats').innerHTML=cats.map(c=>`<button class="cat" data-cat="${c[0]}"><span class="ico">${ICONS[c[1]]}</span><b>${t('category_'+c[0])}</b><small>${t('desc_'+c[0])}</small></button>`).join('');document.querySelectorAll('.cat,.quick-action').forEach(b=>b.onclick=()=>{setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');state.category=b.dataset.cat;state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};$('sortSelect').value='new';$('backBtn').classList.add('show');setQuickActive(state.category);updateFilterVisibility();syncFilterUI();load(true)}) ;setQuickActive(state.category)}
-function bindHomeRedesign(){const more=$('quickMore');if(more)more.onclick=()=>{const block=$('categoriesBlock');if(block){block.scrollIntoView({behavior:'smooth',block:'start'});block.classList.remove('is-collapsed');const toggle=$('categoriesToggle');if(toggle)toggle.textContent=t('collapse_categories')}};const toggle=$('categoriesToggle');if(toggle)toggle.onclick=()=>{const block=$('categoriesBlock');if(!block)return;const collapsed=block.classList.toggle('is-collapsed');toggle.textContent=t(collapsed?'expand_categories':'collapse_categories')}}
+function bindHomeRedesign(){const more=$('quickMore');if(more)more.onclick=()=>{const row=document.querySelector('.quick-actions');if(!row)return;const max=Math.max(0,row.scrollWidth-row.clientWidth);if(max<=2)return;const atEnd=row.scrollLeft>=max-8;row.scrollTo({left:atEnd?0:Math.min(max,row.scrollLeft+Math.max(170,row.clientWidth*.72)),behavior:'smooth'});};const toggle=$('categoriesToggle');if(toggle)toggle.onclick=()=>{const block=$('categoriesBlock');if(!block)return;const collapsed=block.classList.toggle('is-collapsed');toggle.textContent=t(collapsed?'expand_categories':'collapse_categories')}}
 function bindPopular(){document.querySelectorAll('.popular-card').forEach(b=>b.onclick=()=>{showHome();state.category=b.dataset.cat;$('backBtn').classList.add('show');updateFilterVisibility();load(true)});if($('popularAll'))$('popularAll').onclick=()=>{showHome();state.category='';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};if($('bestAll'))$('bestAll').onclick=()=>{showHome();state.category='';$('backBtn').classList.remove('show');updateFilterVisibility();$('resultsTitle').scrollIntoView({behavior:'smooth',block:'start'});load(true)}}
 const FIELD_LABELS={rooms:['🛏','spec_rooms'],area:['📐','spec_area'],floor:['🏢','spec_floor'],make_model:['🚗','spec_make_model'],year:['📅','spec_year'],mileage:['🛣','spec_mileage'],brand_model:['📱','spec_brand_model'],condition:['✨','spec_condition'],warranty:['🛡','spec_warranty'],dimensions:['📏','spec_dimensions'],age:['👶','spec_age'],service:['🛠','spec_service'],experience:['⭐','spec_experience'],requirements:['📋','spec_requirements']};
 function formatSpecValue(k,v){const value=String(v??'').trim();if(!value)return '';if(k==='area'&&!/м²|m²|м2|m2/i.test(value))return value+' м²';if(k==='mileage'&&!/км|km/i.test(value))return value+' км';return value}
