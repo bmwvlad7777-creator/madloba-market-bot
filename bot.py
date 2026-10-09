@@ -7072,6 +7072,8 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 <div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="genericFilterMinPrice" inputmode="decimal" placeholder="0"></div>
 <div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="genericFilterMaxPrice" inputmode="decimal" placeholder="∞"></div>
 <div class="filter-field"><label data-i18n="condition">Состояние</label><select id="genericFilterCondition"><option value="">Все</option><option value="new">Новое</option><option value="used">Б/у</option></select></div>
+<div class="filter-field" id="genericBrandWrap" style="display:none"><label>Бренд</label><select id="genericFilterMake"><option value="">Все бренды</option></select></div>
+<div class="filter-field" id="genericModelWrap" style="display:none"><label>Модель</label><input id="genericFilterModel" placeholder="Например: iPhone 15, Galaxy S24"></div>
 </div><div class="filter-actions"><button class="filter-reset" id="filterReset" type="button" data-i18n="reset">Сбросить</button><button class="filter-apply" id="filterApply" type="button" data-i18n="apply">Применить</button></div></div></div></div><button class="back" id="backBtn" data-i18n="all_categories">← Все категории</button><section id="homeView"><div id="categoriesBlock"><div class="section-head"><h2 data-i18n="categories">Категории</h2></div><div class="cats" id="cats"></div></div><section class="best-section" id="bestSection"><div class="section-head"><h2><span data-i18n="best_listings">Лучшие объявления</span> <span id="bestCityName">в Batumi</span></h2><button class="section-link" id="bestAll" type="button" data-i18n="all_short">Все →</button></div><div class="best-row" id="bestRow"></div></section><div class="results-head"><div class="section-head"><h2 id="resultsTitle" data-i18n="fresh_listings">Свежие объявления</h2><small id="resultsCount"></small></div><select id="sortSelect" class="sort-select" aria-label="Sort"><option value="new" data-i18n="sort_new">🆕 Сначала новые</option><option value="price_asc" data-i18n="sort_price_asc">💰 Цена: дешевле</option><option value="price_desc" data-i18n="sort_price_desc">💰 Цена: дороже</option></select></div><div class="list" id="list"></div><div class="more" id="pager" style="display:none"><button id="prevBtn" type="button">← Назад</button><span id="pageLabel">Страница 1</span><button id="nextBtn" type="button">Вперёд →</button></div></section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section></div>
 <nav class="bottom"><button class="nav active" data-nav="home"><span class="ni">⌂</span><span data-i18n="home">Главная</span></button><button class="nav" data-nav="favorites"><span class="ni">♡</span><span data-i18n="favorites">Избранное</span></button><button class="nav" data-nav="add"><span class="ni">＋</span><span data-i18n="post">Разместить</span></button><button class="nav" data-nav="mine"><span class="ni">▤</span><span data-i18n="mine_short">Мои</span></button><button class="nav" data-nav="profile"><span class="ni">◉</span><span data-i18n="profile">Профиль</span></button></nav><div class="toast" id="toast"></div>
 <script>
@@ -7111,7 +7113,7 @@ function showHome(){setActiveNav('home');hideViews();$('homeView').style.display
 function showView(id){hideViews();$(id).classList.add('show')}
 function realEstateFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','rooms','min_area','max_area','district'].includes(k)&&String(v||'').trim()!=='')}
 function autoFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','make','model','min_price','max_price','min_year','max_year','min_mileage','max_mileage'].includes(k)&&String(v||'').trim()!=='')}
-function genericFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','condition'].includes(k)&&String(v||'').trim()!=='')}
+function genericFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','condition','make','model'].includes(k)&&String(v||'').trim()!=='')}
 async function loadAutoOptions(make=''){
  try{
   const p=new URLSearchParams({city:state.city});
@@ -7153,11 +7155,29 @@ function syncGenericFilterOptions(){
  deal.innerHTML=opts(c?c.types:[['','Все']]); sub.innerHTML=opts(c?c.subs:[['','Все подкатегории']]);
  deal.value=state.filters.deal||''; sub.value=state.filters.sub||'';
  $('genericFilterMinPrice').value=state.filters.min_price||''; $('genericFilterMaxPrice').value=state.filters.max_price||''; $('genericFilterCondition').value=state.filters.condition||'';
+ const brandWrap=$('genericBrandWrap'),modelWrap=$('genericModelWrap'),brand=$('genericFilterMake'),model=$('genericFilterModel');
+ const techMode=state.category==='tech';
+ if(brandWrap)brandWrap.style.display=techMode?'flex':'none';
+ if(modelWrap)modelWrap.style.display=techMode?'flex':'none';
+ if(brand&&techMode){
+   const brandGroups={
+    phones:['Apple','Samsung','Xiaomi','Redmi','POCO','Huawei','Honor','Google Pixel','OnePlus','Motorola','Nokia','Realme','OPPO','Vivo','Sony','Nothing','Другой бренд'],
+    computers:['Apple','ASUS','Acer','Lenovo','HP','Dell','MSI','Microsoft','Samsung','Huawei','Xiaomi','Gigabyte','Другой бренд'],
+    tv:['Samsung','LG','Sony','TCL','Hisense','Philips','Xiaomi','Panasonic','Другой бренд'],
+    appliances:['Bosch','Samsung','LG','Beko','Whirlpool','Electrolux','Philips','Tefal','Dyson','Другой бренд'],
+    photo:['Canon','Nikon','Sony','Fujifilm','Panasonic','GoPro','DJI','Другой бренд']
+   };
+   const group=(state.filters.sub==='phones'?'phones':state.filters.sub==='computers'?'computers':state.filters.sub==='tv'?'tv':state.filters.sub==='appliances'?'appliances':state.filters.sub==='photo'?'photo':'phones');
+   const brands=brandGroups[group];
+   brand.innerHTML='<option value="">Все бренды</option>'+brands.map(v=>`<option value="${v}">${v}</option>`).join('');
+   brand.value=state.filters.make||'';
+ }
+ if(model)model.value=state.filters.model||'';
 }
 function syncFilterUI(){
  syncDistrictOptions();
  const f=state.filters;
- const map={filterDeal:'deal',filterSub:'sub',filterMinPrice:'min_price',filterMaxPrice:'max_price',filterRooms:'rooms',filterMinArea:'min_area',filterMaxArea:'max_area',filterDistrict:'district',autoFilterDeal:'deal',autoFilterMake:'make',autoFilterModel:'model',autoFilterMinPrice:'min_price',autoFilterMaxPrice:'max_price',autoFilterMinYear:'min_year',autoFilterMaxYear:'max_year',autoFilterMinMileage:'min_mileage',autoFilterMaxMileage:'max_mileage',genericFilterDeal:'deal',genericFilterSub:'sub',genericFilterMinPrice:'min_price',genericFilterMaxPrice:'max_price',genericFilterCondition:'condition'};
+ const map={filterDeal:'deal',filterSub:'sub',filterMinPrice:'min_price',filterMaxPrice:'max_price',filterRooms:'rooms',filterMinArea:'min_area',filterMaxArea:'max_area',filterDistrict:'district',autoFilterDeal:'deal',autoFilterMake:'make',autoFilterModel:'model',autoFilterMinPrice:'min_price',autoFilterMaxPrice:'max_price',autoFilterMinYear:'min_year',autoFilterMaxYear:'max_year',autoFilterMinMileage:'min_mileage',autoFilterMaxMileage:'max_mileage',genericFilterDeal:'deal',genericFilterSub:'sub',genericFilterMinPrice:'min_price',genericFilterMaxPrice:'max_price',genericFilterCondition:'condition',genericFilterMake:'make',genericFilterModel:'model'};
  Object.entries(map).forEach(([id,key])=>{const el=$(id);if(el)el.value=f[key]||''});
  $('filterActive').textContent=(state.category==='realestate'?realEstateFiltersActive():state.category==='auto'?autoFiltersActive():genericFiltersActive())?' • ✓':'';
 }
@@ -7214,6 +7234,7 @@ $('langSelect').onchange=e=>{state.lang=e.target.value;localStorage.setItem('mm_
 $('search').oninput=e=>{state.q=e.target.value.trim();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
 $('sortSelect').onchange=()=>{state.sort=$('sortSelect').value;load(true)};
 $('filterToggle').onclick=()=>{if(!state.category)return;const open=$('filterPanel').classList.toggle('show');$('filterToggle').classList.toggle('open',open);};
+$('genericFilterSub').onchange=()=>{state.filters.sub=$('genericFilterSub').value;syncGenericFilterOptions()};
 $('autoFilterMake').onchange=async e=>{state.filters.make=e.target.value;state.filters.model='';$('autoFilterModel').value='';await loadAutoOptions(e.target.value)};
 $('autoFilterModel').onchange=e=>{state.filters.model=e.target.value};
 $('filterApply').onclick=()=>{
@@ -7222,7 +7243,7 @@ $('filterApply').onclick=()=>{
  }else if(state.category==='auto'){
   state.filters={deal:$('autoFilterDeal').value,sub:'',min_price:$('autoFilterMinPrice').value.trim(),max_price:$('autoFilterMaxPrice').value.trim(),rooms:'',min_area:'',max_area:'',district:'',make:$('autoFilterMake').value.trim(),model:$('autoFilterModel').value.trim(),min_year:$('autoFilterMinYear').value.trim(),max_year:$('autoFilterMaxYear').value.trim(),min_mileage:$('autoFilterMinMileage').value.trim(),max_mileage:$('autoFilterMaxMileage').value.trim(),condition:''};
  }else{
-  state.filters={deal:$('genericFilterDeal').value,sub:$('genericFilterSub').value,min_price:$('genericFilterMinPrice').value.trim(),max_price:$('genericFilterMaxPrice').value.trim(),rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:$('genericFilterCondition').value};
+  state.filters={deal:$('genericFilterDeal').value,sub:$('genericFilterSub').value,min_price:$('genericFilterMinPrice').value.trim(),max_price:$('genericFilterMaxPrice').value.trim(),rooms:'',min_area:'',max_area:'',district:'',make:state.category==='tech'?$('genericFilterMake').value.trim():'',model:state.category==='tech'?$('genericFilterModel').value.trim():'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:$('genericFilterCondition').value};
  }
  $('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');syncFilterUI();load(true)
 };
@@ -7963,7 +7984,7 @@ def mini_app_listings():
     )
     has_generic_filters = category in {"tech", "home", "kids", "work", "give", "search"} and any(
         str(request.args.get(name, "")).strip()
-        for name in ("deal", "sub", "min_price", "max_price", "condition")
+        for name in ("deal", "sub", "min_price", "max_price", "condition", "make", "model")
     )
 
     if has_python_filters:
@@ -8117,6 +8138,8 @@ def mini_app_listings():
         selected_deal = str(request.args.get("deal", "")).strip().lower()
         selected_sub = str(request.args.get("sub", "")).strip().lower()
         selected_condition = str(request.args.get("condition", "")).strip().lower()
+        selected_make = str(request.args.get("make", "")).strip().casefold()
+        selected_model = str(request.args.get("model", "")).strip().casefold()
         def _generic_num(v):
             try: return float(str(v).replace(",", ".").replace("km", "").replace("км", "").strip())
             except (TypeError, ValueError): return None
@@ -8131,6 +8154,14 @@ def mini_app_listings():
                 continue
             if selected_sub and str(meta.get("subcategory_key", "")).strip().lower() != selected_sub:
                 continue
+            if selected_make or selected_model:
+                brand_text = str(details.get("make") or details.get("brand") or details.get("brand_model") or details.get("make_model") or "").casefold()
+                model_text = str(details.get("model") or details.get("brand_model") or details.get("make_model") or "").casefold()
+                combined_text = f"{brand_text} {model_text} {row.get('title') or ''} {row.get('description') or ''}".casefold()
+                if selected_make and selected_make not in combined_text:
+                    continue
+                if selected_model and selected_model not in combined_text:
+                    continue
             price_n = _num(row.get("price"))
             if min_price_n is not None and (price_n is None or price_n < min_price_n): continue
             if max_price_n is not None and (price_n is None or price_n > max_price_n): continue
