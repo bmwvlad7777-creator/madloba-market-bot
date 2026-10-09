@@ -7270,6 +7270,13 @@ body::before{content:"";position:absolute;z-index:0;pointer-events:none;top:0;le
 @media(max-width:520px){.city#langSelect{width:72px!important;min-width:72px!important;font-size:12px!important}.city#citySelect{min-width:118px!important;max-width:132px!important;font-size:13px!important}}
 @media(max-width:390px){.city#langSelect{width:68px!important;min-width:68px!important}.city#citySelect{min-width:108px!important;max-width:118px!important}}
 </style>
+<style id="targeted-filter-city-polish-v1">
+/* Visual-only: lift the filter control away from the hero's lower edge. */
+.filter-bar{position:relative!important;top:-8px!important;margin-bottom:-8px!important;}
+/* Use a cleaner system typeface for the city selector and its options. */
+#citySelect{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-weight:750!important;letter-spacing:-.2px!important;color:#1478f5!important;}
+#citySelect option{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-size:16px!important;font-weight:600!important;color:#172033!important;background:#fff!important;}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></span><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off"></div><div class="quick-actions" aria-label="Категории">
