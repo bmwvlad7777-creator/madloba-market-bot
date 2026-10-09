@@ -7334,6 +7334,27 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 .popular-ico .mm-category-svg{display:block!important;width:76px!important;height:76px!important;max-width:76px!important;max-height:76px!important;object-fit:contain!important}
 .popular-ico img.reference-category-icon,.popular-ico img.popular-normalized-icon{display:none!important}
 </style>
+<style id="madloba-category-3d-image-fit-fix">
+/* Targeted fix: show each complete 3D category illustration, never crop it. */
+#categoriesBlock .cat .ico{overflow:visible!important;}
+#categoriesBlock .cat .ico img.mm-category-3d{
+  display:block!important;
+  width:100%!important;height:100%!important;
+  max-width:100%!important;max-height:100%!important;
+  object-fit:contain!important;object-position:center center!important;
+  padding:2px!important;box-sizing:border-box!important;
+  border-radius:0!important;background:transparent!important;
+  filter:drop-shadow(0 2px 2px rgba(27,62,106,.12))!important;
+}
+.quick-action .quick-icon{overflow:visible!important;}
+.quick-action .quick-icon img.mm-category-3d{
+  display:block!important;width:100%!important;height:100%!important;
+  max-width:100%!important;max-height:100%!important;
+  object-fit:contain!important;object-position:center center!important;
+  padding:1px!important;box-sizing:border-box!important;
+  border-radius:0!important;background:transparent!important;
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
