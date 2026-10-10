@@ -8643,6 +8643,15 @@ def mini_app_listings():
         sort_mode = "new"
     params["order"] = "created_at.desc" if sort_mode == "new" else ("price.asc.nullslast,created_at.desc" if sort_mode == "price_asc" else "price.desc.nullslast,created_at.desc")
 
+    # Shared numeric parser must be defined before the auto/generic filter branches.
+    # Otherwise Python treats a later nested definition as a local variable and
+    # raises UnboundLocalError when an earlier branch calls it.
+    def _generic_num(v):
+        try:
+            return float(str(v).replace(",", ".").replace("km", "").replace("км", "").strip())
+        except (TypeError, ValueError):
+            return None
+
     # Фильтры недвижимости применяем в Python после получения ограниченного
     # набора кандидатов. Это специально сделано так, чтобы не зависеть от
     # типов колонок/JSON-path синтаксиса PostgREST и не получать HTTP 400.
@@ -8824,9 +8833,6 @@ def mini_app_listings():
         selected_pet_age = str(request.args.get("pet_age", "")).strip().casefold()
         selected_pet_breed = str(request.args.get("pet_breed", "")).strip().casefold()
         selected_pet_gender = str(request.args.get("pet_gender", "")).strip().casefold()
-        def _generic_num(v):
-            try: return float(str(v).replace(",", ".").replace("km", "").replace("км", "").strip())
-            except (TypeError, ValueError): return None
         min_price_n = _generic_num(request.args.get("min_price", ""))
         max_price_n = _generic_num(request.args.get("max_price", ""))
         filtered = []
@@ -8848,7 +8854,7 @@ def mini_app_listings():
                     continue
                 if selected_model and selected_model not in combined_text:
                     continue
-            price_n = _num(row.get("price"))
+            price_n = _generic_num(row.get("price"))
             if min_price_n is not None and (price_n is None or price_n < min_price_n): continue
             if max_price_n is not None and (price_n is None or price_n > max_price_n): continue
             if selected_condition:
