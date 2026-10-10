@@ -8649,17 +8649,25 @@ def mini_app_listings():
     # Для площади и 4+ комнат нужен числовой разбор JSON metadata.
     # Берём ограниченный набор кандидатов, уже отфильтрованный Supabase
     # по городу/категории/цене/типу/району.
-    has_python_filters = category == "realestate" and any(
-        str(request.args.get(name, "")).strip()
-        for name in ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area", "district")
+    # Only filters that still require Python should force a large candidate scan.
+    # Exact type/subcategory and numeric price bounds are already applied in params.
+    # If text search is combined with those filters, keep the existing Python path
+    # for now because the RPC does not yet accept these additional filter values.
+    db_filter_names = ("deal", "sub", "min_price", "max_price")
+    has_search_with_db_filters = bool(q) and any(
+        str(request.args.get(name, "")).strip() for name in db_filter_names
     )
-    has_auto_filters = category == "auto" and any(
-        str(request.args.get(name, "")).strip()
-        for name in ("deal", "min_price", "max_price", "make", "model", "min_year", "max_year", "min_mileage", "max_mileage")
+    has_python_filters = category == "realestate" and (
+        any(str(request.args.get(name, "")).strip() for name in ("rooms", "min_area", "max_area", "district"))
+        or has_search_with_db_filters
     )
-    has_generic_filters = category in {"tech", "home", "kids", "work", "services", "pets", "give", "search"} and any(
-        str(request.args.get(name, "")).strip()
-        for name in ("deal", "sub", "min_price", "max_price", "condition", "make", "model", "pet_age", "pet_breed", "pet_gender")
+    has_auto_filters = category == "auto" and (
+        any(str(request.args.get(name, "")).strip() for name in ("make", "model", "min_year", "max_year", "min_mileage", "max_mileage"))
+        or has_search_with_db_filters
+    )
+    has_generic_filters = category in {"tech", "home", "kids", "work", "services", "pets", "give", "search"} and (
+        any(str(request.args.get(name, "")).strip() for name in ("condition", "make", "model", "pet_age", "pet_breed", "pet_gender"))
+        or has_search_with_db_filters
     )
 
     if has_python_filters:
