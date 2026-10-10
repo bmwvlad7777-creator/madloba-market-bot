@@ -8870,27 +8870,27 @@ def mini_app_listings():
         has_next = len(filtered) > offset + per_page
         rows = page_rows
     elif q:
-        # Fetch a bounded candidate set for text search, then filter before
-        # pagination so matches aren't missed just because they are not in the
-        # first page returned by Supabase.
-        # Read in bounded pages so matching ads aren't silently limited to
-        # the first batch. The 10,000-row cap protects memory and API load.
-        all_candidates = _fetch_listing_candidates(params)
-        if all_candidates is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
-        rows = [row for row in all_candidates if _matches_search(row)]
-        def _search_price(row):
-            try:
-                return float(str(row.get("price") or "").replace(",", ".").strip())
-            except (TypeError, ValueError):
-                return None
-        if sort_mode == "price_asc":
-            rows.sort(key=lambda r: (_search_price(r) is None, _search_price(r) if _search_price(r) is not None else 0))
-        elif sort_mode == "price_desc":
-            rows.sort(key=lambda r: (_search_price(r) is not None, _search_price(r) if _search_price(r) is not None else 0), reverse=True)
+        # Delegate text matching and pagination to the database function so
+        # the API no longer downloads up to 10,000 listings for Python filtering.
+        # Keep the old Python matcher above for category-filter branches, which
+        # may still be used when callers combine q with category filters.
         offset = page * per_page
-        has_next = len(rows) > offset + per_page
-        rows = rows[offset:offset + per_page]
+        search_rows = supabase_request(
+            "POST",
+            "rpc/mm_search_listings",
+            payload={
+                "p_city_id": city_id,
+                "p_category_id": category_id,
+                "p_query": q,
+                "p_sort": sort_mode,
+                "p_offset": offset,
+                "p_limit": per_page + 1,
+            },
+        )
+        if search_rows is None:
+            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"search_unavailable"}), 503
+        has_next = len(search_rows) > per_page
+        rows = search_rows[:per_page]
     else:
         offset = page * per_page
         params["offset"] = str(offset)
