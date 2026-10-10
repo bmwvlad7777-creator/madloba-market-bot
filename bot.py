@@ -8558,17 +8558,40 @@ def mini_app_listings():
     if category_id:
         params["category_id"] = f"eq.{category_id}"
 
-    # Push exact categorical filters into PostgREST before loading candidates.
-    # Keep the Python checks below as a defensive consistency check; this reduces
-    # the amount of data transferred without changing the visible filter rules.
+    # Push safe, exact filters into PostgREST before loading candidates.
+    # Python checks remain as a defensive consistency check.
     selected_deal_db = str(request.args.get("deal", "")).strip().lower()
-    if selected_deal_db in {"rent", "seek", "sell", "buy"}:
+    generic_filter_categories = {"tech", "home", "kids", "work", "services", "pets", "give", "search"}
+    if category == "realestate" and selected_deal_db in {"rent", "seek", "sell", "buy"}:
+        params["metadata->>type_key"] = f"eq.{selected_deal_db}"
+    elif category == "auto" and selected_deal_db in {"sell", "buy"}:
+        params["metadata->>type_key"] = f"eq.{selected_deal_db}"
+    elif category in generic_filter_categories and selected_deal_db:
         params["metadata->>type_key"] = f"eq.{selected_deal_db}"
 
     selected_sub_db = str(request.args.get("sub", "")).strip().lower()
     allowed_realestate_subs = {"apartment", "house", "room", "commercial", "land", "garage"}
-    if selected_sub_db and (category != "realestate" or selected_sub_db in allowed_realestate_subs):
+    if selected_sub_db and (category in generic_filter_categories or (category == "realestate" and selected_sub_db in allowed_realestate_subs)):
         params["metadata->>subcategory_key"] = f"eq.{selected_sub_db}"
+
+    # Price is a numeric table column, so valid bounds can be filtered in SQL
+    # instead of downloading thousands of rows and discarding most in Python.
+    price_conditions = []
+    for request_name, operator in (("min_price", "gte"), ("max_price", "lte")):
+        raw_price = str(request.args.get(request_name, "")).strip().replace(",", ".")
+        if raw_price:
+            try:
+                price_bound = float(raw_price)
+                import math
+                if price_bound >= 0 and math.isfinite(price_bound):
+                    price_conditions.append(f"price.{operator}.{price_bound}")
+            except (TypeError, ValueError):
+                pass
+    if len(price_conditions) == 1:
+        _, operator, value = price_conditions[0].split(".", 2)
+        params["price"] = f"{operator}.{value}"
+    elif len(price_conditions) == 2:
+        params["and"] = f"({','.join(price_conditions)})"
 
     def _fetch_listing_candidates(query_params, max_candidates=10000, batch_size=1000):
         """Fetch a bounded, stable set of listing candidates in API-sized batches."""
