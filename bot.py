@@ -8558,6 +8558,18 @@ def mini_app_listings():
     if category_id:
         params["category_id"] = f"eq.{category_id}"
 
+    # Push exact categorical filters into PostgREST before loading candidates.
+    # Keep the Python checks below as a defensive consistency check; this reduces
+    # the amount of data transferred without changing the visible filter rules.
+    selected_deal_db = str(request.args.get("deal", "")).strip().lower()
+    if selected_deal_db in {"rent", "seek", "sell", "buy"}:
+        params["metadata->>type_key"] = f"eq.{selected_deal_db}"
+
+    selected_sub_db = str(request.args.get("sub", "")).strip().lower()
+    allowed_realestate_subs = {"apartment", "house", "room", "commercial", "land", "garage"}
+    if selected_sub_db and (category != "realestate" or selected_sub_db in allowed_realestate_subs):
+        params["metadata->>subcategory_key"] = f"eq.{selected_sub_db}"
+
     def _fetch_listing_candidates(query_params, max_candidates=10000, batch_size=1000):
         """Fetch a bounded, stable set of listing candidates in API-sized batches."""
         candidates = []
