@@ -8558,6 +8558,21 @@ def mini_app_listings():
     if category_id:
         params["category_id"] = f"eq.{category_id}"
 
+    def _fetch_listing_candidates(query_params, max_candidates=10000, batch_size=1000):
+        """Fetch a bounded, stable set of listing candidates in API-sized batches."""
+        candidates = []
+        paged_params = dict(query_params)
+        paged_params["limit"] = str(batch_size)
+        for candidate_offset in range(0, max_candidates, batch_size):
+            paged_params["offset"] = str(candidate_offset)
+            batch = supabase_request("GET", "listings", params=paged_params)
+            if batch is None:
+                return None
+            candidates.extend(batch)
+            if len(batch) < batch_size:
+                break
+        return candidates
+
     # Search is applied in Python to the candidate rows so it can match
     # title, description, address and saved metadata consistently, including
     # Russian category/subcategory details. Avoid fragile PostgREST `or`
@@ -8613,9 +8628,7 @@ def mini_app_listings():
     )
 
     if has_python_filters:
-        candidate_limit = min(1000, max(100, (page + 1) * per_page * 8 + 1))
-        params["limit"] = str(candidate_limit)
-        rows = supabase_request("GET", "listings", params=params)
+        rows = _fetch_listing_candidates(params)
         if rows is None:
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
 
@@ -8702,9 +8715,7 @@ def mini_app_listings():
         has_next = len(filtered) > offset + per_page
         rows = page_rows
     elif has_auto_filters:
-        candidate_limit = min(1000, max(100, (page + 1) * per_page * 8 + 1))
-        params["limit"] = str(candidate_limit)
-        rows = supabase_request("GET", "listings", params=params)
+        rows = _fetch_listing_candidates(params)
         if rows is None:
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
 
@@ -8759,9 +8770,7 @@ def mini_app_listings():
         has_next = len(filtered) > offset + per_page
         rows = page_rows
     elif has_generic_filters:
-        candidate_limit = min(1000, max(100, (page + 1) * per_page * 8 + 1))
-        params["limit"] = str(candidate_limit)
-        rows = supabase_request("GET", "listings", params=params)
+        rows = _fetch_listing_candidates(params)
         if rows is None:
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
         selected_deal = str(request.args.get("deal", "")).strip().lower()
@@ -8829,20 +8838,11 @@ def mini_app_listings():
         # Fetch a bounded candidate set for text search, then filter before
         # pagination so matches aren't missed just because they are not in the
         # first page returned by Supabase.
-        candidate_limit = 1000
-        search_params = dict(params)
-        search_params["limit"] = str(candidate_limit)
-        all_candidates = []
-        # The project may contain several thousand ads. Read in bounded pages
-        # so older matching listings aren't hidden behind the newest 1,000.
-        for candidate_offset in range(0, 10000, candidate_limit):
-            search_params["offset"] = str(candidate_offset)
-            batch = supabase_request("GET", "listings", params=search_params)
-            if batch is None:
-                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
-            all_candidates.extend(batch)
-            if len(batch) < candidate_limit:
-                break
+        # Read in bounded pages so matching ads aren't silently limited to
+        # the first batch. The 10,000-row cap protects memory and API load.
+        all_candidates = _fetch_listing_candidates(params)
+        if all_candidates is None:
+            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
         rows = [row for row in all_candidates if _matches_search(row)]
         def _search_price(row):
             try:
