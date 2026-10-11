@@ -8679,7 +8679,71 @@ def mini_app_listings():
         or has_search_with_db_filters
     )
 
-    if has_python_filters:
+    # For real-estate filters, use the database RPC so numeric filtering,
+    # ordering and pagination happen in PostgreSQL instead of scanning listings in Python.
+    # Keep the established Python path for free-text search and district filtering,
+    # which are not parameters of mm_filter_realestate_listings.
+    realestate_filter_names = ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area")
+    has_realestate_rpc_filters = (
+        category == "realestate"
+        and not q
+        and not str(request.args.get("district", "")).strip()
+        and any(str(request.args.get(name, "")).strip() for name in realestate_filter_names)
+    )
+
+    if has_realestate_rpc_filters:
+        def _rpc_num(name):
+            raw = str(request.args.get(name, "")).strip().replace(",", ".")
+            if not raw:
+                return None
+            try:
+                value = float(raw)
+                import math
+                return value if math.isfinite(value) and value >= 0 else None
+            except (TypeError, ValueError):
+                return None
+
+        selected_deal_rpc = str(request.args.get("deal", "")).strip().lower()
+        if selected_deal_rpc not in {"rent", "seek", "sell", "buy"}:
+            selected_deal_rpc = None
+        selected_sub_rpc = str(request.args.get("sub", "")).strip().lower()
+        if selected_sub_rpc not in allowed_realestate_subs:
+            selected_sub_rpc = None
+
+        selected_rooms_rpc = str(request.args.get("rooms", "")).strip()
+        min_rooms_rpc = max_rooms_rpc = None
+        if selected_rooms_rpc in {"1", "2", "3"}:
+            min_rooms_rpc = max_rooms_rpc = int(selected_rooms_rpc)
+        elif selected_rooms_rpc == "4":
+            min_rooms_rpc = 4
+
+        offset = page * per_page
+        filtered_rows = supabase_request(
+            "POST",
+            "rpc/mm_filter_realestate_listings",
+            payload={
+                "p_city_id": city_id,
+                "p_category_id": category_id,
+                "p_deal": selected_deal_rpc,
+                "p_subcategory": selected_sub_rpc,
+                "p_min_price": _rpc_num("min_price"),
+                "p_max_price": _rpc_num("max_price"),
+                "p_min_area": _rpc_num("min_area"),
+                "p_max_area": _rpc_num("max_area"),
+                "p_min_rooms": min_rooms_rpc,
+                "p_max_rooms": max_rooms_rpc,
+                "p_min_floor": None,
+                "p_max_floor": None,
+                "p_sort": sort_mode,
+                "p_offset": offset,
+                "p_limit": per_page + 1,
+            },
+        )
+        if filtered_rows is None:
+            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"realestate_filter_unavailable"}), 503
+        has_next = len(filtered_rows) > per_page
+        rows = filtered_rows[:per_page]
+    elif has_python_filters:
         rows = _fetch_listing_candidates(params)
         if rows is None:
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
