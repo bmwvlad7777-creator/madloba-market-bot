@@ -8807,7 +8807,7 @@ def mini_app_listings():
         and any(str(request.args.get(name, "")).strip() for name in realestate_filter_names)
     )
 
-    if has_realestate_rpc_filters:
+    if not has_combined_advanced_search and has_realestate_rpc_filters:
         def _rpc_num(name):
             raw = str(request.args.get(name, "")).strip().replace(",", ".")
             if not raw:
@@ -8859,7 +8859,7 @@ def mini_app_listings():
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"realestate_filter_unavailable"}), 503
         has_next = len(filtered_rows) > per_page
         rows = filtered_rows[:per_page]
-    elif has_auto_filters and not q and not str(request.args.get("sub", "")).strip():
+    elif not has_combined_advanced_search and has_auto_filters and not q and not str(request.args.get("sub", "")).strip():
         # Use the database RPC for automotive attributes, sorting and pagination.
         # Keep the established Python path when free-text search or subcategory
         # is active because the RPC does not accept those parameters.
@@ -8900,7 +8900,7 @@ def mini_app_listings():
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"auto_filter_unavailable"}), 503
         has_next = len(auto_rows) > per_page
         rows = auto_rows[:per_page]
-    elif has_python_filters:
+    elif not has_combined_advanced_search and has_python_filters:
         rows = _fetch_listing_candidates(params)
         if rows is None:
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
@@ -8987,7 +8987,7 @@ def mini_app_listings():
         page_rows = filtered[offset:offset + per_page]
         has_next = len(filtered) > offset + per_page
         rows = page_rows
-    elif has_auto_filters:
+    elif not has_combined_advanced_search and has_auto_filters:
         rows = _fetch_listing_candidates(params)
         if rows is None:
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
@@ -9042,7 +9042,7 @@ def mini_app_listings():
         page_rows = filtered[offset:offset + per_page]
         has_next = len(filtered) > offset + per_page
         rows = page_rows
-    elif has_generic_filters:
+    elif not has_combined_advanced_search and has_generic_filters:
         # Run generic category filters in PostgreSQL. This removes the old
         # 10,000-row Python scan for condition/brand/pet filters.
         offset = page * per_page
@@ -9072,7 +9072,7 @@ def mini_app_listings():
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"generic_filter_unavailable"}), 503
         has_next = len(generic_rows) > per_page
         rows = generic_rows[:per_page]
-    elif q:
+    elif not has_combined_advanced_search and q:
         # Delegate text matching and pagination to the database function so
         # the API no longer downloads up to 10,000 listings for Python filtering.
         # Keep the old Python matcher above for category-filter branches, which
@@ -9094,7 +9094,7 @@ def mini_app_listings():
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"search_unavailable"}), 503
         has_next = len(search_rows) > per_page
         rows = search_rows[:per_page]
-    else:
+    elif not has_combined_advanced_search:
         offset = page * per_page
         params["offset"] = str(offset)
         params["limit"] = str(per_page + 1)
