@@ -8974,67 +8974,35 @@ def mini_app_listings():
         has_next = len(filtered) > offset + per_page
         rows = page_rows
     elif has_generic_filters:
-        rows = _fetch_listing_candidates(params)
-        if rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
-        selected_deal = str(request.args.get("deal", "")).strip().lower()
-        selected_sub = str(request.args.get("sub", "")).strip().lower()
-        selected_condition = str(request.args.get("condition", "")).strip().lower()
-        selected_make = str(request.args.get("make", "")).strip().casefold()
-        selected_model = str(request.args.get("model", "")).strip().casefold()
-        selected_pet_age = str(request.args.get("pet_age", "")).strip().casefold()
-        selected_pet_breed = str(request.args.get("pet_breed", "")).strip().casefold()
-        selected_pet_gender = str(request.args.get("pet_gender", "")).strip().casefold()
-        min_price_n = _generic_num(request.args.get("min_price", ""))
-        max_price_n = _generic_num(request.args.get("max_price", ""))
-        filtered = []
-        for row in rows:
-            if not _matches_search(row):
-                continue
-            meta = row.get("metadata") or {}
-            meta = meta if isinstance(meta, dict) else {}
-            details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
-            if selected_deal and str(meta.get("type_key", "")).strip().lower() != selected_deal:
-                continue
-            if selected_sub and str(meta.get("subcategory_key", "")).strip().lower() != selected_sub:
-                continue
-            if selected_make or selected_model:
-                brand_text = str(details.get("make") or details.get("brand") or details.get("brand_model") or details.get("make_model") or "").casefold()
-                model_text = str(details.get("model") or details.get("brand_model") or details.get("make_model") or "").casefold()
-                combined_text = f"{brand_text} {model_text} {row.get('title') or ''} {row.get('description') or ''}".casefold()
-                if selected_make and selected_make not in combined_text:
-                    continue
-                if selected_model and selected_model not in combined_text:
-                    continue
-            price_n = _generic_num(row.get("price"))
-            if min_price_n is not None and (price_n is None or price_n < min_price_n): continue
-            if max_price_n is not None and (price_n is None or price_n > max_price_n): continue
-            if selected_condition:
-                cond = str(details.get("condition") or meta.get("condition") or "").strip().lower()
-                aliases = {"new":"new","новое":"new","новый":"new","новая":"new","идеал":"new","excellent":"new","used":"used","б/у":"used","бу":"used","б у":"used","бывшее в употреблении":"used"}
-                if aliases.get(cond, cond) != selected_condition:
-                    continue
-            if category == "pets" and (selected_pet_age or selected_pet_breed or selected_pet_gender):
-                age_text = str(details.get("age") or meta.get("age") or "").strip().casefold()
-                breed_text = str(details.get("breed") or meta.get("breed") or "").strip().casefold()
-                gender_text = str(details.get("gender") or meta.get("gender") or "").strip().casefold()
-                if selected_pet_age and selected_pet_age not in age_text:
-                    continue
-                if selected_pet_breed and selected_pet_breed not in breed_text:
-                    continue
-                if selected_pet_gender:
-                    gender_aliases = {"male": ("male", "самец", "мужской", "мальчик", "кобель"), "female": ("female", "самка", "женский", "девочка", "сука")}
-                    if not any(alias in gender_text for alias in gender_aliases.get(selected_pet_gender, (selected_pet_gender,))):
-                        continue
-            filtered.append(row)
-        if sort_mode == "price_asc":
-            filtered.sort(key=lambda r: (_num(r.get("price")) is None, _num(r.get("price")) if _num(r.get("price")) is not None else 0))
-        elif sort_mode == "price_desc":
-            filtered.sort(key=lambda r: (_num(r.get("price")) is not None, _num(r.get("price")) if _num(r.get("price")) is not None else 0), reverse=True)
+        # Run generic category filters in PostgreSQL. This removes the old
+        # 10,000-row Python scan for condition/brand/pet filters.
         offset = page * per_page
-        page_rows = filtered[offset:offset + per_page]
-        has_next = len(filtered) > offset + per_page
-        rows = page_rows
+        generic_rows = supabase_request(
+            "POST",
+            "rpc/mm_filter_generic_listings",
+            payload={
+                "p_city_id": int(city_id),
+                "p_category_id": int(category_id),
+                "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
+                "p_subcategory": str(request.args.get("sub", "")).strip().lower() or None,
+                "p_condition": str(request.args.get("condition", "")).strip().lower() or None,
+                "p_make": str(request.args.get("make", "")).strip() or None,
+                "p_model": str(request.args.get("model", "")).strip() or None,
+                "p_pet_age": str(request.args.get("pet_age", "")).strip() or None,
+                "p_pet_breed": str(request.args.get("pet_breed", "")).strip() or None,
+                "p_pet_gender": str(request.args.get("pet_gender", "")).strip().lower() or None,
+                "p_min_price": _generic_num(request.args.get("min_price", "")),
+                "p_max_price": _generic_num(request.args.get("max_price", "")),
+                "p_query": q or None,
+                "p_sort": sort_mode,
+                "p_offset": offset,
+                "p_limit": per_page + 1,
+            },
+        )
+        if generic_rows is None:
+            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"generic_filter_unavailable"}), 503
+        has_next = len(generic_rows) > per_page
+        rows = generic_rows[:per_page]
     elif q:
         # Delegate text matching and pagination to the database function so
         # the API no longer downloads up to 10,000 listings for Python filtering.
