@@ -170,6 +170,50 @@ def supabase_request(method, path, params=None, payload=None):
         return None
 
 
+def _supabase_exact_count(path, filters=None):
+    """Return an exact PostgREST count without downloading every matching row.
+
+    Returns None when the endpoint/count is unavailable, so callers can retain
+    their existing compatibility fallback instead of breaking the admin panel.
+    """
+    if not supabase_enabled():
+        return None
+    url = f"{SUPABASE_URL}/rest/v1/{str(path).lstrip('/')}"
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY,
+        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "count=exact",
+        "Range": "0-0",
+    }
+    params = {"select": "id", "limit": "1"}
+    if isinstance(filters, dict):
+        params.update(filters)
+    try:
+        response = HTTP_SESSION.get(url, headers=headers, params=params, timeout=(5, 20))
+        if not response.ok:
+            global LAST_SUPABASE_ERROR
+            LAST_SUPABASE_ERROR = f"HTTP {response.status_code}: {response.text[:700]}"
+            print("SUPABASE COUNT ERROR:", response.status_code, response.text[:700])
+            return None
+        content_range = response.headers.get("Content-Range", "")
+        if "/" in content_range:
+            total = content_range.rsplit("/", 1)[-1].strip()
+            if total.isdigit():
+                return int(total)
+        # Compatibility fallback for gateways that omit Content-Range.
+        try:
+            body = response.json()
+            if isinstance(body, list):
+                return len(body)
+        except (ValueError, TypeError):
+            pass
+        return None
+    except Exception as error:
+        print("SUPABASE COUNT REQUEST ERROR:", repr(error))
+        return None
+
+
 def load_local_published_listings():
     global published_listings, next_listing_id
 
@@ -7694,20 +7738,38 @@ def _admin_stats_payload(period_days=7):
     }
     if not supabase_enabled():
         return stats
-    users = supabase_request("GET", "users", params={"select":"id", "limit":"100000"})
-    if isinstance(users, list):
-        stats["users_total"] = len(users)
-    listings = supabase_request("GET", "listings", params={"select":"id,status", "limit":"100000"})
-    if isinstance(listings, list):
-        stats["listings_total"] = len(listings)
-        for row in listings:
-            status = str(row.get("status", "")).lower()
-            if status in {"published", "active"}:
-                stats["listings_active"] += 1
-            elif status in {"pending", "pending_moderation", "moderation", "review"}:
-                stats["listings_pending"] += 1
-            else:
-                stats["listings_other"] += 1
+    # Count in PostgreSQL rather than downloading up to 100,000 rows. This keeps
+    # dashboard totals accurate beyond the project's PostgREST page-size limit.
+    users_count = _supabase_exact_count("users")
+    if users_count is not None:
+        stats["users_total"] = users_count
+    else:
+        users = supabase_request("GET", "users", params={"select":"id", "limit":"100000"})
+        if isinstance(users, list):
+            stats["users_total"] = len(users)
+
+    listings_count = _supabase_exact_count("listings")
+    active_count = _supabase_exact_count("listings", {"status":"in.(published,active)"})
+    pending_count = _supabase_exact_count("listings", {"status":"in.(pending,pending_moderation,moderation,review)"})
+    if listings_count is not None and active_count is not None and pending_count is not None:
+        stats["listings_total"] = listings_count
+        stats["listings_active"] = active_count
+        stats["listings_pending"] = pending_count
+        stats["listings_other"] = max(0, listings_count - active_count - pending_count)
+    else:
+        # Keep compatibility with deployments whose REST gateway doesn't expose
+        # exact counts; the normal path above does not download the full table.
+        listings = supabase_request("GET", "listings", params={"select":"id,status", "limit":"100000"})
+        if isinstance(listings, list):
+            stats["listings_total"] = len(listings)
+            for row in listings:
+                status = str(row.get("status", "")).lower()
+                if status in {"published", "active"}:
+                    stats["listings_active"] += 1
+                elif status in {"pending", "pending_moderation", "moderation", "review"}:
+                    stats["listings_pending"] += 1
+                else:
+                    stats["listings_other"] += 1
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -7785,12 +7847,20 @@ def _admin_stats_payload(period_days=7):
                         stats["top_listings"] = [dict(by_id.get(key, {"id": key, "title": "Объявление"}), views=top_counts[key]) for key in top_ids]
                 except Exception as error:
                     print("MADLOBA TOP LISTINGS ERROR:", repr(error))
-    orders = supabase_request("GET", "mm_orders", params={"select":"id,status", "limit":"100000"})
-    if isinstance(orders, list):
+    orders_count = _supabase_exact_count("mm_orders")
+    if orders_count is not None:
         stats["orders_available"] = True
-        stats["orders_total"] = len(orders)
-        stats["orders_pending"] = sum(1 for x in orders if x.get("status") == "pending_payment")
-        stats["orders_paid"] = sum(1 for x in orders if x.get("status") == "paid")
+        stats["orders_total"] = orders_count
+        stats["orders_pending"] = _supabase_exact_count("mm_orders", {"status":"eq.pending_payment"}) or 0
+        stats["orders_paid"] = _supabase_exact_count("mm_orders", {"status":"eq.paid"}) or 0
+    else:
+        # Orders are optional until monetization is enabled.
+        orders = supabase_request("GET", "mm_orders", params={"select":"id,status", "limit":"100000"})
+        if isinstance(orders, list):
+            stats["orders_available"] = True
+            stats["orders_total"] = len(orders)
+            stats["orders_pending"] = sum(1 for x in orders if x.get("status") == "pending_payment")
+            stats["orders_paid"] = sum(1 for x in orders if x.get("status") == "paid")
     return stats
 
 
@@ -7861,12 +7931,18 @@ def mini_app_admin_data():
         # Prefer the event log for the admin-facing view count. This does not
         # mutate listings or change the publication flow; analytics stays optional.
         try:
-            view_events = supabase_request("GET", "mm_analytics_events", params={
-                "select":"id", "event_type":"eq.listing_view",
-                "listing_id":f"eq.{listing_id}", "limit":"100000"
+            view_count = _supabase_exact_count("mm_analytics_events", {
+                "event_type":"eq.listing_view", "listing_id":f"eq.{listing_id}"
             })
-            if isinstance(view_events, list):
-                item["views_count"] = len(view_events)
+            if view_count is not None:
+                item["views_count"] = view_count
+            else:
+                view_events = supabase_request("GET", "mm_analytics_events", params={
+                    "select":"id", "event_type":"eq.listing_view",
+                    "listing_id":f"eq.{listing_id}", "limit":"100000"
+                })
+                if isinstance(view_events, list):
+                    item["views_count"] = len(view_events)
         except Exception as error:
             print("MADLOBA LISTING VIEW COUNT ERROR:", repr(error))
         return jsonify({"item":item})
