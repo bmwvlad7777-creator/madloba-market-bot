@@ -170,50 +170,6 @@ def supabase_request(method, path, params=None, payload=None):
         return None
 
 
-def _supabase_exact_count(path, filters=None):
-    """Return an exact PostgREST count without downloading every matching row.
-
-    Returns None when the endpoint/count is unavailable, so callers can retain
-    their existing compatibility fallback instead of breaking the admin panel.
-    """
-    if not supabase_enabled():
-        return None
-    url = f"{SUPABASE_URL}/rest/v1/{str(path).lstrip('/')}"
-    headers = {
-        "apikey": SUPABASE_SECRET_KEY,
-        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "count=exact",
-        "Range": "0-0",
-    }
-    params = {"select": "id", "limit": "1"}
-    if isinstance(filters, dict):
-        params.update(filters)
-    try:
-        response = HTTP_SESSION.get(url, headers=headers, params=params, timeout=(5, 20))
-        if not response.ok:
-            global LAST_SUPABASE_ERROR
-            LAST_SUPABASE_ERROR = f"HTTP {response.status_code}: {response.text[:700]}"
-            print("SUPABASE COUNT ERROR:", response.status_code, response.text[:700])
-            return None
-        content_range = response.headers.get("Content-Range", "")
-        if "/" in content_range:
-            total = content_range.rsplit("/", 1)[-1].strip()
-            if total.isdigit():
-                return int(total)
-        # Compatibility fallback for gateways that omit Content-Range.
-        try:
-            body = response.json()
-            if isinstance(body, list):
-                return len(body)
-        except (ValueError, TypeError):
-            pass
-        return None
-    except Exception as error:
-        print("SUPABASE COUNT REQUEST ERROR:", repr(error))
-        return None
-
-
 def load_local_published_listings():
     global published_listings, next_listing_id
 
@@ -7738,38 +7694,20 @@ def _admin_stats_payload(period_days=7):
     }
     if not supabase_enabled():
         return stats
-    # Count in PostgreSQL rather than downloading up to 100,000 rows. This keeps
-    # dashboard totals accurate beyond the project's PostgREST page-size limit.
-    users_count = _supabase_exact_count("users")
-    if users_count is not None:
-        stats["users_total"] = users_count
-    else:
-        users = supabase_request("GET", "users", params={"select":"id", "limit":"100000"})
-        if isinstance(users, list):
-            stats["users_total"] = len(users)
-
-    listings_count = _supabase_exact_count("listings")
-    active_count = _supabase_exact_count("listings", {"status":"in.(published,active)"})
-    pending_count = _supabase_exact_count("listings", {"status":"in.(pending,pending_moderation,moderation,review)"})
-    if listings_count is not None and active_count is not None and pending_count is not None:
-        stats["listings_total"] = listings_count
-        stats["listings_active"] = active_count
-        stats["listings_pending"] = pending_count
-        stats["listings_other"] = max(0, listings_count - active_count - pending_count)
-    else:
-        # Keep compatibility with deployments whose REST gateway doesn't expose
-        # exact counts; the normal path above does not download the full table.
-        listings = supabase_request("GET", "listings", params={"select":"id,status", "limit":"100000"})
-        if isinstance(listings, list):
-            stats["listings_total"] = len(listings)
-            for row in listings:
-                status = str(row.get("status", "")).lower()
-                if status in {"published", "active"}:
-                    stats["listings_active"] += 1
-                elif status in {"pending", "pending_moderation", "moderation", "review"}:
-                    stats["listings_pending"] += 1
-                else:
-                    stats["listings_other"] += 1
+    users = supabase_request("GET", "users", params={"select":"id", "limit":"100000"})
+    if isinstance(users, list):
+        stats["users_total"] = len(users)
+    listings = supabase_request("GET", "listings", params={"select":"id,status", "limit":"100000"})
+    if isinstance(listings, list):
+        stats["listings_total"] = len(listings)
+        for row in listings:
+            status = str(row.get("status", "")).lower()
+            if status in {"published", "active"}:
+                stats["listings_active"] += 1
+            elif status in {"pending", "pending_moderation", "moderation", "review"}:
+                stats["listings_pending"] += 1
+            else:
+                stats["listings_other"] += 1
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -7847,20 +7785,12 @@ def _admin_stats_payload(period_days=7):
                         stats["top_listings"] = [dict(by_id.get(key, {"id": key, "title": "Объявление"}), views=top_counts[key]) for key in top_ids]
                 except Exception as error:
                     print("MADLOBA TOP LISTINGS ERROR:", repr(error))
-    orders_count = _supabase_exact_count("mm_orders")
-    if orders_count is not None:
+    orders = supabase_request("GET", "mm_orders", params={"select":"id,status", "limit":"100000"})
+    if isinstance(orders, list):
         stats["orders_available"] = True
-        stats["orders_total"] = orders_count
-        stats["orders_pending"] = _supabase_exact_count("mm_orders", {"status":"eq.pending_payment"}) or 0
-        stats["orders_paid"] = _supabase_exact_count("mm_orders", {"status":"eq.paid"}) or 0
-    else:
-        # Orders are optional until monetization is enabled.
-        orders = supabase_request("GET", "mm_orders", params={"select":"id,status", "limit":"100000"})
-        if isinstance(orders, list):
-            stats["orders_available"] = True
-            stats["orders_total"] = len(orders)
-            stats["orders_pending"] = sum(1 for x in orders if x.get("status") == "pending_payment")
-            stats["orders_paid"] = sum(1 for x in orders if x.get("status") == "paid")
+        stats["orders_total"] = len(orders)
+        stats["orders_pending"] = sum(1 for x in orders if x.get("status") == "pending_payment")
+        stats["orders_paid"] = sum(1 for x in orders if x.get("status") == "paid")
     return stats
 
 
@@ -7931,18 +7861,12 @@ def mini_app_admin_data():
         # Prefer the event log for the admin-facing view count. This does not
         # mutate listings or change the publication flow; analytics stays optional.
         try:
-            view_count = _supabase_exact_count("mm_analytics_events", {
-                "event_type":"eq.listing_view", "listing_id":f"eq.{listing_id}"
+            view_events = supabase_request("GET", "mm_analytics_events", params={
+                "select":"id", "event_type":"eq.listing_view",
+                "listing_id":f"eq.{listing_id}", "limit":"100000"
             })
-            if view_count is not None:
-                item["views_count"] = view_count
-            else:
-                view_events = supabase_request("GET", "mm_analytics_events", params={
-                    "select":"id", "event_type":"eq.listing_view",
-                    "listing_id":f"eq.{listing_id}", "limit":"100000"
-                })
-                if isinstance(view_events, list):
-                    item["views_count"] = len(view_events)
+            if isinstance(view_events, list):
+                item["views_count"] = len(view_events)
         except Exception as error:
             print("MADLOBA LISTING VIEW COUNT ERROR:", repr(error))
         return jsonify({"item":item})
@@ -8801,6 +8725,75 @@ def mini_app_listings():
         any(str(request.args.get(name, "")).strip() for name in ("condition", "make", "model", "pet_age", "pet_breed", "pet_gender"))
         or has_search_with_db_filters
     )
+
+    # Combined free-text search + advanced filters for real estate and auto
+    # are executed in PostgreSQL. This avoids the legacy 10,000-row Python scan
+    # while leaving the already-working standalone search/filter paths unchanged.
+    has_combined_advanced_search = bool(q) and (
+        (category == "realestate" and any(
+            str(request.args.get(name, "")).strip()
+            for name in ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area", "district")
+        ))
+        or (category == "auto" and any(
+            str(request.args.get(name, "")).strip()
+            for name in ("deal", "sub", "make", "model", "min_price", "max_price",
+                         "min_year", "max_year", "min_mileage", "max_mileage")
+        ))
+    )
+
+    def _combined_rpc_num(name):
+        raw = str(request.args.get(name, "")).strip().lower()
+        if not raw:
+            return None
+        raw = raw.replace(",", ".").replace("km", "").replace("км", "").replace("м²", "").replace("m²", "").strip()
+        try:
+            value = float(raw)
+            import math
+            return value if math.isfinite(value) and value >= 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    if has_combined_advanced_search:
+        selected_rooms_combined = str(request.args.get("rooms", "")).strip()
+        min_rooms_combined = max_rooms_combined = None
+        if selected_rooms_combined in {"1", "2", "3"}:
+            min_rooms_combined = max_rooms_combined = int(selected_rooms_combined)
+        elif selected_rooms_combined == "4":
+            min_rooms_combined = 4
+
+        offset = page * per_page
+        combined_rows = supabase_request(
+            "POST",
+            "rpc/mm_search_filtered_listings",
+            payload={
+                "p_city_id": int(city_id),
+                "p_category_id": int(category_id),
+                "p_category_key": category,
+                "p_query": q,
+                "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
+                "p_subcategory": str(request.args.get("sub", "")).strip().lower() or None,
+                "p_make": str(request.args.get("make", "")).strip() or None,
+                "p_model": str(request.args.get("model", "")).strip() or None,
+                "p_min_price": _combined_rpc_num("min_price"),
+                "p_max_price": _combined_rpc_num("max_price"),
+                "p_min_year": _combined_rpc_num("min_year"),
+                "p_max_year": _combined_rpc_num("max_year"),
+                "p_min_mileage": _combined_rpc_num("min_mileage"),
+                "p_max_mileage": _combined_rpc_num("max_mileage"),
+                "p_min_area": _combined_rpc_num("min_area"),
+                "p_max_area": _combined_rpc_num("max_area"),
+                "p_min_rooms": min_rooms_combined,
+                "p_max_rooms": max_rooms_combined,
+                "p_district": str(request.args.get("district", "")).strip() or None,
+                "p_sort": sort_mode,
+                "p_offset": offset,
+                "p_limit": per_page + 1,
+            },
+        )
+        if combined_rows is None:
+            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"combined_search_unavailable"}), 503
+        has_next = len(combined_rows) > per_page
+        rows = combined_rows[:per_page]
 
     # For real-estate filters, use the database RPC so numeric filtering,
     # ordering and pagination happen in PostgreSQL instead of scanning listings in Python.
