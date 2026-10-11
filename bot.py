@@ -76,15 +76,13 @@ _HTTP_ADAPTER = HTTPAdapter(
 HTTP_SESSION.mount("https://", _HTTP_ADAPTER)
 HTTP_SESSION.mount("http://", _HTTP_ADAPTER)
 
-# Временные данные пользователей.
-# Для первой версии этого достаточно.
+# Состояния пользователей кэшируются в памяти и сохраняются в Supabase.
 states = {}
 
-# Заявки, ожидающие решения администратора.
-# Важно: эти данные хранятся в памяти Render.
+# Заявки на модерацию кэшируются в памяти и сохраняются в Supabase.
 moderation_requests = {}
 
-# Текущее редактирование объявления модератором.
+# Сессии редактирования модератора сохраняются в Supabase.
 moderator_sessions = {}
 
 # Счётчик заявок на модерацию.
@@ -168,6 +166,203 @@ def supabase_request(method, path, params=None, payload=None):
         LAST_SUPABASE_ERROR = f"REQUEST ERROR: {repr(error)}"
         print("SUPABASE REQUEST ERROR:", repr(error))
         return None
+
+
+
+# ============================================================
+# УСТОЙЧИВОЕ ХРАНЕНИЕ СОСТОЯНИЯ БОТА В SUPABASE
+# Требуется таблица public.mm_bot_runtime_state из SQL-миграции.
+# ============================================================
+
+RUNTIME_STATE_TABLE = "mm_bot_runtime_state"
+
+
+def runtime_state_load(state_key):
+    """Load one JSON state record. Returns (found, payload, request_ok)."""
+    if not supabase_enabled():
+        return False, None, False
+    result = supabase_request(
+        "GET",
+        RUNTIME_STATE_TABLE,
+        params={"select": "payload", "state_key": f"eq.{state_key}", "limit": "1"},
+    )
+    if result is None:
+        return False, None, False
+    if not result:
+        return False, None, True
+    payload = result[0].get("payload")
+    return True, payload, True
+
+
+def runtime_state_save(state_key, payload):
+    """Upsert a JSON state record using the service-role credential."""
+    if not supabase_enabled():
+        return False
+    url = f"{SUPABASE_URL}/rest/v1/{RUNTIME_STATE_TABLE}"
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY,
+        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
+    try:
+        response = HTTP_SESSION.post(
+            url,
+            params={"on_conflict": "state_key"},
+            headers=headers,
+            json={
+                "state_key": str(state_key),
+                "payload": payload,
+                "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            },
+            timeout=(5, 20),
+        )
+        if not response.ok:
+            print("RUNTIME STATE SAVE ERROR:", response.status_code, response.text[:700])
+            return False
+        return True
+    except Exception as error:
+        print("RUNTIME STATE SAVE REQUEST ERROR:", repr(error))
+        return False
+
+
+def runtime_state_delete(state_key):
+    if not supabase_enabled():
+        return False
+    result = supabase_request(
+        "DELETE",
+        RUNTIME_STATE_TABLE,
+        params={"state_key": f"eq.{state_key}"},
+    )
+    return result is not None
+
+
+def _runtime_key(prefix, identifier):
+    return f"{prefix}:{identifier}"
+
+
+def _load_runtime_record(prefix, identifier, target, target_key, loaded_keys):
+    key = _runtime_key(prefix, identifier)
+    found, payload, ok = runtime_state_load(key)
+    if not ok:
+        return None
+    loaded_keys.add(key)
+    if found and isinstance(payload, dict):
+        target[target_key] = payload
+        return payload
+    target.pop(target_key, None)
+    return None
+
+
+def _sync_runtime_record(prefix, identifier, target, target_key, loaded_keys):
+    key = _runtime_key(prefix, identifier)
+    if target_key in target:
+        if not runtime_state_save(key, target[target_key]):
+            print("RUNTIME STATE WARNING: record not persisted:", key)
+    elif key in loaded_keys:
+        if not runtime_state_delete(key):
+            print("RUNTIME STATE WARNING: record not deleted:", key)
+
+
+def _runtime_request_id(callback_data):
+    match = re.match(
+        r"^mod_(?:edit|publish|reject|field_[a-z]+|details|detail|back)_(\d+)(?:_|$)",
+        str(callback_data or ""),
+    )
+    return int(match.group(1)) if match else None
+
+
+def _load_runtime_for_update(update):
+    """Restore only records related to this Telegram update, not the whole table."""
+    loaded = {"states": set(), "moderation": set(), "sessions": set()}
+    chat_id = None
+    callback_from_id = None
+    callback_data = ""
+
+    if isinstance(update.get("message"), dict):
+        chat_id = update["message"].get("chat", {}).get("id")
+    elif isinstance(update.get("callback_query"), dict):
+        callback = update["callback_query"]
+        chat_id = callback.get("message", {}).get("chat", {}).get("id")
+        callback_from_id = callback.get("from", {}).get("id")
+        callback_data = callback.get("data", "")
+
+    if chat_id is not None:
+        _load_runtime_record("user", chat_id, states, chat_id, loaded["states"])
+        if str(chat_id) == str(ADMIN_CHAT_ID):
+            _load_runtime_record("moderator", chat_id, moderator_sessions, chat_id, loaded["sessions"])
+
+    # Admin callbacks can refer to a moderation request belonging to another user.
+    request_id = _runtime_request_id(callback_data)
+    if request_id is not None:
+        item = _load_runtime_record(
+            "moderation", request_id, moderation_requests, request_id, loaded["moderation"]
+        )
+        if item and item.get("user_chat_id") is not None:
+            user_id = item["user_chat_id"]
+            _load_runtime_record("user", user_id, states, user_id, loaded["states"])
+
+    # If this is a moderator's text reply, restore the request and its author's state.
+    if chat_id is not None and chat_id in moderator_sessions:
+        session = moderator_sessions[chat_id]
+        session_request_id = session.get("request_id") if isinstance(session, dict) else None
+        if session_request_id is not None:
+            item = _load_runtime_record(
+                "moderation", session_request_id, moderation_requests,
+                session_request_id, loaded["moderation"]
+            )
+            if item and item.get("user_chat_id") is not None:
+                user_id = item["user_chat_id"]
+                _load_runtime_record("user", user_id, states, user_id, loaded["states"])
+
+    loaded["counter_before"] = next_moderation_id
+    return loaded, chat_id, callback_from_id, request_id
+
+
+def _save_runtime_after_update(loaded, chat_id, callback_from_id, request_id):
+    for key in loaded["states"]:
+        # Keys are strings such as user:123; the dict key remains numeric where possible.
+        raw_id = key.split(":", 1)[1]
+        target_key = next((k for k in states if str(k) == raw_id), None)
+        if target_key is None:
+            try:
+                candidate = int(raw_id)
+            except ValueError:
+                candidate = raw_id
+            target_key = candidate
+        _sync_runtime_record("user", raw_id, states, target_key, loaded["states"])
+
+    for key in loaded["moderation"]:
+        raw_id = key.split(":", 1)[1]
+        try:
+            target_key = int(raw_id)
+        except ValueError:
+            target_key = raw_id
+        _sync_runtime_record("moderation", raw_id, moderation_requests, target_key, loaded["moderation"])
+
+    # Persist moderation requests created during this update (for example, when
+    # the user submits a listing) even though their IDs were not loaded before.
+    if chat_id is not None:
+        for current_id, item in list(moderation_requests.items()):
+            if str(item.get("user_chat_id")) == str(chat_id):
+                key = _runtime_key("moderation", current_id)
+                if key not in loaded["moderation"]:
+                    if not runtime_state_save(key, item):
+                        print("RUNTIME STATE WARNING: new moderation request not persisted:", key)
+
+    for key in loaded["sessions"]:
+        raw_id = key.split(":", 1)[1]
+        target_key = next((k for k in moderator_sessions if str(k) == raw_id), None)
+        if target_key is None:
+            try:
+                target_key = int(raw_id)
+            except ValueError:
+                target_key = raw_id
+        _sync_runtime_record("moderator", raw_id, moderator_sessions, target_key, loaded["sessions"])
+
+    if next_moderation_id != loaded.get("counter_before", next_moderation_id):
+        if not runtime_state_save("meta:next_moderation_id", {"value": next_moderation_id}):
+            print("RUNTIME STATE WARNING: moderation counter not persisted")
 
 
 def _supabase_exact_count(path, params=None):
@@ -3267,14 +3462,21 @@ def remove_moderation_requests_for_user(
         moderation_requests.items()
     ):
 
-        if item.get(
-            "user_chat_id"
-        ) == chat_id:
+        if str(item.get("user_chat_id")) == str(chat_id):
+            moderation_requests.pop(request_id, None)
+            runtime_state_delete(_runtime_key("moderation", request_id))
 
-            moderation_requests.pop(
-                request_id,
-                None
-            )
+    # Also remove stale persisted requests for this user that were not loaded
+    # into this process's memory before a new posting flow began.
+    if supabase_enabled():
+        supabase_request(
+            "DELETE",
+            RUNTIME_STATE_TABLE,
+            params={
+                "state_key": "like.moderation:%",
+                "payload->>user_chat_id": f"eq.{chat_id}",
+            },
+        )
 
 
 def edit_moderation_message(
@@ -4264,7 +4466,17 @@ def process_text(
 # ОБРАБОТКА UPDATE
 # ============================================================
 
-def handle(
+
+def handle(update):
+    """Restore this chat's durable state, process the update, then save changes."""
+    loaded, chat_id, callback_from_id, request_id = _load_runtime_for_update(update)
+    try:
+        _handle_update_core(update)
+    finally:
+        _save_runtime_after_update(loaded, chat_id, callback_from_id, request_id)
+
+
+def _handle_update_core(
     update
 ):
 
@@ -9429,6 +9641,21 @@ def mini_app_media(listing_id, index):
         return Response(upstream.content,content_type=upstream.headers.get("Content-Type","image/jpeg"),headers={"Cache-Control":"public, max-age=86400","X-Content-Type-Options":"nosniff"})
     except Exception as error:
         print("MEDIA ERROR:",repr(error));return "Media unavailable",503
+
+
+def restore_moderation_counter():
+    global next_moderation_id
+    found, payload, ok = runtime_state_load("meta:next_moderation_id")
+    if not ok or not found or not isinstance(payload, dict):
+        return
+    try:
+        next_moderation_id = max(1, int(payload.get("value", 1)))
+    except (TypeError, ValueError):
+        print("RUNTIME STATE WARNING: invalid moderation counter; using 1")
+
+
+restore_moderation_counter()
+
 
 # ============================================================
 # WEB
