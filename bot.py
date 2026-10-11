@@ -8811,16 +8811,32 @@ def mini_app_listings():
     # Combined free-text search + advanced filters for real estate and auto
     # are executed in PostgreSQL. This avoids the legacy 10,000-row Python scan
     # while leaving the already-working standalone search/filter paths unchanged.
-    has_combined_advanced_search = bool(q) and (
-        (category == "realestate" and any(
-            str(request.args.get(name, "")).strip()
-            for name in ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area", "district")
-        ))
-        or (category == "auto" and any(
-            str(request.args.get(name, "")).strip()
-            for name in ("deal", "sub", "make", "model", "min_price", "max_price",
-                         "min_year", "max_year", "min_mileage", "max_mileage")
-        ))
+    # Use the combined PostgreSQL RPC whenever it can replace a Python-side
+    # candidate scan: text + advanced filters, real-estate district filtering,
+    # and auto subcategory filtering. The RPC supports an empty p_query, so
+    # these cases can be paginated in PostgreSQL even without free-text input.
+    has_combined_advanced_search = (
+        (
+            category == "realestate"
+            and (
+                (bool(q) and any(
+                    str(request.args.get(name, "")).strip()
+                    for name in ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area", "district")
+                ))
+                or bool(str(request.args.get("district", "")).strip())
+            )
+        )
+        or (
+            category == "auto"
+            and (
+                (bool(q) and any(
+                    str(request.args.get(name, "")).strip()
+                    for name in ("deal", "sub", "make", "model", "min_price", "max_price",
+                                 "min_year", "max_year", "min_mileage", "max_mileage")
+                ))
+                or bool(str(request.args.get("sub", "")).strip())
+            )
+        )
     )
 
     def _combined_rpc_num(name):
