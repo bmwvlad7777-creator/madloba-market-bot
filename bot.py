@@ -595,6 +595,8 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
     metadata = dict(data)
     metadata.pop("_telegram_id", None)
     metadata["legacy_id"] = data.get("id")
+    # address/district remains the exact street or landmark; district_key is a separate stable filter key.
+    metadata["district_key"] = str(data.get("district_key") or "").strip().lower() or None
 
     payload = {
         "user_id": user_id,
@@ -1810,13 +1812,68 @@ def currency_menu():
     ]
 
 
+# Стабильные ключи районов совпадают с фильтром Mini App.
+REAL_ESTATE_DISTRICTS = (
+    ("old_batumi", "Старый Батуми"),
+    ("new_boulevard", "Новый Бульвар"),
+    ("khimshiashvili", "Химшиашвили"),
+    ("bagrationi", "Багратиони"),
+    ("angisa", "Ангиса"),
+    ("airport", "Аэропорт"),
+    ("gonio", "Гонио"),
+    ("kvariati", "Квариати"),
+    ("makhinjauri", "Махинджаури"),
+    ("vake", "Ваке"),
+    ("saburtalo", "Сабуртало"),
+    ("vera", "Вера"),
+    ("mtatsminda", "Мтацминда"),
+    ("didube", "Дидубе"),
+    ("gldani", "Глдани"),
+    ("isani", "Исани"),
+    ("samgori", "Самгори"),
+    ("dighomi", "Дигоми"),
+)
+REAL_ESTATE_DISTRICT_LABELS = dict(REAL_ESTATE_DISTRICTS)
+BATUMI_DISTRICTS = tuple(item for item in REAL_ESTATE_DISTRICTS if item[0] not in {
+    "vake", "saburtalo", "vera", "mtatsminda", "didube", "gldani", "isani", "samgori", "dighomi"
+})
+TBILISI_DISTRICTS = tuple(item for item in REAL_ESTATE_DISTRICTS if item[0] in {
+    "vake", "saburtalo", "vera", "mtatsminda", "didube", "gldani", "isani", "samgori", "dighomi"
+})
+
+def realestate_districts_for_data(data):
+    city = str((data or {}).get("city_slug") or "batumi").strip().lower()
+    return TBILISI_DISTRICTS if city in {"tbilisi", "თბილისი"} else BATUMI_DISTRICTS
+
+def realestate_district_keyboard(data=None):
+    districts = realestate_districts_for_data(data or {})
+    rows = []
+    for index in range(0, len(districts), 2):
+        row = []
+        for key, label in districts[index:index + 2]:
+            row.append({"text": label, "callback_data": f"district_pick_{key}"})
+        rows.append(row)
+    rows.append([{"text": "⏭ Не указывать район", "callback_data": "district_pick_none"}])
+    return rows
+
+
+def ask_realestate_district(chat_id, editing=False):
+    listing_data = states.get(chat_id, {}).get("data", {})
+    ask(
+        chat_id,
+        "edit_district_key" if editing else "district_key",
+        "<b>🗺 Район</b>\n\nВыберите район отдельно от улицы и номера дома.",
+        realestate_district_keyboard(listing_data),
+    )
+
+
 # ============================================================
 # МЕНЮ РЕДАКТИРОВАНИЯ
 # ============================================================
 
-def edit_menu():
+def edit_menu(data=None):
 
-    return [
+    keyboard = [
 
         [
 
@@ -1906,6 +1963,10 @@ def edit_menu():
         ]
     ]
 
+    if isinstance(data, dict) and data.get("category_key") == "realestate":
+        keyboard.insert(1, [{"text": "🗺 Район", "callback_data": "edit_area"}])
+    return keyboard
+
 
 # ============================================================
 # ПУСТОЕ ОБЪЯВЛЕНИЕ
@@ -1949,6 +2010,9 @@ def blank_listing():
             "",
 
         "district":
+            "",
+
+        "district_key":
             "",
 
         "description":
@@ -2172,9 +2236,9 @@ def ask_district(
 
         "district",
 
-        "<b>📍 Локация</b>\n\n"
-        "Укажите район или ориентир в Батуми.\n\n"
-        "<i>Например: Пиросмани 18а</i>"
+        "<b>📍 Адрес</b>\n\n"
+        "Укажите улицу, номер дома или точный ориентир.\n\n"
+        "<i>Например: Пиросмани 18А</i>"
     )
 
 
@@ -2681,6 +2745,11 @@ def build_listing(
             f"{esc(data['district'])}"
             f"</b>"
         )
+
+    district_key = str(data.get("district_key") or "").strip().lower()
+    district_label = REAL_ESTATE_DISTRICT_LABELS.get(district_key)
+    if district_label:
+        lines.append(f"🗺 Район: <b>{esc(district_label)}</b>")
 
 
     # ========================================================
@@ -4086,9 +4155,10 @@ def process_text(
 
         if step == "district":
 
-            ask_description(
-                chat_id
-            )
+            if data.get("category_key") == "realestate":
+                ask_realestate_district(chat_id)
+            else:
+                ask_description(chat_id)
 
         else:
 
@@ -4569,6 +4639,31 @@ def handle(
         "from"
     ]["id"]
 
+
+    # ========================================================
+    # ВЫБОР РАЙОНА НЕДВИЖИМОСТИ
+    # ========================================================
+
+    if data.startswith("district_pick_"):
+        if chat_id not in states or not isinstance(states[chat_id].get("data"), dict):
+            answer(callback["id"], "Сессия объявления завершена. Начните заново.", True)
+            return
+        listing_data = states[chat_id]["data"]
+        if listing_data.get("category_key") != "realestate":
+            answer(callback["id"], "Выбор района доступен для недвижимости.", True)
+            return
+        selected_key = data[len("district_pick_"):]
+        allowed_districts = dict(realestate_districts_for_data(listing_data))
+        if selected_key != "none" and selected_key not in allowed_districts:
+            answer(callback["id"], "Этот район не относится к выбранному городу.", True)
+            return
+        listing_data["district_key"] = "" if selected_key == "none" else selected_key
+        answer(callback["id"], "Район сохранён.")
+        if states[chat_id].get("step") == "edit_district_key":
+            preview(chat_id)
+        else:
+            ask_description(chat_id)
+        return
 
     # ========================================================
     # МОДЕРАЦИЯ
@@ -5294,7 +5389,7 @@ def handle(
                 "✏️ Что хотите изменить?"
                 "</b>",
 
-                edit_menu()
+                edit_menu(states[chat_id]["data"])
             )
 
 
@@ -5304,6 +5399,17 @@ def handle(
     # ========================================================
     # ХАРАКТЕРИСТИКИ
     # ========================================================
+
+    if data == "edit_area":
+        if chat_id not in states:
+            answer(callback["id"], "Сессия объявления завершена.", True)
+            return
+        if states[chat_id]["data"].get("category_key") != "realestate":
+            answer(callback["id"], "Выбор района доступен для недвижимости.", True)
+            return
+        answer(callback["id"])
+        ask_realestate_district(chat_id, editing=True)
+        return
 
     if data == "edit_details":
 
@@ -7648,7 +7754,7 @@ async function load(reset=true){if(reset){state.page=0;$('list').innerHTML=''}co
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const republish=st==='archived'?`<button class="mine-action primary" data-action="republish">📣 ${t('republish')}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
-async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ ${t('edit')}</div><div class="edit-field"><label>${t('description')}</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>${t('price')}</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>${t('currency')}</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>${t('address')}</label><input id="editAddress" value="${esc(x.address||'')}"></div><div class="edit-field"><label>${t('phone')}</label><input id="editPhone" inputmode="tel" value="${esc(x.phone||'')}"></div><div class="edit-field"><label>${t('whatsapp')}</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>${t('telegram')}</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">${t('cancel')}</button><button class="edit-save" id="editSave">${t('save')}</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value};$('editSave').disabled=true;$('editSave').textContent=t('loading');try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.detail||er.error||'save_failed')}toast(t('save_ok'));await loadMine()}catch(e){toast(e.message && e.message!=='save_failed'?e.message:t('save_fail'));$('editSave').disabled=false;$('editSave').textContent=t('save')}}}catch(e){toast(t('edit_fail'))}}
+async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();const districtChoices=(String(x.city_slug||'batumi').toLowerCase()==='tbilisi'?[['vake','Ваке'],['saburtalo','Сабуртало'],['vera','Вера'],['mtatsminda','Мтацминда'],['didube','Дидубе'],['gldani','Глдани'],['isani','Исани'],['samgori','Самгори'],['dighomi','Дигоми']]:[['old_batumi','Старый Батуми'],['new_boulevard','Новый Бульвар'],['khimshiashvili','Химшиашвили'],['bagrationi','Багратиони'],['angisa','Ангиса'],['airport','Аэропорт'],['gonio','Гонио'],['kvariati','Квариати'],['makhinjauri','Махинджаури']]);showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ ${t('edit')}</div><div class="edit-field"><label>${t('description')}</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>${t('price')}</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>${t('currency')}</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>${t('address')}</label><input id="editAddress" value="${esc(x.address||'')}"></div>${x.category_key==='realestate'?`<div class="edit-field"><label>${t('district')}</label><select id="editDistrictKey"><option value="">Не указывать район</option>${districtChoices.map(([v,l])=>`<option value="${v}" ${String(x.district_key||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>`:''}<div class="edit-field"><label>${t('phone')}</label><input id="editPhone" inputmode="tel" value="${esc(x.phone||'')}"></div><div class="edit-field"><label>${t('whatsapp')}</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>${t('telegram')}</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">${t('cancel')}</button><button class="edit-save" id="editSave">${t('save')}</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value,...(document.getElementById('editDistrictKey')?{district_key:$('editDistrictKey').value}:{})};$('editSave').disabled=true;$('editSave').textContent=t('loading');try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.detail||er.error||'save_failed')}toast(t('save_ok'));await loadMine()}catch(e){toast(e.message && e.message!=='save_failed'?e.message:t('save_fail'));$('editSave').disabled=false;$('editSave').textContent=t('save')}}}catch(e){toast(t('edit_fail'))}}
 async function unpublishMine(id){if(!confirm(t('hide_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST'});if(!r.ok)throw 0;toast(t('hide_ok'));await loadMine()}catch(e){toast(t('hide_fail'))}}
 async function republishMine(id){if(!confirm(t('republish_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/republish',{method:'POST'});if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}toast(t('republish_ok'));await loadMine()}catch(e){toast(e.message==='channel_publish_failed'?t('channel_fail'):t('republish_fail'))}}
 async function deleteMine(id){if(!confirm(t('delete_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'DELETE'});if(!r.ok)throw 0;toast(t('delete_ok'));await loadMine()}catch(e){toast(t('delete_fail'))}}
@@ -8111,6 +8217,8 @@ def mini_app_my_listing(listing_id):
     item["price"] = str(row.get("price")) if row.get("price") is not None else item.get("price", "")
     item["currency"] = row.get("currency") or item.get("currency", "")
     item["address"] = row.get("address") or item.get("district", "")
+    row_metadata_for_district = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    item["district_key"] = str(row_metadata_for_district.get("district_key") or "")
     item["phone"] = row.get("phone") or ""
     # WhatsApp/Telegram в Supabase могут быть boolean-полями.
     # Для Mini App берём пользовательские контакты из metadata,
@@ -8152,6 +8260,12 @@ def mini_app_update_listing(listing_id):
     metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
     metadata["description"] = description
     metadata["district"] = address
+    if "district_key" in payload:
+        district_key = str(payload.get("district_key") or "").strip().lower()
+        valid_district_keys = {key for key, _label in realestate_districts_for_data(metadata)}
+        if district_key and district_key not in valid_district_keys:
+            return jsonify({"error":"invalid_district"}), 400
+        metadata["district_key"] = district_key or None
     metadata["contact"] = phone
     metadata["whatsapp"] = whatsapp
     metadata["telegram"] = telegram
@@ -9041,9 +9155,27 @@ def mini_app_listings():
             # Район / адрес
             selected_district = str(request.args.get("district", "")).strip().lower()
             if selected_district:
-                address_text = str(row.get("address", "") or "").lower()
-                if selected_district not in address_text:
-                    continue
+                saved_district_key = str(meta.get("district_key") or "").strip().lower()
+                if saved_district_key:
+                    if saved_district_key != selected_district:
+                        continue
+                else:
+                    # Backward compatibility only for old records without a saved key.
+                    address_text = str(row.get("address", "") or "").casefold()
+                    legacy_labels = {
+                        "old_batumi": ("старый батуми", "old batumi"),
+                        "new_boulevard": ("новый бульвар", "new boulevard"),
+                        "khimshiashvili": ("химшиашвили", "khimshiashvili"),
+                        "bagrationi": ("багратиони", "bagrationi"),
+                        "angisa": ("ангиса", "angisa"),
+                        "airport": ("аэропорт", "airport"),
+                        "gonio": ("гонио", "gonio"),
+                        "kvariati": ("квариати", "kvariati"),
+                        "makhinjauri": ("махинджаури", "makhinjauri"),
+                    }
+                    labels = legacy_labels.get(selected_district, (selected_district,))
+                    if not any(label in address_text for label in labels):
+                        continue
 
             if selected_deal and selected_deal in {"rent", "seek", "sell", "buy"}:
                 if str(meta.get("type_key", "")).strip().lower() != selected_deal:
