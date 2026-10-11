@@ -8765,6 +8765,47 @@ def mini_app_listings():
             return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"realestate_filter_unavailable"}), 503
         has_next = len(filtered_rows) > per_page
         rows = filtered_rows[:per_page]
+    elif has_auto_filters and not q and not str(request.args.get("sub", "")).strip():
+        # Use the database RPC for automotive attributes, sorting and pagination.
+        # Keep the established Python path when free-text search or subcategory
+        # is active because the RPC does not accept those parameters.
+        def _auto_rpc_num(name):
+            raw = str(request.args.get(name, "")).strip().lower()
+            if not raw:
+                return None
+            raw = raw.replace(",", ".").replace("km", "").replace("км", "").strip()
+            try:
+                value = float(raw)
+                import math
+                return value if math.isfinite(value) and value >= 0 else None
+            except (TypeError, ValueError):
+                return None
+
+        offset = page * per_page
+        auto_rows = supabase_request(
+            "POST",
+            "rpc/mm_filter_auto_listings",
+            payload={
+                "p_city_id": int(city_id),
+                "p_category_id": int(category_id),
+                "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
+                "p_make": str(request.args.get("make", "")).strip() or None,
+                "p_model": str(request.args.get("model", "")).strip() or None,
+                "p_min_price": _auto_rpc_num("min_price"),
+                "p_max_price": _auto_rpc_num("max_price"),
+                "p_min_year": _auto_rpc_num("min_year"),
+                "p_max_year": _auto_rpc_num("max_year"),
+                "p_min_mileage": _auto_rpc_num("min_mileage"),
+                "p_max_mileage": _auto_rpc_num("max_mileage"),
+                "p_sort": sort_mode,
+                "p_offset": offset,
+                "p_limit": per_page + 1,
+            },
+        )
+        if auto_rows is None:
+            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"auto_filter_unavailable"}), 503
+        has_next = len(auto_rows) > per_page
+        rows = auto_rows[:per_page]
     elif has_python_filters:
         rows = _fetch_listing_candidates(params)
         if rows is None:
