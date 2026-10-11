@@ -7687,57 +7687,79 @@ def _admin_stats_payload(period_days=7):
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     period_start = (now - timedelta(days=period_days - 1)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    events = supabase_request("GET", "mm_analytics_events", params={
-        "select":"event_type,telegram_id,listing_id,created_at", "created_at":f"gte.{period_start}", "limit":"100000"
-    })
-    if isinstance(events, list):
+    # Prefer database-side aggregation. Fall back to the previous implementation
+    # only if the RPC is unavailable, so the admin panel remains usable during rollout.
+    analytics_result = supabase_request(
+        "POST", "rpc/mm_admin_analytics_stats",
+        payload={"p_period_days": period_days},
+    )
+    if isinstance(analytics_result, list) and analytics_result and isinstance(analytics_result[0], dict):
+        analytics_result = analytics_result[0]
+    if isinstance(analytics_result, dict) and analytics_result.get("analytics_available"):
         stats["analytics_available"] = True
-        visitors = set()
-        top_counts = {}
-        daily = {}
-        for offset in range(period_days - 1, -1, -1):
-            day = (now - timedelta(days=offset)).date().isoformat()
-            daily[day] = {"date": day, "opens": 0, "views": 0}
-        for event in events:
-            created = str(event.get("created_at", ""))
-            kind = event.get("event_type")
-            try:
-                event_day = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(timezone.utc).date().isoformat()
-            except (TypeError, ValueError):
-                event_day = ""
-            if kind == "app_open":
-                stats["opens_period"] += 1
-                visitors.add(str(event.get("telegram_id", "")))
-                if created >= today:
-                    stats["opens_today"] += 1
-                if event_day in daily:
-                    daily[event_day]["opens"] += 1
-            elif kind == "listing_view":
-                stats["listing_views_period"] += 1
-                listing_id = event.get("listing_id")
-                if listing_id is not None:
-                    key = str(listing_id)
-                    top_counts[key] = top_counts.get(key, 0) + 1
-                if created >= today:
-                    stats["listing_views_today"] += 1
-                if event_day in daily:
-                    daily[event_day]["views"] += 1
-        stats["opens_7d"] = stats["opens_period"] if period_days == 7 else stats["opens_period"]
-        stats["unique_visitors_period"] = len(visitors)
-        stats["unique_visitors_7d"] = len(visitors) if period_days == 7 else len(visitors)
-        stats["listing_views_7d"] = stats["listing_views_period"] if period_days == 7 else stats["listing_views_period"]
-        stats["activity_by_day"] = list(daily.values())
-        if top_counts:
-            top_ids = sorted(top_counts, key=top_counts.get, reverse=True)[:10]
-            try:
-                top_rows = supabase_request("GET", "listings", params={
-                    "select":"id,title,status,price,currency", "id":f"in.({','.join(top_ids)})", "limit":"10"
-                })
-                if isinstance(top_rows, list):
-                    by_id = {str(row.get("id")): row for row in top_rows}
-                    stats["top_listings"] = [dict(by_id.get(key, {"id": key, "title": "Объявление"}), views=top_counts[key]) for key in top_ids]
-            except Exception as error:
-                print("MADLOBA TOP LISTINGS ERROR:", repr(error))
+        for key in (
+            "opens_today", "opens_7d", "unique_visitors_7d",
+            "listing_views_today", "listing_views_7d", "period_days",
+            "opens_period", "unique_visitors_period", "listing_views_period",
+            "activity_by_day", "top_listings",
+        ):
+            if key in analytics_result:
+                stats[key] = analytics_result[key]
+    else:
+        # Compatibility fallback for deployments where the SQL function has not
+        # yet been applied or is temporarily unavailable.
+        events = supabase_request("GET", "mm_analytics_events", params={
+            "select":"event_type,telegram_id,listing_id,created_at", "created_at":f"gte.{period_start}", "limit":"100000"
+        })
+        if isinstance(events, list):
+            stats["analytics_available"] = True
+            visitors = set()
+            top_counts = {}
+            daily = {}
+            for offset in range(period_days - 1, -1, -1):
+                day = (now - timedelta(days=offset)).date().isoformat()
+                daily[day] = {"date": day, "opens": 0, "views": 0}
+            for event in events:
+                created = str(event.get("created_at", ""))
+                kind = event.get("event_type")
+                try:
+                    event_day = datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(timezone.utc).date().isoformat()
+                except (TypeError, ValueError):
+                    event_day = ""
+                if kind == "app_open":
+                    stats["opens_period"] += 1
+                    if event.get("telegram_id") is not None:
+                        visitors.add(str(event.get("telegram_id")))
+                    if created >= today:
+                        stats["opens_today"] += 1
+                    if event_day in daily:
+                        daily[event_day]["opens"] += 1
+                elif kind == "listing_view":
+                    stats["listing_views_period"] += 1
+                    listing_id = event.get("listing_id")
+                    if listing_id is not None:
+                        key = str(listing_id)
+                        top_counts[key] = top_counts.get(key, 0) + 1
+                    if created >= today:
+                        stats["listing_views_today"] += 1
+                    if event_day in daily:
+                        daily[event_day]["views"] += 1
+            stats["opens_7d"] = stats["opens_period"]
+            stats["unique_visitors_period"] = len(visitors)
+            stats["unique_visitors_7d"] = len(visitors)
+            stats["listing_views_7d"] = stats["listing_views_period"]
+            stats["activity_by_day"] = list(daily.values())
+            if top_counts:
+                top_ids = sorted(top_counts, key=top_counts.get, reverse=True)[:10]
+                try:
+                    top_rows = supabase_request("GET", "listings", params={
+                        "select":"id,title,status,price,currency", "id":f"in.({','.join(top_ids)})", "limit":"10"
+                    })
+                    if isinstance(top_rows, list):
+                        by_id = {str(row.get("id")): row for row in top_rows}
+                        stats["top_listings"] = [dict(by_id.get(key, {"id": key, "title": "Объявление"}), views=top_counts[key]) for key in top_ids]
+                except Exception as error:
+                    print("MADLOBA TOP LISTINGS ERROR:", repr(error))
     orders = supabase_request("GET", "mm_orders", params={"select":"id,status", "limit":"100000"})
     if isinstance(orders, list):
         stats["orders_available"] = True
