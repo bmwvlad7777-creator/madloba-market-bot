@@ -10,6 +10,8 @@ import urllib.parse
 import re
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from flask import Flask, request, Response, jsonify
 
@@ -50,6 +52,29 @@ MAX_PHOTOS = 8
 
 
 app = Flask(__name__)
+
+# Reuse outbound HTTP connections instead of opening a new TCP/TLS connection
+# for every Supabase/Telegram request. Automatic retries are restricted to
+# idempotent methods so publishing or modifying listings is never duplicated.
+HTTP_SESSION = requests.Session()
+_HTTP_RETRY = Retry(
+    total=2,
+    connect=2,
+    read=1,
+    status=2,
+    backoff_factor=0.35,
+    status_forcelist=(429, 500, 502, 503, 504),
+    allowed_methods=frozenset({"GET", "HEAD", "OPTIONS"}),
+    respect_retry_after_header=True,
+)
+_HTTP_ADAPTER = HTTPAdapter(
+    pool_connections=32,
+    pool_maxsize=64,
+    max_retries=_HTTP_RETRY,
+    pool_block=False,
+)
+HTTP_SESSION.mount("https://", _HTTP_ADAPTER)
+HTTP_SESSION.mount("http://", _HTTP_ADAPTER)
 
 # Временные данные пользователей.
 # Для первой версии этого достаточно.
@@ -117,13 +142,13 @@ def supabase_request(method, path, params=None, payload=None):
         headers["Prefer"] = "return=representation"
 
     try:
-        response = requests.request(
+        response = HTTP_SESSION.request(
             method.upper(),
             url,
             headers=headers,
             params=params or {},
             json=payload,
-            timeout=25,
+            timeout=(5, 20),
         )
         if not response.ok:
             global LAST_SUPABASE_ERROR
