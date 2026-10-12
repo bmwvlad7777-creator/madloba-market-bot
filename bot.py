@@ -4,6 +4,8 @@ import os
 import html
 import json
 import time
+import threading
+from datetime import datetime, timezone, timedelta
 import hmac
 import hashlib
 import urllib.parse
@@ -121,6 +123,11 @@ LISTINGS_FILE = os.environ.get(
 published_listings = []
 next_listing_id = 1
 LAST_SUPABASE_ERROR = ""
+
+
+def _utc_now_iso():
+    """UTC timestamp for PostgREST expiry filters and listing lifecycle dates."""
+    return datetime.now(timezone.utc).isoformat()
 
 
 def supabase_enabled():
@@ -648,6 +655,9 @@ def _row_to_listing(row):
     item = dict(metadata)
     item["id"] = row.get("id", item.get("id"))
     item["status"] = row.get("status", "published")
+    item["published_at"] = row.get("published_at")
+    item["expires_at"] = row.get("expires_at")
+    item["reminder_sent_at"] = row.get("reminder_sent_at")
     item["channel_message_id"] = row.get("channel_message_id")
     item["channel_post_url"] = row.get("channel_url", "") or ""
 
@@ -687,6 +697,7 @@ def load_supabase_published_listings():
         params={
             "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
             "status": "eq.published",
+            "expires_at": f"gt.{_utc_now_iso()}",
             "order": "created_at.desc",
             "limit": "1",
         },
@@ -759,6 +770,7 @@ def load_supabase_catalog_page(key, sub, page=0, per_page=20):
         params = {
             "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
             "status": "eq.published",
+            "expires_at": f"gt.{_utc_now_iso()}",
             "category_id": f"eq.{category_id}",
             "order": "created_at.desc",
             "offset": str(offset),
@@ -784,6 +796,7 @@ def load_supabase_catalog_page(key, sub, page=0, per_page=20):
             params={
                 "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
                 "status": "eq.published",
+                "expires_at": f"gt.{_utc_now_iso()}",
                 "order": "created_at.desc",
                 "offset": str(offset),
                 "limit": str(per_page + 1),
@@ -808,6 +821,7 @@ def load_supabase_catalog_page(key, sub, page=0, per_page=20):
             params={
                 "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
                 "status": "eq.published",
+                "expires_at": f"gt.{_utc_now_iso()}",
                 "category_id": f"eq.{normal_category_id}",
                 "order": "created_at.desc",
                 "offset": "0",
@@ -822,6 +836,7 @@ def load_supabase_catalog_page(key, sub, page=0, per_page=20):
             params={
                 "select": "id,status,channel_message_id,channel_url,description,currency,price,address,metadata,created_at",
                 "status": "eq.published",
+                "expires_at": f"gt.{_utc_now_iso()}",
                 "category_id": f"eq.{wanted_category_id}",
                 "metadata->>subcategory_key": f"eq.{sub}",
                 "order": "created_at.desc",
@@ -891,6 +906,9 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
         "phone": data.get("contact", "") or "",
         "address": data.get("district", "") or "",
         "status": "published",
+        "published_at": _utc_now_iso(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=10)).isoformat(),
+        "reminder_sent_at": None,
         "channel_message_id": message_id,
         "channel_url": channel_url,
         "metadata": metadata,
@@ -8076,9 +8094,9 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 <script>
 const tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#0b73f6');tg.setBackgroundColor('#f5f7fb')}catch(e){}}
 const I18N={
-ru:{hero_title:'Всё нужное<br><span>рядом</span>',hero_subtitle:'Покупайте, продавайте и находите нужное прямо в Telegram.',search_placeholder:'Что ищете? Например: квартира',all_categories:'← Все категории',categories:'Категории',popular_categories:'Популярные категории',all_categories_short:'Все →',popular_rent:'Квартиры в аренду',popular_auto:'Авто',popular_phones:'Телефоны',popular_home:'Мебель',popular_services:'Услуги',popular_listings:'Популярные',all_categories_section:'Все категории',collapse_categories:'Свернуть ↑',expand_categories:'Все категории ↓',more_categories:'Ещё',best_listings:'Лучшие объявления',all_short:'Все →',fresh_listings:'Свежие объявления',new_label:'новые',show_more:'Показать ещё',sort_new:'Сначала новые',sort_price_asc:'Цена: дешевле',sort_price_desc:'Цена: дороже',back:'← Назад',listing:'Объявление',favorites:'Избранное',my_listings:'Мои объявления',profile:'Профиль',home:'Главная',post:'Разместить',mine_short:'Мои',language:'Язык',filters:'Фильтры',deal:'Сделка',category_sub:'Подкатегория',condition:'Состояние',property_type:'Тип',price_from:'Цена от',price_to:'Цена до',rooms:'Комнаты',district:'Район',district_placeholder:'Например: Новый Бульвар',area_from:'Площадь от, м²',area_to:'Площадь до, м²',auto_make:'Марка',auto_model:'Модель',year_from:'Год от',year_to:'Год до',mileage_from:'Пробег от, км',mileage_to:'Пробег до, км',auto_make_placeholder:'Например: Toyota',auto_model_placeholder:'Например: Camry',auto_select_make:'Выберите марку',auto_select_model:'Сначала выберите марку',apply:'Применить',reset:'Сбросить',all:'Все',rent:'Сдам',seek:'Сниму',sell:'Продам',buy:'Куплю',empty_list:'Пока нет объявлений.<br>Попробуйте другую категорию или город.',photo_missing:'Фото не добавлено',favorite_add:'Добавить в избранное',favorite_remove:'Убрать из избранного',open:'Открыть',edit:'Редактировать',hide:'Снять',republish:'Вернуть в публикацию',delete:'Удалить',published:'Опубликовано',pending:'На модерации',rejected:'Отклонено',draft:'Черновик',archived:'Снято с публикации',save:'Сохранить',cancel:'Отмена',description:'Описание',price:'Цена',currency:'Валюта',address:'Адрес / район',phone:'Телефон',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'Объявление сохранено',save_fail:'Не удалось сохранить',login_telegram:'Откройте MADLOBA MARKET из Telegram',fav_added:'Добавлено в избранное',fav_removed:'Убрано из избранного',favorite_fail:'Не удалось изменить избранное',fav_empty_title:'Здесь пока пусто',fav_empty_text:'Нажимайте ♡ на понравившихся объявлениях.',fav_telegram:'Избранное доступно из Telegram',fav_telegram_text:'Откройте MADLOBA MARKET через Telegram.',loading:'Загружаем…',my_loading:'Загружаем ваши объявления…',my_empty:'У вас пока нет объявлений.',post_hint:'Разместите первое объявление через кнопку «Разместить».',profile_telegram:'Профиль доступен при запуске Mini App из Telegram.',profile_fail:'Не удалось загрузить профиль.',user:'Пользователь',status:'Статус',telegram_user:'Telegram-пользователь',status_user:'Пользователь MADLOBA MARKET',city:'Город',telegram_id:'Telegram ID',search_again:'Не удалось загрузить объявления.<br>Попробуйте ещё раз.',favorites_fail:'Не удалось загрузить избранное. Попробуйте ещё раз.',my_fail:'Не удалось загрузить ваши объявления. Попробуйте ещё раз.',open_fail:'Не удалось открыть объявление',edit_fail:'Не удалось открыть редактирование',hide_confirm:'Снять объявление с публикации? Оно исчезнет из каталога.',republish_confirm:'Вернуть объявление в публикацию? Оно снова появится в каталоге и будет опубликовано в канале.',delete_confirm:'Удалить объявление без возможности восстановления?',hide_ok:'Объявление снято с публикации',hide_fail:'Не удалось снять объявление',republish_ok:'Объявление снова опубликовано',republish_fail:'Не удалось вернуть объявление в публикацию',delete_ok:'Объявление удалено',delete_fail:'Не удалось удалить объявление',channel_fail:'Не удалось опубликовать в канале',placing:'Размещение откроется через бота',city_changed:'Город: ',no_listing:'Объявление',spec_rooms:'Комнаты',spec_area:'Площадь',spec_floor:'Этаж',spec_make_model:'Марка и модель',spec_year:'Год',spec_mileage:'Пробег',spec_brand_model:'Модель',spec_condition:'Состояние',spec_warranty:'Гарантия',spec_dimensions:'Размеры',spec_age:'Возраст',spec_breed:'Порода',spec_gender:'Пол',spec_service:'Услуга',spec_experience:'Опыт',spec_requirements:'Что ищете',category_services:'Услуги',category_pets:'Животные',desc_services:'Красота, ремонт, мастера',desc_pets:'Питомцы и товары для животных',category_realestate:'Недвижимость',category_auto:'Авто',category_tech:'Техника',category_home:'Дом и мебель',category_kids:'Детское',category_work:'Работа',category_give:'Отдам',category_search:'Ищу',desc_realestate:'Квартиры, дома, аренда',desc_auto:'Машины, мото, запчасти',desc_tech:'Телефоны, электроника',desc_home:'Мебель и всё для дома',desc_kids:'Детские товары',desc_work:'Вакансии и подработка',desc_give:'Бесплатно',desc_search:'Нужные вещи и услуги',contact_call:'📞 Позвонить',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 Открыть в канале'},
-en:{hero_title:'Everything you need<br><span>nearby</span>',hero_subtitle:'Buy, sell and find what you need right in Telegram.',search_placeholder:'What are you looking for? e.g. apartment',all_categories:'← All categories',categories:'Categories',popular_categories:'Popular categories',all_categories_short:'All →',popular_rent:'Apartments for rent',popular_auto:'Cars',popular_phones:'Phones',popular_home:'Furniture',popular_services:'Services',popular_listings:'Popular listings',all_categories_section:'All categories',collapse_categories:'Show less ↑',expand_categories:'All categories ↓',more_categories:'More',best_listings:'Best listings',all_short:'All →',fresh_listings:'Fresh listings',new_label:'NEW',show_more:'Show more',sort_new:'Newest first',sort_price_asc:'Price: low to high',sort_price_desc:'Price: high to low',back:'← Back',listing:'Listing',favorites:'Favorites',my_listings:'My listings',profile:'Profile',home:'Home',post:'Post',mine_short:'My listings',language:'Language',filters:'Filters',deal:'Deal',category_sub:'Subcategory',condition:'Condition',property_type:'Type',price_from:'Price from',price_to:'Price to',rooms:'Rooms',district:'District',district_placeholder:'e.g. New Boulevard',area_from:'Area from, m²',area_to:'Area to, m²',auto_make:'Make',auto_model:'Model',year_from:'Year from',year_to:'Year to',mileage_from:'Mileage from, km',mileage_to:'Mileage to, km',auto_make_placeholder:'e.g. Toyota',auto_model_placeholder:'e.g. Camry',auto_select_make:'Select make',auto_select_model:'Select a make first',apply:'Apply',reset:'Reset',all:'All',rent:'Rent out',seek:'Rent',sell:'Sell',buy:'Buy',empty_list:'No listings yet.<br>Try another category or city.',photo_missing:'No photo added',favorite_add:'Add to favorites',favorite_remove:'Remove from favorites',open:'Open',edit:'Edit',hide:'Unpublish',republish:'Republish',delete:'Delete',published:'Published',pending:'Pending moderation',rejected:'Rejected',draft:'Draft',archived:'Unpublished',save:'Save',cancel:'Cancel',description:'Description',price:'Price',currency:'Currency',address:'Address / area',phone:'Phone',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'Listing saved',save_fail:'Could not save',login_telegram:'Open MADLOBA MARKET from Telegram',fav_added:'Added to favorites',fav_removed:'Removed from favorites',favorite_fail:'Could not change favorites',fav_empty_title:'Nothing here yet',fav_empty_text:'Tap ♡ on listings you like.',fav_telegram:'Favorites are available in Telegram',fav_telegram_text:'Open MADLOBA MARKET through Telegram.',loading:'Loading…',my_loading:'Loading your listings…',my_empty:'You have no listings yet.',post_hint:'Post your first listing using the “Post” button.',profile_telegram:'Profile is available when the Mini App is opened from Telegram.',profile_fail:'Could not load profile.',user:'User',status:'Status',telegram_user:'Telegram user',status_user:'MADLOBA MARKET user',city:'City',telegram_id:'Telegram ID',search_again:'Could not load listings.<br>Try again.',favorites_fail:'Could not load favorites. Try again.',my_fail:'Could not load your listings. Try again.',open_fail:'Could not open listing',edit_fail:'Could not open editing',hide_confirm:'Unpublish this listing? It will disappear from the catalog.',republish_confirm:'Republish this listing? It will appear in the catalog again and be published to the channel.',delete_confirm:'Delete this listing permanently?',hide_ok:'Listing unpublished',hide_fail:'Could not unpublish listing',republish_ok:'Listing republished',republish_fail:'Could not republish listing',delete_ok:'Listing deleted',delete_fail:'Could not delete listing',channel_fail:'Could not publish to the channel',placing:'Posting will open through the bot',city_changed:'City: ',no_listing:'Listing',spec_rooms:'Rooms',spec_area:'Area',spec_floor:'Floor',spec_make_model:'Make and model',spec_year:'Year',spec_mileage:'Mileage',spec_brand_model:'Model',spec_condition:'Condition',spec_warranty:'Warranty',spec_dimensions:'Dimensions',spec_age:'Age',spec_breed:'Breed',spec_gender:'Sex',spec_service:'Service',spec_experience:'Experience',spec_requirements:'What are you looking for',category_services:'Services',category_pets:'Pets',desc_services:'Beauty, repairs, local experts',desc_pets:'Pets and pet supplies',category_realestate:'Real estate',category_auto:'Cars',category_tech:'Electronics',category_home:'Home & furniture',category_kids:'Kids',category_work:'Jobs',category_give:'Free',category_search:'Wanted',desc_realestate:'Apartments, houses, rentals',desc_auto:'Cars, motorcycles, parts',desc_tech:'Phones, electronics',desc_home:'Furniture and home goods',desc_kids:'Kids products',desc_work:'Jobs and part-time work',desc_give:'Free items',desc_search:'Wanted items and services',contact_call:'📞 Call',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 Open in channel'},
-ka:{hero_title:'ყველაფერი საჭირო<br><span>ახლოსაა</span>',hero_subtitle:'იყიდეთ, გაყიდეთ და იპოვეთ სასურველი პირდაპირ Telegram-ში.',search_placeholder:'რას ეძებთ? მაგალითად: ბინა',all_categories:'← ყველა კატეგორია',categories:'კატეგორიები',popular_categories:'პოპულარული კატეგორიები',all_categories_short:'ყველა →',popular_rent:'ბინები ქირით',popular_auto:'ავტო',popular_phones:'ტელეფონები',popular_home:'ავეჯი',popular_services:'საუკეთესო განცხადებები',popular_listings:'პოპულარული',all_categories_section:'ყველა კატეგორია',collapse_categories:'შეკუმშვა ↑',expand_categories:'ყველა კატეგორია ↓',more_categories:'მეტი',best_listings:'საუკეთესო განცხადებები',all_short:'ყველა →',fresh_listings:'ახალი განცხადებები',new_label:'ახალი',show_more:'მეტის ჩვენება',sort_new:'ჯერ ახალი',sort_price_asc:'ფასი: იაფიდან',sort_price_desc:'ფასი: ძვირიდან',back:'← უკან',listing:'განცხადება',favorites:'რჩეულები',my_listings:'ჩემი განცხადებები',profile:'პროფილი',home:'მთავარი',post:'განთავსება',mine_short:'ჩემი',language:'ენა',filters:'ფილტრები',deal:'გარიგება',category_sub:'ქვეკატეგორია',condition:'მდგომარეობა',property_type:'ტიპი',price_from:'ფასი მინ.',price_to:'ფასი მაქს.',rooms:'ოთახები',district:'რაიონი',district_placeholder:'მაგ. New Boulevard',area_from:'ფართობი მინ., მ²',area_to:'ფართობი მაქს., მ²',auto_make:'მარკა',auto_model:'მოდელი',year_from:'წელი მინ.',year_to:'წელი მაქს.',mileage_from:'გარბენი მინ., კმ',mileage_to:'გარბენი მაქს., კმ',auto_make_placeholder:'მაგ. Toyota',auto_model_placeholder:'მაგ. Camry',auto_select_make:'აირჩიეთ მარკა',auto_select_model:'ჯერ აირჩიეთ მარკა',apply:'გამოყენება',reset:'გასუფთავება',all:'ყველა',rent:'ვაქირავებ',seek:'ვიქირავებ',sell:'ვყიდი',buy:'ვყიდულობ',empty_list:'განცხადებები ჯერ არ არის.<br>სცადეთ სხვა კატეგორია ან ქალაქი.',photo_missing:'ფოტო არ არის დამატებული',favorite_add:'რჩეულებში დამატება',favorite_remove:'რჩეულებიდან წაშლა',open:'გახსნა',edit:'რედაქტირება',hide:'გამოქვეყნების მოხსნა',republish:'ხელახლა გამოქვეყნება',delete:'წაშლა',published:'გამოქვეყნებული',pending:'მოდერაციაზეა',rejected:'უარყოფილი',draft:'დრაფტი',archived:'გამოქვეყნებიდან მოხსნილი',save:'შენახვა',cancel:'გაუქმება',description:'აღწერა',price:'ფასი',currency:'ვალუტა',address:'მისამართი / რაიონი',phone:'ტელეფონი',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'განცხადება შენახულია',save_fail:'შენახვა ვერ მოხერხდა',login_telegram:'გახსენით MADLOBA MARKET Telegram-იდან',fav_added:'დაემატა რჩეულებში',fav_removed:'წაიშალა რჩეულებიდან',favorite_fail:'რჩეულების შეცვლა ვერ მოხერხდა',fav_empty_title:'აქ ჯერ არაფერია',fav_empty_text:'დააჭირეთ ♡ სასურველ განცხადებებზე.',fav_telegram:'რჩეულები ხელმისაწვდომია Telegram-ში',fav_telegram_text:'გახსენით MADLOBA MARKET Telegram-იდან.',loading:'იტვირთება…',my_loading:'თქვენი განცხადებები იტვირთება…',my_empty:'თქვენ ჯერ განცხადებები არ გაქვთ.',post_hint:'პირველი განცხადება დაამატეთ ღილაკით „განთავსება“.',profile_telegram:'პროფილი ხელმისაწვდომია Mini App-ის Telegram-იდან გახსნისას.',profile_fail:'პროფილის ჩატვირთვა ვერ მოხერხდა.',user:'მომხმარებელი',status:'სტატუსი',telegram_user:'Telegram მომხმარებელი',status_user:'MADLOBA MARKET-ის მომხმარებელი',city:'ქალაქი',telegram_id:'Telegram ID',search_again:'განცხადებების ჩატვირთვა ვერ მოხერხდა.<br>სცადეთ ხელახლა.',favorites_fail:'რჩეულების ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.',my_fail:'თქვენი განცხადებების ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.',open_fail:'განცხადების გახსნა ვერ მოხერხდა',edit_fail:'რედაქტირების გახსნა ვერ მოხერხდა',hide_confirm:'მოხსნათ განცხადება გამოქვეყნებიდან? ის კატალოგიდან გაქრება.',republish_confirm:'ხელახლა გამოაქვეყნოთ განცხადება? ის ისევ გამოჩნდება კატალოგში და არხში.',delete_confirm:'წავშალოთ განცხადება სამუდამოდ?',hide_ok:'განცხადება გამოქვეყნებიდან მოიხსნა',hide_fail:'გამოქვეყნებიდან მოხსნა ვერ მოხერხდა',republish_ok:'განცხადება ხელახლა გამოქვეყნდა',republish_fail:'ხელახლა გამოქვეყნება ვერ მოხერხდა',delete_ok:'განცხადება წაიშალა',delete_fail:'განცხადების წაშლა ვერ მოხერხდა',channel_fail:'არხში გამოქვეყნება ვერ მოხერხდა',placing:'განთავსება გაიხსნება ბოტის საშუალებით',city_changed:'ქალაქი: ',no_listing:'განცხადება',spec_rooms:'ოთახები',spec_area:'ფართობი',spec_floor:'სართული',spec_make_model:'მარკა და მოდელი',spec_year:'წელი',spec_mileage:'გარბენი',spec_brand_model:'მოდელი',spec_condition:'მდგომარეობა',spec_warranty:'გარანტია',spec_dimensions:'ზომები',spec_age:'ასაკი',spec_breed:'ჯიში',spec_gender:'სქესი',spec_service:'სერვისი',spec_experience:'გამოცდილება',spec_requirements:'რას ეძებთ',category_services:'სერვისები',category_pets:'ცხოველები',desc_services:'სილამაზე, რემონტი, სპეციალისტები',desc_pets:'შინაური ცხოველები და აქსესუარები',category_realestate:'უძრავი ქონება',category_auto:'ავტო',category_tech:'ტექნიკა',category_home:'სახლი და ავეჯი',category_kids:'ბავშვები',category_work:'სამუშაო',category_give:'გაჩუქება',category_search:'ვეძებ',desc_realestate:'ბინები, სახლები, ქირა',desc_auto:'მანქანები, მოტო, ნაწილები',desc_tech:'ტელეფონები, ელექტრონიკა',desc_home:'ავეჯი და სახლის ნივთები',desc_kids:'ბავშვთა ნივთები',desc_work:'ვაკანსიები და ნახევარ განაკვეთზე სამუშაო',desc_give:'უფასოდ',desc_search:'საჭირო ნივთები და სერვისები',contact_call:'📞 დარეკვა',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 არხში გახსნა'}
+ru:{hero_title:'Всё нужное<br><span>рядом</span>',hero_subtitle:'Покупайте, продавайте и находите нужное прямо в Telegram.',search_placeholder:'Что ищете? Например: квартира',all_categories:'← Все категории',categories:'Категории',popular_categories:'Популярные категории',all_categories_short:'Все →',popular_rent:'Квартиры в аренду',popular_auto:'Авто',popular_phones:'Телефоны',popular_home:'Мебель',popular_services:'Услуги',popular_listings:'Популярные',all_categories_section:'Все категории',collapse_categories:'Свернуть ↑',expand_categories:'Все категории ↓',more_categories:'Ещё',best_listings:'Лучшие объявления',all_short:'Все →',fresh_listings:'Свежие объявления',new_label:'новые',show_more:'Показать ещё',sort_new:'Сначала новые',sort_price_asc:'Цена: дешевле',sort_price_desc:'Цена: дороже',back:'← Назад',listing:'Объявление',favorites:'Избранное',my_listings:'Мои объявления',profile:'Профиль',home:'Главная',post:'Разместить',mine_short:'Мои',language:'Язык',filters:'Фильтры',deal:'Сделка',category_sub:'Подкатегория',condition:'Состояние',property_type:'Тип',price_from:'Цена от',price_to:'Цена до',rooms:'Комнаты',district:'Район',district_placeholder:'Например: Новый Бульвар',area_from:'Площадь от, м²',area_to:'Площадь до, м²',auto_make:'Марка',auto_model:'Модель',year_from:'Год от',year_to:'Год до',mileage_from:'Пробег от, км',mileage_to:'Пробег до, км',auto_make_placeholder:'Например: Toyota',auto_model_placeholder:'Например: Camry',auto_select_make:'Выберите марку',auto_select_model:'Сначала выберите марку',apply:'Применить',reset:'Сбросить',all:'Все',rent:'Сдам',seek:'Сниму',sell:'Продам',buy:'Куплю',empty_list:'Пока нет объявлений.<br>Попробуйте другую категорию или город.',photo_missing:'Фото не добавлено',favorite_add:'Добавить в избранное',favorite_remove:'Убрать из избранного',open:'Открыть',edit:'Редактировать',hide:'Снять',republish:'Вернуть в публикацию',renew_10_days:'Продлить на 10 дней',delete:'Удалить',published:'Опубликовано',pending:'На модерации',rejected:'Отклонено',draft:'Черновик',archived:'Снято с публикации',save:'Сохранить',cancel:'Отмена',description:'Описание',price:'Цена',currency:'Валюта',address:'Адрес / район',phone:'Телефон',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'Объявление сохранено',save_fail:'Не удалось сохранить',login_telegram:'Откройте MADLOBA MARKET из Telegram',fav_added:'Добавлено в избранное',fav_removed:'Убрано из избранного',favorite_fail:'Не удалось изменить избранное',fav_empty_title:'Здесь пока пусто',fav_empty_text:'Нажимайте ♡ на понравившихся объявлениях.',fav_telegram:'Избранное доступно из Telegram',fav_telegram_text:'Откройте MADLOBA MARKET через Telegram.',loading:'Загружаем…',my_loading:'Загружаем ваши объявления…',my_empty:'У вас пока нет объявлений.',post_hint:'Разместите первое объявление через кнопку «Разместить».',profile_telegram:'Профиль доступен при запуске Mini App из Telegram.',profile_fail:'Не удалось загрузить профиль.',user:'Пользователь',status:'Статус',telegram_user:'Telegram-пользователь',status_user:'Пользователь MADLOBA MARKET',city:'Город',telegram_id:'Telegram ID',search_again:'Не удалось загрузить объявления.<br>Попробуйте ещё раз.',favorites_fail:'Не удалось загрузить избранное. Попробуйте ещё раз.',my_fail:'Не удалось загрузить ваши объявления. Попробуйте ещё раз.',open_fail:'Не удалось открыть объявление',edit_fail:'Не удалось открыть редактирование',hide_confirm:'Снять объявление с публикации? Оно исчезнет из каталога.',republish_confirm:'Вернуть объявление в публикацию? Оно снова появится в каталоге и будет опубликовано в канале.',delete_confirm:'Удалить объявление без возможности восстановления?',hide_ok:'Объявление снято с публикации',hide_fail:'Не удалось снять объявление',republish_ok:'Объявление снова опубликовано',republish_fail:'Не удалось вернуть объявление в публикацию',delete_ok:'Объявление удалено',delete_fail:'Не удалось удалить объявление',channel_fail:'Не удалось опубликовать в канале',placing:'Размещение откроется через бота',city_changed:'Город: ',no_listing:'Объявление',spec_rooms:'Комнаты',spec_area:'Площадь',spec_floor:'Этаж',spec_make_model:'Марка и модель',spec_year:'Год',spec_mileage:'Пробег',spec_brand_model:'Модель',spec_condition:'Состояние',spec_warranty:'Гарантия',spec_dimensions:'Размеры',spec_age:'Возраст',spec_breed:'Порода',spec_gender:'Пол',spec_service:'Услуга',spec_experience:'Опыт',spec_requirements:'Что ищете',category_services:'Услуги',category_pets:'Животные',desc_services:'Красота, ремонт, мастера',desc_pets:'Питомцы и товары для животных',category_realestate:'Недвижимость',category_auto:'Авто',category_tech:'Техника',category_home:'Дом и мебель',category_kids:'Детское',category_work:'Работа',category_give:'Отдам',category_search:'Ищу',desc_realestate:'Квартиры, дома, аренда',desc_auto:'Машины, мото, запчасти',desc_tech:'Телефоны, электроника',desc_home:'Мебель и всё для дома',desc_kids:'Детские товары',desc_work:'Вакансии и подработка',desc_give:'Бесплатно',desc_search:'Нужные вещи и услуги',contact_call:'📞 Позвонить',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 Открыть в канале'},
+en:{hero_title:'Everything you need<br><span>nearby</span>',hero_subtitle:'Buy, sell and find what you need right in Telegram.',search_placeholder:'What are you looking for? e.g. apartment',all_categories:'← All categories',categories:'Categories',popular_categories:'Popular categories',all_categories_short:'All →',popular_rent:'Apartments for rent',popular_auto:'Cars',popular_phones:'Phones',popular_home:'Furniture',popular_services:'Services',popular_listings:'Popular listings',all_categories_section:'All categories',collapse_categories:'Show less ↑',expand_categories:'All categories ↓',more_categories:'More',best_listings:'Best listings',all_short:'All →',fresh_listings:'Fresh listings',new_label:'NEW',show_more:'Show more',sort_new:'Newest first',sort_price_asc:'Price: low to high',sort_price_desc:'Price: high to low',back:'← Back',listing:'Listing',favorites:'Favorites',my_listings:'My listings',profile:'Profile',home:'Home',post:'Post',mine_short:'My listings',language:'Language',filters:'Filters',deal:'Deal',category_sub:'Subcategory',condition:'Condition',property_type:'Type',price_from:'Price from',price_to:'Price to',rooms:'Rooms',district:'District',district_placeholder:'e.g. New Boulevard',area_from:'Area from, m²',area_to:'Area to, m²',auto_make:'Make',auto_model:'Model',year_from:'Year from',year_to:'Year to',mileage_from:'Mileage from, km',mileage_to:'Mileage to, km',auto_make_placeholder:'e.g. Toyota',auto_model_placeholder:'e.g. Camry',auto_select_make:'Select make',auto_select_model:'Select a make first',apply:'Apply',reset:'Reset',all:'All',rent:'Rent out',seek:'Rent',sell:'Sell',buy:'Buy',empty_list:'No listings yet.<br>Try another category or city.',photo_missing:'No photo added',favorite_add:'Add to favorites',favorite_remove:'Remove from favorites',open:'Open',edit:'Edit',hide:'Unpublish',republish:'Republish',renew_10_days:'Renew for 10 days',delete:'Delete',published:'Published',pending:'Pending moderation',rejected:'Rejected',draft:'Draft',archived:'Unpublished',save:'Save',cancel:'Cancel',description:'Description',price:'Price',currency:'Currency',address:'Address / area',phone:'Phone',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'Listing saved',save_fail:'Could not save',login_telegram:'Open MADLOBA MARKET from Telegram',fav_added:'Added to favorites',fav_removed:'Removed from favorites',favorite_fail:'Could not change favorites',fav_empty_title:'Nothing here yet',fav_empty_text:'Tap ♡ on listings you like.',fav_telegram:'Favorites are available in Telegram',fav_telegram_text:'Open MADLOBA MARKET through Telegram.',loading:'Loading…',my_loading:'Loading your listings…',my_empty:'You have no listings yet.',post_hint:'Post your first listing using the “Post” button.',profile_telegram:'Profile is available when the Mini App is opened from Telegram.',profile_fail:'Could not load profile.',user:'User',status:'Status',telegram_user:'Telegram user',status_user:'MADLOBA MARKET user',city:'City',telegram_id:'Telegram ID',search_again:'Could not load listings.<br>Try again.',favorites_fail:'Could not load favorites. Try again.',my_fail:'Could not load your listings. Try again.',open_fail:'Could not open listing',edit_fail:'Could not open editing',hide_confirm:'Unpublish this listing? It will disappear from the catalog.',republish_confirm:'Republish this listing? It will appear in the catalog again and be published to the channel.',delete_confirm:'Delete this listing permanently?',hide_ok:'Listing unpublished',hide_fail:'Could not unpublish listing',republish_ok:'Listing republished',republish_fail:'Could not republish listing',delete_ok:'Listing deleted',delete_fail:'Could not delete listing',channel_fail:'Could not publish to the channel',placing:'Posting will open through the bot',city_changed:'City: ',no_listing:'Listing',spec_rooms:'Rooms',spec_area:'Area',spec_floor:'Floor',spec_make_model:'Make and model',spec_year:'Year',spec_mileage:'Mileage',spec_brand_model:'Model',spec_condition:'Condition',spec_warranty:'Warranty',spec_dimensions:'Dimensions',spec_age:'Age',spec_breed:'Breed',spec_gender:'Sex',spec_service:'Service',spec_experience:'Experience',spec_requirements:'What are you looking for',category_services:'Services',category_pets:'Pets',desc_services:'Beauty, repairs, local experts',desc_pets:'Pets and pet supplies',category_realestate:'Real estate',category_auto:'Cars',category_tech:'Electronics',category_home:'Home & furniture',category_kids:'Kids',category_work:'Jobs',category_give:'Free',category_search:'Wanted',desc_realestate:'Apartments, houses, rentals',desc_auto:'Cars, motorcycles, parts',desc_tech:'Phones, electronics',desc_home:'Furniture and home goods',desc_kids:'Kids products',desc_work:'Jobs and part-time work',desc_give:'Free items',desc_search:'Wanted items and services',contact_call:'📞 Call',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 Open in channel'},
+ka:{hero_title:'ყველაფერი საჭირო<br><span>ახლოსაა</span>',hero_subtitle:'იყიდეთ, გაყიდეთ და იპოვეთ სასურველი პირდაპირ Telegram-ში.',search_placeholder:'რას ეძებთ? მაგალითად: ბინა',all_categories:'← ყველა კატეგორია',categories:'კატეგორიები',popular_categories:'პოპულარული კატეგორიები',all_categories_short:'ყველა →',popular_rent:'ბინები ქირით',popular_auto:'ავტო',popular_phones:'ტელეფონები',popular_home:'ავეჯი',popular_services:'საუკეთესო განცხადებები',popular_listings:'პოპულარული',all_categories_section:'ყველა კატეგორია',collapse_categories:'შეკუმშვა ↑',expand_categories:'ყველა კატეგორია ↓',more_categories:'მეტი',best_listings:'საუკეთესო განცხადებები',all_short:'ყველა →',fresh_listings:'ახალი განცხადებები',new_label:'ახალი',show_more:'მეტის ჩვენება',sort_new:'ჯერ ახალი',sort_price_asc:'ფასი: იაფიდან',sort_price_desc:'ფასი: ძვირიდან',back:'← უკან',listing:'განცხადება',favorites:'რჩეულები',my_listings:'ჩემი განცხადებები',profile:'პროფილი',home:'მთავარი',post:'განთავსება',mine_short:'ჩემი',language:'ენა',filters:'ფილტრები',deal:'გარიგება',category_sub:'ქვეკატეგორია',condition:'მდგომარეობა',property_type:'ტიპი',price_from:'ფასი მინ.',price_to:'ფასი მაქს.',rooms:'ოთახები',district:'რაიონი',district_placeholder:'მაგ. New Boulevard',area_from:'ფართობი მინ., მ²',area_to:'ფართობი მაქს., მ²',auto_make:'მარკა',auto_model:'მოდელი',year_from:'წელი მინ.',year_to:'წელი მაქს.',mileage_from:'გარბენი მინ., კმ',mileage_to:'გარბენი მაქს., კმ',auto_make_placeholder:'მაგ. Toyota',auto_model_placeholder:'მაგ. Camry',auto_select_make:'აირჩიეთ მარკა',auto_select_model:'ჯერ აირჩიეთ მარკა',apply:'გამოყენება',reset:'გასუფთავება',all:'ყველა',rent:'ვაქირავებ',seek:'ვიქირავებ',sell:'ვყიდი',buy:'ვყიდულობ',empty_list:'განცხადებები ჯერ არ არის.<br>სცადეთ სხვა კატეგორია ან ქალაქი.',photo_missing:'ფოტო არ არის დამატებული',favorite_add:'რჩეულებში დამატება',favorite_remove:'რჩეულებიდან წაშლა',open:'გახსნა',edit:'რედაქტირება',hide:'გამოქვეყნების მოხსნა',republish:'ხელახლა გამოქვეყნება',renew_10_days:'10 დღით გაგრძელება',delete:'წაშლა',published:'გამოქვეყნებული',pending:'მოდერაციაზეა',rejected:'უარყოფილი',draft:'დრაფტი',archived:'გამოქვეყნებიდან მოხსნილი',save:'შენახვა',cancel:'გაუქმება',description:'აღწერა',price:'ფასი',currency:'ვალუტა',address:'მისამართი / რაიონი',phone:'ტელეფონი',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'განცხადება შენახულია',save_fail:'შენახვა ვერ მოხერხდა',login_telegram:'გახსენით MADLOBA MARKET Telegram-იდან',fav_added:'დაემატა რჩეულებში',fav_removed:'წაიშალა რჩეულებიდან',favorite_fail:'რჩეულების შეცვლა ვერ მოხერხდა',fav_empty_title:'აქ ჯერ არაფერია',fav_empty_text:'დააჭირეთ ♡ სასურველ განცხადებებზე.',fav_telegram:'რჩეულები ხელმისაწვდომია Telegram-ში',fav_telegram_text:'გახსენით MADLOBA MARKET Telegram-იდან.',loading:'იტვირთება…',my_loading:'თქვენი განცხადებები იტვირთება…',my_empty:'თქვენ ჯერ განცხადებები არ გაქვთ.',post_hint:'პირველი განცხადება დაამატეთ ღილაკით „განთავსება“.',profile_telegram:'პროფილი ხელმისაწვდომია Mini App-ის Telegram-იდან გახსნისას.',profile_fail:'პროფილის ჩატვირთვა ვერ მოხერხდა.',user:'მომხმარებელი',status:'სტატუსი',telegram_user:'Telegram მომხმარებელი',status_user:'MADLOBA MARKET-ის მომხმარებელი',city:'ქალაქი',telegram_id:'Telegram ID',search_again:'განცხადებების ჩატვირთვა ვერ მოხერხდა.<br>სცადეთ ხელახლა.',favorites_fail:'რჩეულების ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.',my_fail:'თქვენი განცხადებების ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.',open_fail:'განცხადების გახსნა ვერ მოხერხდა',edit_fail:'რედაქტირების გახსნა ვერ მოხერხდა',hide_confirm:'მოხსნათ განცხადება გამოქვეყნებიდან? ის კატალოგიდან გაქრება.',republish_confirm:'ხელახლა გამოაქვეყნოთ განცხადება? ის ისევ გამოჩნდება კატალოგში და არხში.',delete_confirm:'წავშალოთ განცხადება სამუდამოდ?',hide_ok:'განცხადება გამოქვეყნებიდან მოიხსნა',hide_fail:'გამოქვეყნებიდან მოხსნა ვერ მოხერხდა',republish_ok:'განცხადება ხელახლა გამოქვეყნდა',republish_fail:'ხელახლა გამოქვეყნება ვერ მოხერხდა',delete_ok:'განცხადება წაიშალა',delete_fail:'განცხადების წაშლა ვერ მოხერხდა',channel_fail:'არხში გამოქვეყნება ვერ მოხერხდა',placing:'განთავსება გაიხსნება ბოტის საშუალებით',city_changed:'ქალაქი: ',no_listing:'განცხადება',spec_rooms:'ოთახები',spec_area:'ფართობი',spec_floor:'სართული',spec_make_model:'მარკა და მოდელი',spec_year:'წელი',spec_mileage:'გარბენი',spec_brand_model:'მოდელი',spec_condition:'მდგომარეობა',spec_warranty:'გარანტია',spec_dimensions:'ზომები',spec_age:'ასაკი',spec_breed:'ჯიში',spec_gender:'სქესი',spec_service:'სერვისი',spec_experience:'გამოცდილება',spec_requirements:'რას ეძებთ',category_services:'სერვისები',category_pets:'ცხოველები',desc_services:'სილამაზე, რემონტი, სპეციალისტები',desc_pets:'შინაური ცხოველები და აქსესუარები',category_realestate:'უძრავი ქონება',category_auto:'ავტო',category_tech:'ტექნიკა',category_home:'სახლი და ავეჯი',category_kids:'ბავშვები',category_work:'სამუშაო',category_give:'გაჩუქება',category_search:'ვეძებ',desc_realestate:'ბინები, სახლები, ქირა',desc_auto:'მანქანები, მოტო, ნაწილები',desc_tech:'ტელეფონები, ელექტრონიკა',desc_home:'ავეჯი და სახლის ნივთები',desc_kids:'ბავშვთა ნივთები',desc_work:'ვაკანსიები და ნახევარ განაკვეთზე სამუშაო',desc_give:'უფასოდ',desc_search:'საჭირო ნივთები და სერვისები',contact_call:'📞 დარეკვა',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 არხში გახსნა'}
 };
 const state={city:localStorage.getItem('mm_city')||'batumi',lang:localStorage.getItem('mm_lang')||'ru',page:0,q:'',category:'',loading:false,sort:'new',filters:{deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''}};
 function t(k){return (I18N[state.lang]&&I18N[state.lang][k])||I18N.ru[k]||k}
@@ -8239,7 +8257,7 @@ function renderBestListings(items){const section=$('bestSection');const row=$('b
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
 async function load(reset=true){if(reset){state.page=0;$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort});/* A text search is global: do not constrain it to the last selected category or its filters. */if(requestCategory&&!requestQ)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory&&!requestQ){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
-function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const republish=st==='archived'?`<button class="mine-action primary" data-action="republish">📣 ${t('republish')}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${republish}${del}</div></div>`}
+function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span></div></div><div class="mine-actions">${open}${edit}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
 async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();const districtChoices=(String(x.city_slug||'batumi').toLowerCase()==='tbilisi'?[['vake','Ваке'],['saburtalo','Сабуртало'],['vera','Вера'],['mtatsminda','Мтацминда'],['didube','Дидубе'],['gldani','Глдани'],['isani','Исани'],['samgori','Самгори'],['dighomi','Дигоми']]:[['old_batumi','Старый Батуми'],['new_boulevard','Новый Бульвар'],['khimshiashvili','Химшиашвили'],['bagrationi','Багратиони'],['angisa','Ангиса'],['airport','Аэропорт'],['gonio','Гонио'],['kvariati','Квариати'],['makhinjauri','Махинджаури']]);showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ ${t('edit')}</div><div class="edit-field"><label>${t('description')}</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>${t('price')}</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>${t('currency')}</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>${t('address')}</label><input id="editAddress" value="${esc(x.address||'')}"></div>${x.category_key==='realestate'?`<div class="edit-field"><label>${t('district')}</label><select id="editDistrictKey"><option value="">Не указывать район</option>${districtChoices.map(([v,l])=>`<option value="${v}" ${String(x.district_key||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>`:''}<div class="edit-field"><label>${t('phone')}</label><input id="editPhone" inputmode="tel" value="${esc(x.phone||'')}"></div><div class="edit-field"><label>${t('whatsapp')}</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>${t('telegram')}</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">${t('cancel')}</button><button class="edit-save" id="editSave">${t('save')}</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value,...(document.getElementById('editDistrictKey')?{district_key:$('editDistrictKey').value}:{})};$('editSave').disabled=true;$('editSave').textContent=t('loading');try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.detail||er.error||'save_failed')}toast(t('save_ok'));await loadMine()}catch(e){toast(e.message && e.message!=='save_failed'?e.message:t('save_fail'));$('editSave').disabled=false;$('editSave').textContent=t('save')}}}catch(e){toast(t('edit_fail'))}}
 async function unpublishMine(id){if(!confirm(t('hide_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST'});if(!r.ok)throw 0;toast(t('hide_ok'));await loadMine()}catch(e){toast(t('hide_fail'))}}
@@ -8280,7 +8298,7 @@ $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
 $('profileBack').onclick=()=>showHome();
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home')showHome();else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
-apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();load(true);</script></body></html>'''
+apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam=new URLSearchParams(window.location.search).get('renew');if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else{load(true)}</script></body></html>'''
 
 
 
@@ -8638,7 +8656,7 @@ def _mini_app_owned_row(listing_id):
         "GET",
         "listings",
         params={
-            "select":"id,user_id,title,description,price,currency,address,metadata,channel_url,channel_message_id,created_at,category_id,city_id,status,phone,whatsapp,telegram",
+            "select":"id,user_id,title,description,price,currency,address,metadata,channel_url,channel_message_id,created_at,published_at,expires_at,reminder_sent_at,category_id,city_id,status,phone,whatsapp,telegram",
             "id":f"eq.{int(listing_id)}",
             "user_id":f"eq.{user_id}",
             "limit":"1",
@@ -8648,7 +8666,7 @@ def _mini_app_owned_row(listing_id):
 
 
 def _delete_listing_channel_messages(row):
-    """Удаляет связанные сообщения объявления из канала, насколько их IDs сохранены."""
+    """Удаляет связанные сообщения из канала; возвращает False, если удаление надо повторить."""
     ids = []
     metadata = row.get("metadata") or {}
     if isinstance(metadata, dict):
@@ -8658,16 +8676,32 @@ def _delete_listing_channel_messages(row):
     if row.get("channel_message_id"):
         ids.append(row.get("channel_message_id"))
     seen = set()
+    normalized_ids = []
     for message_id in ids:
         try:
             message_id = int(message_id)
         except (TypeError, ValueError):
             continue
-        if message_id in seen:
+        if message_id not in seen:
+            seen.add(message_id)
+            normalized_ids.append(message_id)
+    if not normalized_ids:
+        return True
+    if not CHANNEL_USERNAME:
+        print("LISTING LIFECYCLE: channel username missing; cannot delete posts")
+        return False
+    all_ok = True
+    for message_id in normalized_ids:
+        result = api("deleteMessage", {"chat_id": CHANNEL_USERNAME, "message_id": message_id})
+        if isinstance(result, dict) and result.get("ok"):
             continue
-        seen.add(message_id)
-        if CHANNEL_USERNAME:
-            api("deleteMessage", {"chat_id": CHANNEL_USERNAME, "message_id": message_id})
+        description = str(result.get("description", "")).lower() if isinstance(result, dict) else ""
+        # Already-deleted messages are safe to treat as complete.
+        if "message to delete not found" in description or "message identifier is not specified" in description:
+            continue
+        all_ok = False
+        print("LISTING LIFECYCLE: Telegram delete failed", message_id, description[:200])
+    return all_ok
 
 
 def _sync_edited_listing_to_channel(row, data):
@@ -8873,6 +8907,18 @@ def mini_app_republish_listing(listing_id):
     if status != "archived":
         return jsonify({"error":"not_republishable"}), 400
 
+    # Expired listings can be renewed during the two-day grace period only.
+    raw_expiry = row.get("expires_at")
+    if raw_expiry:
+        try:
+            expiry_dt = datetime.fromisoformat(str(raw_expiry).replace("Z", "+00:00"))
+            if expiry_dt.tzinfo is None:
+                expiry_dt = expiry_dt.replace(tzinfo=timezone.utc)
+            if expiry_dt <= datetime.now(timezone.utc) - timedelta(days=2):
+                return jsonify({"error":"renewal_window_closed"}), 410
+        except (TypeError, ValueError):
+            return jsonify({"error":"invalid_expiry"}), 409
+
     metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
     data = dict(metadata)
     data["id"] = row.get("id")
@@ -8909,7 +8955,7 @@ def mini_app_republish_listing(listing_id):
     updated = supabase_request(
         "PATCH", "listings",
         params={"id":f"eq.{int(listing_id)}", "user_id":f"eq.{user_id}"},
-        payload={"status":"published", "channel_url":channel_url, "channel_message_id":message_id},
+        payload={"status":"published", "published_at":_utc_now_iso(), "expires_at":(datetime.now(timezone.utc) + timedelta(days=10)).isoformat(), "reminder_sent_at":None, "channel_url":channel_url, "channel_message_id":message_id},
     )
     if updated is None:
         # Не оставляем новое сообщение в канале без связи с объявлением.
@@ -8979,6 +9025,7 @@ def mini_app_favorites():
             "select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status",
             "id":f"in.({','.join(map(str,ids))})",
             "status":"eq.published",
+            "expires_at": f"gt.{_utc_now_iso()}",
             "limit":"200",
         },
     )
@@ -9012,7 +9059,7 @@ def mini_app_add_favorite(listing_id):
         return jsonify({"error":"user_not_found"}), 400
     published = supabase_request(
         "GET","listings",
-        params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","limit":"1"},
+        params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","expires_at":f"gt.{_utc_now_iso()}","limit":"1"},
     )
     if not published:
         return jsonify({"error":"listing_not_found"}), 404
@@ -9064,7 +9111,7 @@ def mini_app_my_listings():
         "GET",
         "listings",
         params={
-            "select":"id,title,description,price,currency,address,metadata,channel_url,channel_message_id,created_at,category_id,city_id,status,user_id,phone,whatsapp,telegram",
+            "select":"id,title,description,price,currency,address,metadata,channel_url,channel_message_id,created_at,published_at,expires_at,reminder_sent_at,category_id,city_id,status,user_id,phone,whatsapp,telegram",
             "user_id":f"eq.{user_id}",
             "order":"created_at.desc",
             "limit":"100",
@@ -9204,6 +9251,7 @@ def mini_app_auto_options():
         params={
             "select":"metadata,title",
             "status":"eq.published",
+            "expires_at": f"gt.{_utc_now_iso()}",
             "city_id":f"eq.{city_id}",
             "category_id":f"eq.{category_id}",
             "limit":"1000",
@@ -9286,6 +9334,7 @@ def mini_app_listings():
     params = {
         "select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status",
         "status":"eq.published",
+        "expires_at": f"gt.{_utc_now_iso()}",
         "city_id":f"eq.{city_id}",
         "order":"created_at.desc",
     }
@@ -9861,6 +9910,247 @@ def mini_app_listings():
     })
 
 
+# ============================================================
+# АВТОМАТИЧЕСКИЙ ЖИЗНЕННЫЙ ЦИКЛ ОБЪЯВЛЕНИЙ
+# ============================================================
+
+LISTING_LIFETIME_DAYS = 10
+LISTING_REMINDER_DAYS_BEFORE_EXPIRY = 2
+LISTING_PURGE_GRACE_DAYS = 2
+LISTING_LIFECYCLE_INTERVAL_SECONDS = 15 * 60
+
+
+def _storage_object_from_url(photo_ref):
+    """Извлекает bucket и путь только из URL Supabase Storage; внешние URL пропускает."""
+    value = str(photo_ref or "").strip()
+    if not value.startswith(("http://", "https://")) or not SUPABASE_URL:
+        return None
+    try:
+        parsed = urllib.parse.urlparse(value)
+        base = urllib.parse.urlparse(SUPABASE_URL)
+        if parsed.netloc != base.netloc:
+            return None
+        path = urllib.parse.unquote(parsed.path)
+        parts = [part for part in path.split("/") if part]
+        # Recognize object/public|sign|authenticated/bucket/path and render/image/public/bucket/path.
+        if "object" in parts:
+            idx = parts.index("object") + 1
+            tail = parts[idx:]
+            if tail and tail[0] in {"public", "sign", "authenticated"}:
+                tail = tail[1:]
+        elif "render" in parts:
+            idx = parts.index("render") + 1
+            tail = parts[idx:]
+            if tail and tail[0] == "image":
+                tail = tail[1:]
+            if tail and tail[0] in {"public", "sign", "authenticated"}:
+                tail = tail[1:]
+        else:
+            return None
+        if len(tail) < 2:
+            return None
+        bucket = tail[0]
+        object_path = "/".join(tail[1:])
+        if not bucket or not object_path:
+            return None
+        return bucket, object_path
+    except Exception as error:
+        print("STORAGE URL PARSE ERROR:", repr(error))
+        return None
+
+
+def _delete_supabase_storage_photo(photo_ref):
+    """Удаляет фото из Supabase Storage, не затрагивая Telegram IDs и внешние хосты."""
+    object_ref = _storage_object_from_url(photo_ref)
+    if not object_ref:
+        return True
+    bucket, object_path = object_ref
+    url = f"{SUPABASE_URL}/storage/v1/object/{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(object_path, safe='/')}"
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY,
+        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+    }
+    try:
+        response = HTTP_SESSION.delete(url, headers=headers, timeout=(5, 20))
+        if response.status_code in (200, 204, 404):
+            return True
+        print("STORAGE DELETE ERROR:", response.status_code, response.text[:300])
+        return False
+    except Exception as error:
+        print("STORAGE DELETE ERROR:", repr(error))
+        return False
+
+
+def _listing_owner_telegram_id(user_id):
+    if not user_id:
+        return None
+    owners = supabase_request(
+        "GET", "users",
+        params={"select":"id,telegram_id", "id":f"eq.{user_id}", "limit":"1"},
+    )
+    if not owners:
+        return None
+    return owners[0].get("telegram_id")
+
+
+def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
+    rows = supabase_request(
+        "GET", "listings",
+        params={
+            "select":"id,user_id,title,expires_at,reminder_sent_at,metadata",
+            "status":"eq.published",
+            "expires_at":f"gt.{now_iso}",
+            "and":f"(expires_at.lte.{reminder_cutoff_iso},reminder_sent_at.is.null)",
+            "order":"expires_at.asc",
+            "limit":"100",
+        },
+    )
+    if rows is None:
+        return 0
+    sent_count = 0
+    for row in rows:
+        listing_id = row.get("id")
+        if not listing_id:
+            continue
+        # Atomic claim prevents duplicate reminders if more than one web worker is running.
+        claimed = supabase_request(
+            "PATCH", "listings",
+            params={
+                "id":f"eq.{listing_id}",
+                "status":"eq.published",
+                "expires_at":f"gt.{now_iso}",
+                "reminder_sent_at":"is.null",
+            },
+            payload={"reminder_sent_at":now_iso},
+        )
+        if not claimed:
+            continue
+        owner_telegram_id = _listing_owner_telegram_id(row.get("user_id"))
+        if not owner_telegram_id:
+            # Don't permanently consume the reminder if the owner link is missing.
+            supabase_request("PATCH", "listings", params={"id":f"eq.{listing_id}", "reminder_sent_at":f"eq.{now_iso}"}, payload={"reminder_sent_at":None})
+            continue
+        title = str(row.get("title") or "Ваше объявление")
+        app_url = MINI_APP_URL + ("&" if "?" in MINI_APP_URL else "?") + "renew=" + urllib.parse.quote(str(listing_id))
+        result = api("sendMessage", {
+            "chat_id":owner_telegram_id,
+            "text":f"⏳ <b>Объявление скоро закончится</b>\n\n{html.escape(title)}\n\nДо окончания публикации осталось не больше 2 дней. Продлите объявление ещё на 10 дней, чтобы оно оставалось доступным.",
+            "parse_mode":"HTML",
+            "reply_markup":{"inline_keyboard":[[{
+                "text":"Продлить на 10 дней",
+                "web_app":{"url":app_url},
+            }]]},
+        })
+        if isinstance(result, dict) and result.get("ok"):
+            sent_count += 1
+        else:
+            # Allow a later retry if Telegram could not deliver the reminder.
+            supabase_request("PATCH", "listings", params={"id":f"eq.{listing_id}", "reminder_sent_at":f"eq.{now_iso}"}, payload={"reminder_sent_at":None})
+    return sent_count
+
+
+def _archive_expired_listings(now_iso):
+    rows = supabase_request(
+        "GET", "listings",
+        params={
+            "select":"id,status,channel_message_id,channel_url,metadata,expires_at",
+            "status":"eq.published",
+            "expires_at":f"lte.{now_iso}",
+            "order":"expires_at.asc",
+            "limit":"100",
+        },
+    )
+    if rows is None:
+        return 0
+    archived = 0
+    for row in rows:
+        if not _delete_listing_channel_messages(row):
+            # Keep it eligible so the worker retries; catalog/API filters already hide it by expiry.
+            continue
+        updated = supabase_request(
+            "PATCH", "listings",
+            params={"id":f"eq.{row.get('id')}", "status":"eq.published", "expires_at":f"lte.{now_iso}"},
+            payload={"status":"archived", "channel_url":"", "channel_message_id":None},
+        )
+        if updated is not None:
+            archived += 1
+    return archived
+
+
+def _purge_expired_listings(purge_cutoff_iso):
+    rows = supabase_request(
+        "GET", "listings",
+        params={
+            "select":"id,status,channel_message_id,channel_url,metadata,expires_at",
+            "status":"eq.archived",
+            "expires_at":f"lte.{purge_cutoff_iso}",
+            "order":"expires_at.asc",
+            "limit":"100",
+        },
+    )
+    if rows is None:
+        return 0
+    deleted_count = 0
+    for row in rows:
+        # A previously published Telegram post can remain in metadata as a list of IDs.
+        if not _delete_listing_channel_messages(row):
+            continue
+        listing_id = row.get("id")
+        photo_rows = supabase_request(
+            "GET", "listing_photos",
+            params={"select":"photo_url", "listing_id":f"eq.{listing_id}", "limit":"100"},
+        )
+        if photo_rows is None:
+            continue
+        storage_ok = all(_delete_supabase_storage_photo(photo.get("photo_url")) for photo in photo_rows)
+        if not storage_ok:
+            # Keep the DB rows so failed Storage deletions can be retried next cycle.
+            continue
+        photos_deleted = supabase_request("DELETE", "listing_photos", params={"listing_id":f"eq.{listing_id}"})
+        if photos_deleted is None:
+            continue
+        deleted = supabase_request(
+            "DELETE", "listings",
+            params={"id":f"eq.{listing_id}", "status":"eq.archived", "expires_at":f"lte.{purge_cutoff_iso}"},
+        )
+        if deleted is not None:
+            deleted_count += 1
+    return deleted_count
+
+
+def run_listing_lifecycle_once():
+    """One idempotent maintenance pass; safe to retry after process restarts."""
+    if not supabase_enabled():
+        return {"reminded":0,"archived":0,"deleted":0}
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    reminder_cutoff_iso = (now + timedelta(days=LISTING_REMINDER_DAYS_BEFORE_EXPIRY)).isoformat()
+    purge_cutoff_iso = (now - timedelta(days=LISTING_PURGE_GRACE_DAYS)).isoformat()
+    result = {"reminded":0,"archived":0,"deleted":0}
+    try:
+        result["reminded"] = _remind_listings_due_soon(now_iso, reminder_cutoff_iso)
+        result["archived"] = _archive_expired_listings(now_iso)
+        result["deleted"] = _purge_expired_listings(purge_cutoff_iso)
+        if any(result.values()):
+            print("LISTING LIFECYCLE:", result)
+    except Exception as error:
+        print("LISTING LIFECYCLE ERROR:", repr(error))
+    return result
+
+
+def _listing_lifecycle_loop():
+    # Small startup delay lets Flask/Gunicorn finish initializing before maintenance starts.
+    time.sleep(30)
+    while True:
+        run_listing_lifecycle_once()
+        time.sleep(LISTING_LIFECYCLE_INTERVAL_SECONDS)
+
+
+def start_listing_lifecycle_worker():
+    worker = threading.Thread(target=_listing_lifecycle_loop, name="listing-lifecycle", daemon=True)
+    worker.start()
+
+
 @app.get("/api/listing/<int:listing_id>")
 def mini_app_listing_detail(listing_id):
     if not supabase_enabled():
@@ -9872,6 +10162,7 @@ def mini_app_listing_detail(listing_id):
             "select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status,phone,whatsapp,telegram",
             "id":f"eq.{listing_id}",
             "status":"eq.published",
+            "expires_at": f"gt.{_utc_now_iso()}",
             "limit":"1",
         },
     )
@@ -9903,7 +10194,7 @@ def mini_app_listing_detail(listing_id):
 @app.get("/media/<int:listing_id>/<int:index>")
 def mini_app_media(listing_id, index):
     if index < 0 or index >= MAX_PHOTOS:return "Not found",404
-    published=supabase_request("GET","listings",params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","limit":"1"})
+    published=supabase_request("GET","listings",params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","expires_at":f"gt.{_utc_now_iso()}","limit":"1"})
     if not published:return "Not found",404
     rows=supabase_request("GET","listing_photos",params={"select":"photo_url,sort_order","listing_id":f"eq.{listing_id}","order":"sort_order.asc"})
     if rows is None or index >= len(rows):return "Not found",404
@@ -10161,6 +10452,11 @@ print(
 print(
     "===== WEBHOOK SETUP FINISHED ====="
 )
+
+# Автоматически проверяем сроки объявлений каждые 15 минут.
+# Повторные процессы безопасны: напоминания захватываются атомарным PATCH,
+# а архивирование/удаление можно повторять после сбоев.
+start_listing_lifecycle_worker()
 
 
 # ============================================================
