@@ -8903,7 +8903,31 @@ def mini_app_republish_listing(listing_id):
         return jsonify({"error":"not_found"}), 404
     status = str(row.get("status") or "").lower()
     if status == "published":
-        return jsonify({"ok":True})
+        # The reminder button is shown before expiry, while the listing is still
+        # published. Renew by adding 10 days to its current expiry (not silently
+        # returning success without changing the date).
+        now_utc = datetime.now(timezone.utc)
+        raw_expiry = row.get("expires_at")
+        if raw_expiry:
+            try:
+                expiry_dt = datetime.fromisoformat(str(raw_expiry).replace("Z", "+00:00"))
+                if expiry_dt.tzinfo is None:
+                    expiry_dt = expiry_dt.replace(tzinfo=timezone.utc)
+            except (TypeError, ValueError):
+                return jsonify({"error":"invalid_expiry"}), 409
+            renewal_base = max(expiry_dt, now_utc)
+        else:
+            renewal_base = now_utc
+        new_expiry = (renewal_base + timedelta(days=10)).isoformat()
+        renewed = supabase_request(
+            "PATCH", "listings",
+            params={"id":f"eq.{int(listing_id)}", "user_id":f"eq.{user_id}", "status":"eq.published"},
+            payload={"expires_at":new_expiry, "reminder_sent_at":None},
+        )
+        if renewed is None:
+            return jsonify({"error":"db_update_failed"}), 503
+        load_supabase_published_listings()
+        return jsonify({"ok":True, "expires_at":new_expiry, "renewed":True})
     if status != "archived":
         return jsonify({"error":"not_republishable"}), 400
 
