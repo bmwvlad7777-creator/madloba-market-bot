@@ -452,6 +452,42 @@ def _supabase_exact_count(path, params=None):
         return None
 
 
+def _supabase_fetch_all_bounded(path, params=None, batch_size=1000, max_rows=100000, order="id.asc"):
+    """Fetch all matching rows in stable pages, or return None if completeness cannot be proven.
+
+    This is a compatibility fallback only. Normal dashboard paths should use exact
+    counts or SQL aggregation. A result reaching max_rows is treated as potentially
+    truncated rather than reported as a complete total.
+    """
+    if not supabase_enabled():
+        return None
+    try:
+        batch_size = max(1, min(int(batch_size), 1000))
+        max_rows = max(batch_size, int(max_rows))
+    except (TypeError, ValueError):
+        batch_size, max_rows = 1000, 100000
+    collected = []
+    base = dict(params or {})
+    base.setdefault("order", order)
+    offset = 0
+    while offset < max_rows:
+        page_params = dict(base)
+        page_params["offset"] = str(offset)
+        page_params["limit"] = str(min(batch_size, max_rows - offset))
+        page = supabase_request("GET", path, params=page_params)
+        if not isinstance(page, list):
+            return None
+        if not page:
+            return collected
+        collected.extend(page)
+        if len(page) < int(page_params["limit"]):
+            return collected
+        offset += len(page)
+    # Exactly at the safety ceiling: there may be more rows, so do not claim completeness.
+    print("SUPABASE FALLBACK READ INCOMPLETE: safety ceiling reached for", path)
+    return None
+
+
 def load_local_published_listings():
     global published_listings, next_listing_id
 
@@ -8106,7 +8142,7 @@ def _admin_stats_payload(period_days=7):
     if users_count is not None:
         stats["users_total"] = users_count
     else:
-        users = supabase_request("GET", "users", params={"select":"id", "limit":"100000"})
+        users = _supabase_fetch_all_bounded("users", params={"select":"id"})
         if isinstance(users, list):
             stats["users_total"] = len(users)
 
@@ -8125,7 +8161,7 @@ def _admin_stats_payload(period_days=7):
         stats["listings_pending"] = pending_count
         stats["listings_other"] = max(0, listings_count - active_count - pending_count)
     else:
-        listings = supabase_request("GET", "listings", params={"select":"id,status", "limit":"100000"})
+        listings = _supabase_fetch_all_bounded("listings", params={"select":"id,status"})
         if isinstance(listings, list):
             stats["listings_total"] = len(listings)
             for row in listings:
@@ -8161,8 +8197,9 @@ def _admin_stats_payload(period_days=7):
     else:
         # Compatibility fallback for deployments where the SQL function has not
         # yet been applied or is temporarily unavailable.
-        events = supabase_request("GET", "mm_analytics_events", params={
-            "select":"event_type,telegram_id,listing_id,created_at", "created_at":f"gte.{period_start}", "limit":"100000"
+        events = _supabase_fetch_all_bounded("mm_analytics_events", params={
+            "select":"id,event_type,telegram_id,listing_id,created_at",
+            "created_at":f"gte.{period_start}",
         })
         if isinstance(events, list):
             stats["analytics_available"] = True
@@ -8228,7 +8265,7 @@ def _admin_stats_payload(period_days=7):
     else:
         # mm_orders is optional until monetization is enabled; retain the old
         # behavior if exact counts are not supported or the table is absent.
-        orders = supabase_request("GET", "mm_orders", params={"select":"id,status", "limit":"100000"})
+        orders = _supabase_fetch_all_bounded("mm_orders", params={"select":"id,status"})
         if isinstance(orders, list):
             stats["orders_available"] = True
             stats["orders_total"] = len(orders)
