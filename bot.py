@@ -653,6 +653,8 @@ def _row_to_listing(row):
         metadata = {}
 
     item = dict(metadata)
+    # Internal migration identifier is stored for compatibility, but is not part of the public API.
+    item.pop("legacy_id", None)
     item["id"] = row.get("id", item.get("id"))
     item["status"] = row.get("status", "published")
     item["published_at"] = row.get("published_at")
