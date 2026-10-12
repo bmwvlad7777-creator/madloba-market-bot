@@ -8,6 +8,8 @@ import hmac
 import hashlib
 import urllib.parse
 import re
+import difflib
+import unicodedata
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -2369,6 +2371,158 @@ def ask(
 # ХАРАКТЕРИСТИКИ
 # ============================================================
 
+PET_AGE_OPTIONS = [
+    ("under1", "До 1 года"),
+    ("1to2", "1–2 года"),
+    ("2to3", "2–3 года"),
+    ("3to4", "3–4 года"),
+    ("4to5", "4–5 лет"),
+    ("5to6", "5–6 лет"),
+    ("6to7", "6–7 лет"),
+    ("7to8", "7–8 лет"),
+    ("8to9", "8–9 лет"),
+    ("9to10", "9–10 лет"),
+    ("10plus", "10 лет и старше"),
+    ("unknown", "Не знаю / не указан"),
+]
+
+PET_GENDER_OPTIONS = [
+    ("male", "Самец"),
+    ("female", "Самка"),
+    ("unknown", "Не указан"),
+]
+
+# Small, conservative vocabulary for correcting known names. Free-form descriptions
+# are intentionally not rewritten: guessing there could change the user's meaning.
+KNOWN_CANONICAL_TERMS = [
+    "Samsung", "Apple", "iPhone", "Xiaomi", "Redmi", "POCO", "Huawei",
+    "Honor", "Google Pixel", "OnePlus", "Motorola", "Nokia", "Realme",
+    "OPPO", "Vivo", "Sony", "Nothing", "ASUS", "Acer", "Lenovo", "HP",
+    "Dell", "MSI", "Microsoft", "Gigabyte", "LG", "TCL", "Hisense",
+    "Philips", "Panasonic", "Bosch", "Beko", "Whirlpool", "Electrolux",
+    "Tefal", "Dyson", "Canon", "Nikon", "Fujifilm", "GoPro", "DJI",
+    "Toyota", "Honda", "Nissan", "Mazda", "Subaru", "Mitsubishi",
+    "Suzuki", "Hyundai", "Kia", "BMW", "Mercedes-Benz", "Mercedes",
+    "Volkswagen", "VW", "Audi", "Skoda", "Škoda", "Ford", "Chevrolet",
+    "Opel", "Peugeot", "Renault", "Citroen", "Citroën", "Volvo", "Lexus",
+    "Porsche", "Tesla", "Jeep", "Land Rover", "Range Rover", "Jaguar",
+    "Fiat", "Dacia", "Chery", "Geely", "BYD", "Haval", "Lada",
+    "Хаски", "Лабрадор", "Овчарка", "Шпиц", "Чихуахуа", "Пудель",
+    "Бигль", "Бульдог", "Корги", "Такса", "Доберман", "Ротвейлер",
+    "Йоркширский терьер", "Золотистый ретривер", "Немецкая овчарка",
+]
+
+
+def _normalize_lookup_text(value):
+    value = unicodedata.normalize("NFKC", str(value or "")).strip().casefold()
+    value = re.sub(r"[\s_–—-]+", " ", value)
+    return re.sub(r"[^\w ]+", "", value, flags=re.UNICODE).strip()
+
+
+def _correct_known_term(token, terms=KNOWN_CANONICAL_TERMS):
+    normalized = _normalize_lookup_text(token)
+    if not normalized or len(normalized) < 4:
+        return token
+    exact = {_normalize_lookup_text(term): term for term in terms}
+    if normalized in exact:
+        return exact[normalized]
+    # Only suggest a correction when the match is clearly strong and unambiguous.
+    candidates = []
+    for key, canonical in exact.items():
+        if abs(len(key) - len(normalized)) > max(2, int(len(normalized) * 0.25)):
+            continue
+        score = difflib.SequenceMatcher(None, normalized, key).ratio()
+        if score >= 0.82:
+            candidates.append((score, canonical))
+    candidates.sort(reverse=True)
+    if candidates and (len(candidates) == 1 or candidates[0][0] - candidates[1][0] >= 0.06):
+        return candidates[0][1]
+    return token
+
+
+def normalize_pet_gender(value):
+    normalized = _normalize_lookup_text(value)
+    if normalized in {"male", "m", "самец", "самец животного", "мужской", "мужчина", "мальчик", "кобель"}:
+        return "Самец"
+    if normalized in {"female", "f", "самка", "самка животного", "женский", "женщина", "девочка", "сука"}:
+        return "Самка"
+    if normalized in {"unknown", "не указан", "не знаю", "неизвестно", "-", "нет"}:
+        return "Не указан"
+    return str(value or "").strip()
+
+
+def normalize_pet_age(value):
+    raw = str(value or "").strip()
+    normalized = _normalize_lookup_text(raw)
+    if not normalized:
+        return raw
+    aliases = {
+        "до года": "До 1 года", "до 1 года": "До 1 года", "меньше года": "До 1 года",
+        "1 год": "1–2 года", "1 года": "1–2 года", "1 2 года": "1–2 года",
+        "2 года": "2–3 года", "2 лет": "2–3 года", "3 года": "3–4 года",
+        "4 года": "4–5 лет", "5 лет": "5–6 лет", "6 лет": "6–7 лет",
+        "7 лет": "7–8 лет", "8 лет": "8–9 лет", "9 лет": "9–10 лет",
+        "10 лет": "10 лет и старше", "10+": "10 лет и старше",
+        "не знаю": "Не знаю / не указан", "не указан": "Не знаю / не указан",
+    }
+    if normalized in aliases:
+        return aliases[normalized]
+    # Month-based ages must stay in the under-one-year bucket.
+    month_match = re.search(r"(?<!\d)(\d{1,2})(?:[.,]\d+)?\s*(?:месяц|месяца|месяцев|мес)", normalized)
+    if month_match:
+        return "До 1 года"
+    # Preserve numeric age as a sensible range when users enter it manually.
+    match = re.search(r"(?<!\d)(\d{1,2})(?:[.,]\d+)?", normalized)
+    if match:
+        years = int(match.group(1))
+        if years < 1:
+            return "До 1 года"
+        if years >= 10:
+            return "10 лет и старше"
+        return f"{years}–{years + 1} года" if years in (1, 2, 3) else f"{years}–{years + 1} лет"
+    return raw
+
+
+def normalize_detail_value(category_key, field_key, value):
+    value = str(value or "").strip()
+    if category_key == "pets":
+        if field_key == "gender":
+            return normalize_pet_gender(value)
+        if field_key == "age":
+            return normalize_pet_age(value)
+        if field_key == "breed":
+            # Correct only a known breed/name; leave unknown breeds untouched.
+            return _correct_known_term(value, [
+                "Хаски", "Лабрадор", "Овчарка", "Шпиц", "Чихуахуа", "Пудель",
+                "Бигль", "Бульдог", "Корги", "Такса", "Доберман", "Ротвейлер",
+                "Йоркширский терьер", "Золотистый ретривер", "Немецкая овчарка",
+            ])
+    if field_key in {"make_model", "brand_model"}:
+        # Correct individual known brand tokens while preserving model names.
+        return " ".join(_correct_known_term(part) for part in value.split())
+    if field_key in {"make", "brand"}:
+        return _correct_known_term(value)
+    return value
+
+
+def pet_choice_keyboard(field_key, prefix):
+    options = PET_AGE_OPTIONS if field_key == "age" else PET_GENDER_OPTIONS
+    buttons = [
+        {"text": label, "callback_data": f"{prefix}_{field_key}_{key}"}
+        for key, label in options
+    ]
+    # Two compact buttons per row keep the age selector usable on mobile.
+    return [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+
+
+def display_detail_value(field_key, value):
+    if field_key == "gender":
+        return normalize_pet_gender(value)
+    if field_key == "age":
+        return normalize_pet_age(value)
+    return str(value or "")
+
+
 def ask_detail(
     chat_id,
     index=0
@@ -2386,16 +2540,15 @@ def ask_detail(
             index
         ]
 
-        ask(
-
-            chat_id,
-
-            f"detail_{index}",
-
-            f"<b>{index + 3} · "
-            f"{esc(label)}</b>\n\n"
-            "Введите значение."
-        )
+        field_key = fields[index][0]
+        prompt = f"<b>{index + 3} · {esc(label)}</b>\n\n"
+        if data.get("category_key") == "pets" and field_key in {"age", "gender"}:
+            prompt += "Выберите подходящий вариант из списка."
+            send(chat_id, prompt, pet_choice_keyboard(field_key, "petpick"))
+            states[chat_id]["step"] = f"detail_{index}"
+        else:
+            prompt += "Введите значение. Опечатки в известных названиях будут исправлены автоматически."
+            ask(chat_id, f"detail_{index}", prompt)
 
     else:
 
@@ -2963,7 +3116,7 @@ def build_listing(
             details_lines.append(
 
                 f"{esc(label)}: "
-                f"<b>{esc(value)}</b>"
+                f"<b>{esc(display_detail_value(key, value))}</b>"
             )
 
 
@@ -3897,7 +4050,8 @@ def process_moderator_text(admin_chat_id, text):
             return True
         fields = category_fields(data)
         if index < len(fields):
-            data["details"][fields[index][0]] = text
+            field_key = fields[index][0]
+            data["details"][field_key] = normalize_detail_value(data.get("category_key", ""), field_key, text)
     else:
         return False
 
@@ -4330,11 +4484,10 @@ def process_text(
             fields
         ):
 
-            data[
-                "details"
-            ][
-                fields[index][0]
-            ] = text
+            field_key = fields[index][0]
+            data["details"][field_key] = normalize_detail_value(
+                data.get("category_key", ""), field_key, text
+            )
 
 
         ask_detail(
@@ -4372,11 +4525,10 @@ def process_text(
             fields
         ):
 
-            data[
-                "details"
-            ][
-                fields[index][0]
-            ] = text
+            field_key = fields[index][0]
+            data["details"][field_key] = normalize_detail_value(
+                data.get("category_key", ""), field_key, text
+            )
 
 
         preview(
@@ -4936,6 +5088,47 @@ def _handle_update_core(
         "from"
     ]["id"]
 
+
+    # ========================================================
+    # ВЫБОР СТАНДАРТИЗИРОВАННЫХ ХАРАКТЕРИСТИК ЖИВОТНЫХ
+    # ========================================================
+
+    if data.startswith("petpick_"):
+        if chat_id not in states or not isinstance(states[chat_id].get("data"), dict):
+            answer(callback["id"], "Сессия объявления завершена. Начните заново.", True)
+            return
+        listing_data = states[chat_id]["data"]
+        if listing_data.get("category_key") != "pets":
+            answer(callback["id"], "Этот выбор доступен для объявлений о животных.", True)
+            return
+        parts = data.split("_")
+        if len(parts) != 3:
+            answer(callback["id"], "Некорректный вариант.", True)
+            return
+        field_key, choice_key = parts[1], parts[2]
+        options = PET_AGE_OPTIONS if field_key == "age" else PET_GENDER_OPTIONS if field_key == "gender" else []
+        choice_map = dict(options)
+        if choice_key not in choice_map:
+            answer(callback["id"], "Такого варианта нет.", True)
+            return
+        current_step = states[chat_id].get("step", "")
+        is_edit = current_step.startswith("edit_detail_")
+        try:
+            index = int(current_step.rsplit("_", 1)[1])
+        except (ValueError, IndexError):
+            answer(callback["id"], "Шаг объявления уже изменился. Попробуйте снова.", True)
+            return
+        fields = category_fields(listing_data)
+        if index >= len(fields) or fields[index][0] != field_key:
+            answer(callback["id"], "Поле объявления уже изменилось. Попробуйте снова.", True)
+            return
+        listing_data.setdefault("details", {})[field_key] = choice_map[choice_key]
+        answer(callback["id"], f"Сохранено: {choice_map[choice_key]}")
+        if is_edit:
+            preview(chat_id)
+        else:
+            ask_detail(chat_id, index + 1)
+        return
 
     # ========================================================
     # ВЫБОР РАЙОНА НЕДВИЖИМОСТИ
@@ -5877,16 +6070,13 @@ def _handle_update_core(
             )
 
 
-            send(
-
-                chat_id,
-
-                f"<b>"
-                f"{esc(fields[index][1])}"
-                f"</b>\n\n"
-
-                "Введите новое значение."
-            )
+            field_key = fields[index][0]
+            prompt = f"<b>{esc(fields[index][1])}</b>\n\n"
+            if states[chat_id]["data"].get("category_key") == "pets" and field_key in {"age", "gender"}:
+                states[chat_id]["step"] = f"edit_detail_{index}"
+                send(chat_id, prompt + "Выберите вариант.", pet_choice_keyboard(field_key, "petpick"))
+            else:
+                send(chat_id, prompt + "Введите новое значение. Опечатки в известных названиях будут исправлены автоматически.")
 
 
         return
@@ -7878,7 +8068,7 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 <div class="filter-field"><label data-i18n="condition">Состояние</label><select id="genericFilterCondition"><option value="">Все</option><option value="new">Новое</option><option value="used">Б/у</option></select></div>
 <div class="filter-field" id="genericBrandWrap" style="display:none"><label>Бренд</label><select id="genericFilterMake"><option value="">Все бренды</option></select></div>
 <div class="filter-field" id="genericModelWrap" style="display:none"><label>Модель</label><input id="genericFilterModel" placeholder="Например: iPhone 15, Galaxy S24"></div>
-<div class="filter-field" id="genericPetAgeWrap" style="display:none"><label>Возраст питомца</label><input id="genericFilterPetAge" placeholder="Например: 2 года"></div>
+<div class="filter-field" id="genericPetAgeWrap" style="display:none;grid-column:1/-1"><label>Возраст питомца</label><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px"><div><label for="genericFilterPetAgeMin" style="font-size:12px;color:var(--muted)">От</label><input id="genericFilterPetAgeMin" type="number" min="0" max="20" step="1" inputmode="numeric" placeholder="0"></div><div><label for="genericFilterPetAgeMax" style="font-size:12px;color:var(--muted)">До</label><input id="genericFilterPetAgeMax" type="number" min="0" max="20" step="1" inputmode="numeric" placeholder="20"></div></div><select id="genericFilterPetAgeUnit" aria-label="Единица возраста" style="margin-top:8px"><option value="years">Возраст в годах (0–20)</option><option value="months">Возраст в месяцах (0–11)</option></select><small style="display:block;color:var(--muted);margin-top:5px">Можно заполнить только одно поле. Если оба пустые — любой возраст.</small></div>
 <div class="filter-field" id="genericPetBreedWrap" style="display:none"><label>Порода</label><input id="genericFilterPetBreed" placeholder="Например: лабрадор"></div>
 <div class="filter-field" id="genericPetGenderWrap" style="display:none"><label>Пол</label><select id="genericFilterPetGender"><option value="">Все</option><option value="male">Самец</option><option value="female">Самка</option></select></div>
 </div><div class="filter-actions"><button class="filter-reset" id="filterReset" type="button" data-i18n="reset">Сбросить</button><button class="filter-apply" id="filterApply" type="button" data-i18n="apply">Применить</button></div></div></div></div><button class="back" id="backBtn" data-i18n="all_categories">← Все категории</button><section id="homeView"><section class="best-section" id="bestSection"><div class="section-head"><h2 data-i18n="popular_listings">Популярные</h2><button class="section-link" id="bestAll" type="button" data-i18n="all_short">Все →</button></div><div class="best-row" id="bestRow"></div></section><div id="categoriesBlock"><div class="section-head"><h2 data-i18n="all_categories_section">Все категории</h2><button class="section-link" id="categoriesToggle" type="button" data-i18n="collapse_categories">Свернуть ↑</button></div><div class="cats" id="cats"></div></div><div class="results-head"><div class="section-head"><h2 id="resultsTitle" data-i18n="fresh_listings">Свежие объявления</h2><small id="resultsCount"></small></div><select id="sortSelect" class="sort-select" aria-label="Sort"><option value="new" data-i18n="sort_new">🆕 Сначала новые</option><option value="price_asc" data-i18n="sort_price_asc">💰 Цена: дешевле</option><option value="price_desc" data-i18n="sort_price_desc">💰 Цена: дороже</option></select></div><div class="list" id="list"></div><div class="more" id="pager" style="display:none"><button id="prevBtn" type="button">← Назад</button><span id="pageLabel">Страница 1</span><button id="nextBtn" type="button">Вперёд →</button></div></section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section></div>
@@ -7983,7 +8173,7 @@ function syncGenericFilterOptions(){
  if(petAgeWrap)petAgeWrap.style.display=state.category==='pets'&&petSub?'flex':'none';
  if(petBreedWrap)petBreedWrap.style.display=state.category==='pets'&&petSub?'flex':'none';
  if(petGenderWrap)petGenderWrap.style.display=state.category==='pets'&&petSub?'flex':'none';
- if($('genericFilterPetAge'))$('genericFilterPetAge').value=state.filters.pet_age||'';
+ if($('genericFilterPetAgeMin')&&$('genericFilterPetAgeMax')&&$('genericFilterPetAgeUnit')){const raw=String(state.filters.pet_age||'');const m=raw.match(/^range:(years|months):([^:]*):([^:]*)$/);$('genericFilterPetAgeUnit').value=m?m[1]:'years';$('genericFilterPetAgeMin').value=m?m[2]:'';$('genericFilterPetAgeMax').value=m?m[3]:'';const isMonths=$('genericFilterPetAgeUnit').value==='months';$('genericFilterPetAgeMin').max=isMonths?'11':'20';$('genericFilterPetAgeMax').max=isMonths?'11':'20';$('genericFilterPetAgeMin').placeholder=isMonths?'0':'0';$('genericFilterPetAgeMax').placeholder=isMonths?'11':'20';}
  if($('genericFilterPetBreed'))$('genericFilterPetBreed').value=state.filters.pet_breed||'';
  if($('genericFilterPetGender'))$('genericFilterPetGender').value=state.filters.pet_gender||'';
  if(brand&&techMode){
@@ -8004,7 +8194,7 @@ function syncGenericFilterOptions(){
 function syncFilterUI(){
  syncDistrictOptions();
  const f=state.filters;
- const map={filterDeal:'deal',filterSub:'sub',filterMinPrice:'min_price',filterMaxPrice:'max_price',filterRooms:'rooms',filterMinArea:'min_area',filterMaxArea:'max_area',filterDistrict:'district',autoFilterDeal:'deal',autoFilterMake:'make',autoFilterModel:'model',autoFilterMinPrice:'min_price',autoFilterMaxPrice:'max_price',autoFilterMinYear:'min_year',autoFilterMaxYear:'max_year',autoFilterMinMileage:'min_mileage',autoFilterMaxMileage:'max_mileage',genericFilterDeal:'deal',genericFilterSub:'sub',genericFilterMinPrice:'min_price',genericFilterMaxPrice:'max_price',genericFilterCondition:'condition',genericFilterMake:'make',genericFilterModel:'model',genericFilterPetAge:'pet_age',genericFilterPetBreed:'pet_breed',genericFilterPetGender:'pet_gender'};
+ const map={filterDeal:'deal',filterSub:'sub',filterMinPrice:'min_price',filterMaxPrice:'max_price',filterRooms:'rooms',filterMinArea:'min_area',filterMaxArea:'max_area',filterDistrict:'district',autoFilterDeal:'deal',autoFilterMake:'make',autoFilterModel:'model',autoFilterMinPrice:'min_price',autoFilterMaxPrice:'max_price',autoFilterMinYear:'min_year',autoFilterMaxYear:'max_year',autoFilterMinMileage:'min_mileage',autoFilterMaxMileage:'max_mileage',genericFilterDeal:'deal',genericFilterSub:'sub',genericFilterMinPrice:'min_price',genericFilterMaxPrice:'max_price',genericFilterCondition:'condition',genericFilterMake:'make',genericFilterModel:'model',genericFilterPetBreed:'pet_breed',genericFilterPetGender:'pet_gender'};
  Object.entries(map).forEach(([id,key])=>{const el=$(id);if(el)el.value=f[key]||''});
  $('filterActive').textContent=(state.category==='realestate'?realEstateFiltersActive():state.category==='auto'?autoFiltersActive():genericFiltersActive())?' • ✓':'';
 }
@@ -8069,13 +8259,16 @@ $('filterToggle').onclick=()=>{if(!state.category)return;const open=$('filterPan
 $('genericFilterSub').onchange=()=>{state.filters.sub=$('genericFilterSub').value;syncGenericFilterOptions()};
 $('autoFilterMake').onchange=async e=>{state.filters.make=e.target.value;state.filters.model='';$('autoFilterModel').value='';await loadAutoOptions(e.target.value)};
 $('autoFilterModel').onchange=e=>{state.filters.model=e.target.value};
+function buildPetAgeFilter(){const unit=$('genericFilterPetAgeUnit')?.value==='months'?'months':'years';const minRaw=String($('genericFilterPetAgeMin')?.value||'').trim();const maxRaw=String($('genericFilterPetAgeMax')?.value||'').trim();const maxAllowed=unit==='months'?11:20;const clean=(raw)=>{if(raw==='')return '';const n=Number(raw);if(!Number.isFinite(n)||n<0||n>maxAllowed)return null;return String(Math.floor(n))};const min=clean(minRaw),max=clean(maxRaw);if(min===null||max===null){toast(unit==='months'?'Возраст в месяцах должен быть от 0 до 11':'Возраст в годах должен быть от 0 до 20');return null}if(min!==''&&max!==''&&Number(min)>Number(max)){toast('Возраст «От» не может быть больше возраста «До»');return null}if(min===''&&max==='')return '';return `range:${unit}:${min}:${max}`}
+$('genericFilterPetAgeUnit')?.addEventListener('change',()=>{const months=$('genericFilterPetAgeUnit').value==='months';['genericFilterPetAgeMin','genericFilterPetAgeMax'].forEach(id=>{const el=$(id);if(el){el.max=months?'11':'20';if(el.value!==''&&Number(el.value)>Number(el.max))el.value=el.max}})});
 $('filterApply').onclick=()=>{
+ const selectedPetAge=state.category==='pets'?buildPetAgeFilter():'';if(selectedPetAge===null)return;
  if(state.category==='realestate'){
   state.filters={deal:$('filterDeal').value,sub:$('filterSub').value,min_price:$('filterMinPrice').value.trim(),max_price:$('filterMaxPrice').value.trim(),rooms:$('filterRooms').value,min_area:$('filterMinArea').value.trim(),max_area:$('filterMaxArea').value.trim(),district:$('filterDistrict').value.trim(),make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:''};
  }else if(state.category==='auto'){
   state.filters={deal:$('autoFilterDeal').value,sub:'',min_price:$('autoFilterMinPrice').value.trim(),max_price:$('autoFilterMaxPrice').value.trim(),rooms:'',min_area:'',max_area:'',district:'',make:$('autoFilterMake').value.trim(),model:$('autoFilterModel').value.trim(),min_year:$('autoFilterMinYear').value.trim(),max_year:$('autoFilterMaxYear').value.trim(),min_mileage:$('autoFilterMinMileage').value.trim(),max_mileage:$('autoFilterMaxMileage').value.trim(),condition:''};
  }else{
-  state.filters={deal:$('genericFilterDeal').value,sub:$('genericFilterSub').value,min_price:['work','services'].includes(state.category)?'':$('genericFilterMinPrice').value.trim(),max_price:['work','services'].includes(state.category)?'':$('genericFilterMaxPrice').value.trim(),rooms:'',min_area:'',max_area:'',district:'',make:state.category==='tech'?$('genericFilterMake').value.trim():'',model:state.category==='tech'?$('genericFilterModel').value.trim():'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:$('genericFilterCondition').value,pet_age:state.category==='pets'?$('genericFilterPetAge').value.trim():'',pet_breed:state.category==='pets'?$('genericFilterPetBreed').value.trim():'',pet_gender:state.category==='pets'?$('genericFilterPetGender').value:''};
+  state.filters={deal:$('genericFilterDeal').value,sub:$('genericFilterSub').value,min_price:['work','services'].includes(state.category)?'':$('genericFilterMinPrice').value.trim(),max_price:['work','services'].includes(state.category)?'':$('genericFilterMaxPrice').value.trim(),rooms:'',min_area:'',max_area:'',district:'',make:state.category==='tech'?$('genericFilterMake').value.trim():'',model:state.category==='tech'?$('genericFilterModel').value.trim():'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:$('genericFilterCondition').value,pet_age:state.category==='pets'?selectedPetAge:'',pet_breed:state.category==='pets'?$('genericFilterPetBreed').value.trim():'',pet_gender:state.category==='pets'?$('genericFilterPetGender').value:''};
  }
  $('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');syncFilterUI();load(true)
 };
@@ -9587,7 +9780,7 @@ def mini_app_listings():
                 "p_model": str(request.args.get("model", "")).strip() or None,
                 "p_pet_age": str(request.args.get("pet_age", "")).strip() or None,
                 "p_pet_breed": str(request.args.get("pet_breed", "")).strip() or None,
-                "p_pet_gender": str(request.args.get("pet_gender", "")).strip().lower() or None,
+                "p_pet_gender": ({"male": "male", "female": "female", "unknown": "unknown"}.get(str(request.args.get("pet_gender", "")).strip().lower()) or None),
                 "p_min_price": _generic_num(request.args.get("min_price", "")),
                 "p_max_price": _generic_num(request.args.get("max_price", "")),
                 "p_query": q or None,
