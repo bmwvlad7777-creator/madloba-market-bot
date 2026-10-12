@@ -10277,187 +10277,192 @@ def webhook():
 
 
 # ============================================================
-# ЗАПУСК
+# ЗАПУСК ИЛИ ОДНОРАЗОВАЯ ЗАДАЧА CRON
 # ============================================================
 
-print(
-    "===== BOT START ====="
-)
+if os.environ.get("MM_LISTING_LIFECYCLE_ONCE", "").strip() == "1":
+    # Cron Job imports this module and explicitly calls run_listing_lifecycle_once().
+    # Do not reset Telegram commands/webhook or start a resident background thread.
+    print("MADLOBA CRON MODE: startup side effects skipped")
+else:
 
-
-# Проверяем токен
-print(
-
-    "GET ME:",
-
-    api(
-        "getMe"
+    print(
+        "===== BOT START ====="
     )
-)
 
 
-# ============================================================
-# КОМАНДЫ TELEGRAM
-# ============================================================
+    # Проверяем токен
+    print(
 
-api(
+        "GET ME:",
 
-    "setMyCommands",
-
-    {
-
-        "commands": [
-
-            {
-
-                "command":
-                    "start",
-
-                "description":
-                    "Главное меню"
-            },
-
-            {
-
-                "command":
-                    "categories",
-
-                "description":
-                    "Категории"
-            },
-
-            {
-
-                "command":
-                    "post",
-
-                "description":
-                    "Разместить объявление"
-            },
-
-            {
-
-                "command":
-                    "id",
-
-                "description":
-                    "Мой Telegram ID"
-            },
-
-            {
-
-                "command":
-                    "rules",
-
-                "description":
-                    "Правила"
-            },
-
-            {
-
-                "command":
-                    "help",
-
-                "description":
-                    "Помощь"
-            }
-        ]
-    }
-)
-
-
-# ============================================================
-# MINI APP — КНОПКА В МЕНЮ БОТА
-# ============================================================
-
-print(
-    "SET MINI APP MENU BUTTON:",
-    api(
-        "setChatMenuButton",
-        {
-            "menu_button": {
-                "type": "web_app",
-                "text": "MADLOBA MARKET",
-                "web_app": {"url": MINI_APP_URL},
-            }
-        },
+        api(
+            "getMe"
+        )
     )
-)
 
 
-# ============================================================
-# WEBHOOK RENDER
-# ============================================================
-
-render_url = os.environ.get(
-
-    "RENDER_EXTERNAL_URL",
-
-    "https://madloba-market-bot.onrender.com"
-)
-
-
-webhook_url = (
-    f"{render_url}/webhook"
-)
-
-
-print(
-    "WEBHOOK URL:",
-    webhook_url
-)
-
-
-print(
-
-    "SET WEBHOOK:",
+    # ============================================================
+    # КОМАНДЫ TELEGRAM
+    # ============================================================
 
     api(
 
-        "setWebhook",
+        "setMyCommands",
 
         {
-            "url": webhook_url,
-            "secret_token": WEBHOOK_SECRET,
+
+            "commands": [
+
+                {
+
+                    "command":
+                        "start",
+
+                    "description":
+                        "Главное меню"
+                },
+
+                {
+
+                    "command":
+                        "categories",
+
+                    "description":
+                        "Категории"
+                },
+
+                {
+
+                    "command":
+                        "post",
+
+                    "description":
+                        "Разместить объявление"
+                },
+
+                {
+
+                    "command":
+                        "id",
+
+                    "description":
+                        "Мой Telegram ID"
+                },
+
+                {
+
+                    "command":
+                        "rules",
+
+                    "description":
+                        "Правила"
+                },
+
+                {
+
+                    "command":
+                        "help",
+
+                    "description":
+                        "Помощь"
+                }
+            ]
         }
     )
-)
 
 
-print(
+    # ============================================================
+    # MINI APP — КНОПКА В МЕНЮ БОТА
+    # ============================================================
 
-    "WEBHOOK INFO:",
-
-    api(
-        "getWebhookInfo"
+    print(
+        "SET MINI APP MENU BUTTON:",
+        api(
+            "setChatMenuButton",
+            {
+                "menu_button": {
+                    "type": "web_app",
+                    "text": "MADLOBA MARKET",
+                    "web_app": {"url": MINI_APP_URL},
+                }
+            },
+        )
     )
-)
 
 
-print(
+    # ============================================================
+    # WEBHOOK RENDER
+    # ============================================================
 
-    "CHANNEL USERNAME:",
+    render_url = os.environ.get(
 
-    CHANNEL_USERNAME
-)
+        "RENDER_EXTERNAL_URL",
 
-print(
-
-    "ADMIN CHAT ID:",
-
-    ADMIN_CHAT_ID
-)
+        "https://madloba-market-bot.onrender.com"
+    )
 
 
-print(
-    "===== WEBHOOK SETUP FINISHED ====="
-)
+    webhook_url = (
+        f"{render_url}/webhook"
+    )
 
-# Автоматически проверяем сроки объявлений каждые 15 минут.
-# Повторные процессы безопасны: напоминания захватываются атомарным PATCH,
-# а архивирование/удаление можно повторять после сбоев.
-start_listing_lifecycle_worker()
 
+    print(
+        "WEBHOOK URL:",
+        webhook_url
+    )
+
+
+    print(
+
+        "SET WEBHOOK:",
+
+        api(
+
+            "setWebhook",
+
+            {
+                "url": webhook_url,
+                "secret_token": WEBHOOK_SECRET,
+            }
+        )
+    )
+
+
+    print(
+
+        "WEBHOOK INFO:",
+
+        api(
+            "getWebhookInfo"
+        )
+    )
+
+
+    print(
+
+        "CHANNEL USERNAME:",
+
+        CHANNEL_USERNAME
+    )
+
+    print(
+
+        "ADMIN CHAT ID:",
+
+        ADMIN_CHAT_ID
+    )
+
+
+    print(
+        "===== WEBHOOK SETUP FINISHED ====="
+    )
+
+    # Автоматически проверяем сроки объявлений каждые 15 минут.
+    # Повторные процессы безопасны: напоминания захватываются атомарным PATCH,
+    # а архивирование/удаление можно повторять после сбоев.
+    start_listing_lifecycle_worker()
 
 # ============================================================
 # LOCAL START
