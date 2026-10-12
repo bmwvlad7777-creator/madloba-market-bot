@@ -176,6 +176,55 @@ def supabase_request(method, path, params=None, payload=None):
 
 RUNTIME_STATE_TABLE = "mm_bot_runtime_state"
 
+# Telegram may redeliver the same webhook update. A dedicated table with a
+# unique update_id lets us claim an update atomically across Render restarts.
+TELEGRAM_UPDATES_TABLE = "mm_telegram_updates"
+_telegram_update_claim_count = 0
+
+
+def claim_telegram_update(update_id):
+    """Return True for a new update, False for a duplicate, None on DB failure."""
+    global _telegram_update_claim_count
+    if update_id is None or not supabase_enabled():
+        return None
+    url = f"{SUPABASE_URL}/rest/v1/{TELEGRAM_UPDATES_TABLE}"
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY,
+        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=ignore-duplicates,return=representation",
+    }
+    try:
+        response = HTTP_SESSION.post(
+            url,
+            params={"on_conflict": "update_id"},
+            headers=headers,
+            json={"update_id": int(update_id)},
+            timeout=(5, 10),
+        )
+        if not response.ok:
+            print("TELEGRAM UPDATE DEDUP ERROR:", response.status_code, response.text[:500])
+            return None
+        rows = response.json() if response.text else []
+        if not rows:
+            print("TELEGRAM DUPLICATE UPDATE IGNORED:", update_id)
+            return False
+        _telegram_update_claim_count += 1
+        # Keep the receipt table bounded; cleanup is infrequent, not per update.
+        if _telegram_update_claim_count % 1000 == 0:
+            try:
+                cutoff = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 7 * 86400))
+                supabase_request(
+                    "DELETE", TELEGRAM_UPDATES_TABLE,
+                    params={"created_at": f"lt.{cutoff}"},
+                )
+            except Exception as cleanup_error:
+                print("TELEGRAM UPDATE CLEANUP WARNING:", repr(cleanup_error))
+        return True
+    except Exception as error:
+        print("TELEGRAM UPDATE DEDUP REQUEST ERROR:", repr(error))
+        return None
+
 
 def runtime_state_load(state_key):
     """Load one JSON state record. Returns (found, payload, request_ok)."""
@@ -9686,6 +9735,17 @@ def webhook():
     update = request.get_json(silent=True)
     if not isinstance(update, dict):
         return "Bad Request", 400
+
+    update_id = update.get("update_id")
+    if update_id is not None:
+        claimed = claim_telegram_update(update_id)
+        if claimed is False:
+            # Telegram redelivered an update already claimed by this bot.
+            return "OK"
+        if claimed is None:
+            # Fail open during a transient database issue so the bot remains usable.
+            # The warning makes it visible that deduplication was not available.
+            print("TELEGRAM UPDATE DEDUP WARNING: processing without deduplication", update_id)
 
     try:
         handle(update)
