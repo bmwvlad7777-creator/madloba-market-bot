@@ -6203,7 +6203,8 @@ def validate_telegram_init_data(init_data, max_age=86400):
         if not hmac.compare_digest(calculated_hash, received_hash):
             return None
         auth_date = int(parsed.get("auth_date", ["0"])[0])
-        if auth_date <= 0 or time.time() - auth_date > max_age:
+        now = time.time()
+        if auth_date <= 0 or auth_date > now + 60 or now - auth_date > max_age:
             return None
         user_raw = parsed.get("user", [""])[0]
         user = json.loads(user_raw) if user_raw else {}
