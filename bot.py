@@ -647,6 +647,21 @@ def _supabase_user_id(telegram_id):
     return existing[0]["id"] if existing else None
 
 
+def _strip_public_listing_fields(item):
+    """Remove internal lifecycle and Telegram message identifiers from public listing responses."""
+    for key in ("status", "published_at", "expires_at", "reminder_sent_at", "channel_message_id"):
+        item.pop(key, None)
+    item.pop("legacy_id", None)
+    return item
+
+
+def _strip_listing_contact_fields(item):
+    """Keep direct contact details out of catalog/favorites payloads; detail view fetches them on demand."""
+    for key in ("contact", "phone", "whatsapp", "telegram"):
+        item.pop(key, None)
+    return item
+
+
 def _row_to_listing(row):
     metadata = row.get("metadata") or {}
     if not isinstance(metadata, dict):
@@ -9072,6 +9087,8 @@ def mini_app_favorites():
         item["category_name"]=item.get("category") or "Объявление"
         item["channel_post_url"]=row.get("channel_url") or ""
         item["is_favorite"]=True
+        _strip_public_listing_fields(item)
+        _strip_listing_contact_fields(item)
     return jsonify({"items":items})
 
 
@@ -9930,6 +9947,8 @@ def mini_app_listings():
         item["currency"] = row.get("currency") or item.get("currency", "")
         item["address"] = row.get("address") or item.get("district", "")
         item["category_name"] = item.get("category") or "Объявление"
+        _strip_public_listing_fields(item)
+        _strip_listing_contact_fields(item)
 
     return jsonify({
         "items":items,
@@ -10216,6 +10235,7 @@ def mini_app_listing_detail(listing_id):
         if current_user_id:
             fav=supabase_request("GET","favorites",params={"select":"id","user_id":f"eq.{current_user_id}","listing_id":f"eq.{listing_id}","limit":"1"}) or []
             item["is_favorite"]=bool(fav)
+    _strip_public_listing_fields(item)
     return jsonify(item)
 
 
