@@ -1405,6 +1405,29 @@ def api(method, data=None):
 # ОТПРАВКА СООБЩЕНИЯ
 # ============================================================
 
+def send_admin_reply_keyboard(chat_id):
+    """Install a persistent, one-tap moderation shortcut for the administrator."""
+    if not moderator_is_allowed(chat_id):
+        return {"ok": False, "description": "Not an administrator"}
+    return api(
+        "sendMessage",
+        {
+            "chat_id": chat_id,
+            "text": "🛡 <b>Панель администратора</b>\n\nНажмите «🛡 Модерация», чтобы открыть актуальную очередь заявок.",
+            "parse_mode": "HTML",
+            "reply_markup": {
+                "keyboard": [
+                    [{"text": "🛡 Модерация"}],
+                    [{"text": "🏠 Главное меню"}],
+                ],
+                "resize_keyboard": True,
+                "is_persistent": True,
+                "input_field_placeholder": "Выберите действие",
+            },
+        },
+    )
+
+
 def send(
     chat_id,
     text,
@@ -4775,6 +4798,18 @@ def _handle_update_core(
 
 
         # ====================================================
+        # ПОСТОЯННАЯ КНОПКА АДМИНИСТРАТОРА
+        # ====================================================
+
+        if text.strip() == "🛡 Модерация":
+            if moderator_is_allowed(chat_id):
+                refresh_admin_moderation_queue(0)
+            else:
+                send(chat_id, "⛔ Эта кнопка доступна только администратору.")
+            return
+
+
+        # ====================================================
         # РЕДАКТИРОВАНИЕ ОБЪЯВЛЕНИЯ МОДЕРАТОРОМ
         # ====================================================
 
@@ -4840,7 +4875,9 @@ def _handle_update_core(
             # the bot with /start, followed by the normal main menu. Telegram
             # bots cannot detect merely opening an existing chat without an update.
             if moderator_is_allowed(chat_id):
-                send_moderation_queue(chat_id, 0)
+                # Reuse one queue message instead of creating a new card on every /start.
+                refresh_admin_moderation_queue(0)
+                send_admin_reply_keyboard(chat_id)
 
             send(
 
