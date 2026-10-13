@@ -9015,7 +9015,10 @@ def mini_app_republish_listing(listing_id):
     photo_rows = supabase_request(
         "GET", "listing_photos",
         params={"select":"photo_url,sort_order", "listing_id":f"eq.{int(listing_id)}", "order":"sort_order.asc"},
-    ) or []
+    )
+    if photo_rows is None:
+        _release_republish_lock()
+        return jsonify({"error":"db_read_failed"}), 503
     data["photos"] = [str(x.get("photo_url")) for x in photo_rows if x.get("photo_url")]
 
     try:
@@ -9045,7 +9048,8 @@ def mini_app_republish_listing(listing_id):
         params={"id":f"eq.{int(listing_id)}", "user_id":f"eq.{user_id}", "status":"eq.archived", "republish_lock_at":f"eq.{lock_time}"},
         payload={"status":"published", "published_at":_utc_now_iso(), "expires_at":(datetime.now(timezone.utc) + timedelta(days=10)).isoformat(), "reminder_sent_at":None, "channel_url":channel_url, "channel_message_id":message_id, "republish_lock_at":None},
     )
-    if updated is None:
+    if not updated:
+        # Пустой список тоже означает, что запись не обновилась (например, lock/status уже изменился).
         # Не оставляем новое сообщение в канале без связи с объявлением.
         if message_id and CHANNEL_USERNAME:
             try:
