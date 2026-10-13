@@ -8116,7 +8116,7 @@ ru:{hero_title:'Всё нужное<br><span>рядом</span>',hero_subtitle:'�
 en:{hero_title:'Everything you need<br><span>nearby</span>',hero_subtitle:'Buy, sell and find what you need right in Telegram.',search_placeholder:'What are you looking for? e.g. apartment',all_categories:'← All categories',categories:'Categories',popular_categories:'Popular categories',all_categories_short:'All →',popular_rent:'Apartments for rent',popular_auto:'Cars',popular_phones:'Phones',popular_home:'Furniture',popular_services:'Services',popular_listings:'Popular listings',all_categories_section:'All categories',collapse_categories:'Show less ↑',expand_categories:'All categories ↓',more_categories:'More',best_listings:'Best listings',all_short:'All →',fresh_listings:'Fresh listings',new_label:'NEW',show_more:'Show more',sort_new:'Newest first',sort_price_asc:'Price: low to high',sort_price_desc:'Price: high to low',back:'← Back',listing:'Listing',favorites:'Favorites',my_listings:'My listings',profile:'Profile',home:'Home',post:'Post',mine_short:'My listings',language:'Language',filters:'Filters',deal:'Deal',category_sub:'Subcategory',condition:'Condition',property_type:'Type',price_from:'Price from',price_to:'Price to',rooms:'Rooms',district:'District',district_placeholder:'e.g. New Boulevard',area_from:'Area from, m²',area_to:'Area to, m²',auto_make:'Make',auto_model:'Model',year_from:'Year from',year_to:'Year to',mileage_from:'Mileage from, km',mileage_to:'Mileage to, km',auto_make_placeholder:'e.g. Toyota',auto_model_placeholder:'e.g. Camry',auto_select_make:'Select make',auto_select_model:'Select a make first',apply:'Apply',reset:'Reset',all:'All',rent:'Rent out',seek:'Rent',sell:'Sell',buy:'Buy',empty_list:'No listings yet.<br>Try another category or city.',photo_missing:'No photo added',favorite_add:'Add to favorites',favorite_remove:'Remove from favorites',open:'Open',edit:'Edit',hide:'Unpublish',republish:'Republish',renew_10_days:'Renew for 10 days',delete:'Delete',published:'Published',pending:'Pending moderation',rejected:'Rejected',draft:'Draft',archived:'Unpublished',save:'Save',cancel:'Cancel',description:'Description',price:'Price',currency:'Currency',address:'Address / area',phone:'Phone',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'Listing saved',save_fail:'Could not save',login_telegram:'Open MADLOBA MARKET from Telegram',fav_added:'Added to favorites',fav_removed:'Removed from favorites',favorite_fail:'Could not change favorites',fav_empty_title:'Nothing here yet',fav_empty_text:'Tap ♡ on listings you like.',fav_telegram:'Favorites are available in Telegram',fav_telegram_text:'Open MADLOBA MARKET through Telegram.',loading:'Loading…',my_loading:'Loading your listings…',my_empty:'You have no listings yet.',post_hint:'Post your first listing using the “Post” button.',profile_telegram:'Profile is available when the Mini App is opened from Telegram.',profile_fail:'Could not load profile.',user:'User',status:'Status',telegram_user:'Telegram user',status_user:'MADLOBA MARKET user',city:'City',telegram_id:'Telegram ID',search_again:'Could not load listings.<br>Try again.',favorites_fail:'Could not load favorites. Try again.',my_fail:'Could not load your listings. Try again.',open_fail:'Could not open listing',edit_fail:'Could not open editing',hide_confirm:'Unpublish this listing? It will disappear from the catalog.',republish_confirm:'Republish this listing? It will appear in the catalog again and be published to the channel.',delete_confirm:'Delete this listing permanently?',hide_ok:'Listing unpublished',hide_fail:'Could not unpublish listing',republish_ok:'Listing republished',republish_fail:'Could not republish listing',delete_ok:'Listing deleted',delete_fail:'Could not delete listing',channel_fail:'Could not publish to the channel',placing:'Posting will open through the bot',city_changed:'City: ',no_listing:'Listing',spec_rooms:'Rooms',spec_area:'Area',spec_floor:'Floor',spec_make_model:'Make and model',spec_year:'Year',spec_mileage:'Mileage',spec_brand_model:'Model',spec_condition:'Condition',spec_warranty:'Warranty',spec_dimensions:'Dimensions',spec_age:'Age',spec_breed:'Breed',spec_gender:'Sex',spec_service:'Service',spec_experience:'Experience',spec_requirements:'What are you looking for',category_services:'Services',category_pets:'Pets',desc_services:'Beauty, repairs, local experts',desc_pets:'Pets and pet supplies',category_realestate:'Real estate',category_auto:'Cars',category_tech:'Electronics',category_home:'Home & furniture',category_kids:'Kids',category_work:'Jobs',category_give:'Free',category_search:'Wanted',desc_realestate:'Apartments, houses, rentals',desc_auto:'Cars, motorcycles, parts',desc_tech:'Phones, electronics',desc_home:'Furniture and home goods',desc_kids:'Kids products',desc_work:'Jobs and part-time work',desc_give:'Free items',desc_search:'Wanted items and services',contact_call:'📞 Call',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 Open in channel'},
 ka:{hero_title:'ყველაფერი საჭირო<br><span>ახლოსაა</span>',hero_subtitle:'იყიდეთ, გაყიდეთ და იპოვეთ სასურველი პირდაპირ Telegram-ში.',search_placeholder:'რას ეძებთ? მაგალითად: ბინა',all_categories:'← ყველა კატეგორია',categories:'კატეგორიები',popular_categories:'პოპულარული კატეგორიები',all_categories_short:'ყველა →',popular_rent:'ბინები ქირით',popular_auto:'ავტო',popular_phones:'ტელეფონები',popular_home:'ავეჯი',popular_services:'საუკეთესო განცხადებები',popular_listings:'პოპულარული',all_categories_section:'ყველა კატეგორია',collapse_categories:'შეკუმშვა ↑',expand_categories:'ყველა კატეგორია ↓',more_categories:'მეტი',best_listings:'საუკეთესო განცხადებები',all_short:'ყველა →',fresh_listings:'ახალი განცხადებები',new_label:'ახალი',show_more:'მეტის ჩვენება',sort_new:'ჯერ ახალი',sort_price_asc:'ფასი: იაფიდან',sort_price_desc:'ფასი: ძვირიდან',back:'← უკან',listing:'განცხადება',favorites:'რჩეულები',my_listings:'ჩემი განცხადებები',profile:'პროფილი',home:'მთავარი',post:'განთავსება',mine_short:'ჩემი',language:'ენა',filters:'ფილტრები',deal:'გარიგება',category_sub:'ქვეკატეგორია',condition:'მდგომარეობა',property_type:'ტიპი',price_from:'ფასი მინ.',price_to:'ფასი მაქს.',rooms:'ოთახები',district:'რაიონი',district_placeholder:'მაგ. New Boulevard',area_from:'ფართობი მინ., მ²',area_to:'ფართობი მაქს., მ²',auto_make:'მარკა',auto_model:'მოდელი',year_from:'წელი მინ.',year_to:'წელი მაქს.',mileage_from:'გარბენი მინ., კმ',mileage_to:'გარბენი მაქს., კმ',auto_make_placeholder:'მაგ. Toyota',auto_model_placeholder:'მაგ. Camry',auto_select_make:'აირჩიეთ მარკა',auto_select_model:'ჯერ აირჩიეთ მარკა',apply:'გამოყენება',reset:'გასუფთავება',all:'ყველა',rent:'ვაქირავებ',seek:'ვიქირავებ',sell:'ვყიდი',buy:'ვყიდულობ',empty_list:'განცხადებები ჯერ არ არის.<br>სცადეთ სხვა კატეგორია ან ქალაქი.',photo_missing:'ფოტო არ არის დამატებული',favorite_add:'რჩეულებში დამატება',favorite_remove:'რჩეულებიდან წაშლა',open:'გახსნა',edit:'რედაქტირება',hide:'გამოქვეყნების მოხსნა',republish:'ხელახლა გამოქვეყნება',renew_10_days:'10 დღით გაგრძელება',delete:'წაშლა',published:'გამოქვეყნებული',pending:'მოდერაციაზეა',rejected:'უარყოფილი',draft:'დრაფტი',archived:'გამოქვეყნებიდან მოხსნილი',save:'შენახვა',cancel:'გაუქმება',description:'აღწერა',price:'ფასი',currency:'ვალუტა',address:'მისამართი / რაიონი',phone:'ტელეფონი',whatsapp:'WhatsApp',telegram:'Telegram',save_ok:'განცხადება შენახულია',save_fail:'შენახვა ვერ მოხერხდა',login_telegram:'გახსენით MADLOBA MARKET Telegram-იდან',fav_added:'დაემატა რჩეულებში',fav_removed:'წაიშალა რჩეულებიდან',favorite_fail:'რჩეულების შეცვლა ვერ მოხერხდა',fav_empty_title:'აქ ჯერ არაფერია',fav_empty_text:'დააჭირეთ ♡ სასურველ განცხადებებზე.',fav_telegram:'რჩეულები ხელმისაწვდომია Telegram-ში',fav_telegram_text:'გახსენით MADLOBA MARKET Telegram-იდან.',loading:'იტვირთება…',my_loading:'თქვენი განცხადებები იტვირთება…',my_empty:'თქვენ ჯერ განცხადებები არ გაქვთ.',post_hint:'პირველი განცხადება დაამატეთ ღილაკით „განთავსება“.',profile_telegram:'პროფილი ხელმისაწვდომია Mini App-ის Telegram-იდან გახსნისას.',profile_fail:'პროფილის ჩატვირთვა ვერ მოხერხდა.',user:'მომხმარებელი',status:'სტატუსი',telegram_user:'Telegram მომხმარებელი',status_user:'MADLOBA MARKET-ის მომხმარებელი',city:'ქალაქი',telegram_id:'Telegram ID',search_again:'განცხადებების ჩატვირთვა ვერ მოხერხდა.<br>სცადეთ ხელახლა.',favorites_fail:'რჩეულების ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.',my_fail:'თქვენი განცხადებების ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.',open_fail:'განცხადების გახსნა ვერ მოხერხდა',edit_fail:'რედაქტირების გახსნა ვერ მოხერხდა',hide_confirm:'მოხსნათ განცხადება გამოქვეყნებიდან? ის კატალოგიდან გაქრება.',republish_confirm:'ხელახლა გამოაქვეყნოთ განცხადება? ის ისევ გამოჩნდება კატალოგში და არხში.',delete_confirm:'წავშალოთ განცხადება სამუდამოდ?',hide_ok:'განცხადება გამოქვეყნებიდან მოიხსნა',hide_fail:'გამოქვეყნებიდან მოხსნა ვერ მოხერხდა',republish_ok:'განცხადება ხელახლა გამოქვეყნდა',republish_fail:'ხელახლა გამოქვეყნება ვერ მოხერხდა',delete_ok:'განცხადება წაიშალა',delete_fail:'განცხადების წაშლა ვერ მოხერხდა',channel_fail:'არხში გამოქვეყნება ვერ მოხერხდა',placing:'განთავსება გაიხსნება ბოტის საშუალებით',city_changed:'ქალაქი: ',no_listing:'განცხადება',spec_rooms:'ოთახები',spec_area:'ფართობი',spec_floor:'სართული',spec_make_model:'მარკა და მოდელი',spec_year:'წელი',spec_mileage:'გარბენი',spec_brand_model:'მოდელი',spec_condition:'მდგომარეობა',spec_warranty:'გარანტია',spec_dimensions:'ზომები',spec_age:'ასაკი',spec_breed:'ჯიში',spec_gender:'სქესი',spec_service:'სერვისი',spec_experience:'გამოცდილება',spec_requirements:'რას ეძებთ',category_services:'სერვისები',category_pets:'ცხოველები',desc_services:'სილამაზე, რემონტი, სპეციალისტები',desc_pets:'შინაური ცხოველები და აქსესუარები',category_realestate:'უძრავი ქონება',category_auto:'ავტო',category_tech:'ტექნიკა',category_home:'სახლი და ავეჯი',category_kids:'ბავშვები',category_work:'სამუშაო',category_give:'გაჩუქება',category_search:'ვეძებ',desc_realestate:'ბინები, სახლები, ქირა',desc_auto:'მანქანები, მოტო, ნაწილები',desc_tech:'ტელეფონები, ელექტრონიკა',desc_home:'ავეჯი და სახლის ნივთები',desc_kids:'ბავშვთა ნივთები',desc_work:'ვაკანსიები და ნახევარ განაკვეთზე სამუშაო',desc_give:'უფასოდ',desc_search:'საჭირო ნივთები და სერვისები',contact_call:'📞 დარეკვა',contact_whatsapp:'💬 WhatsApp',contact_telegram:'✈️ Telegram',open_channel:'📣 არხში გახსნა'}
 };
-const state={city:localStorage.getItem('mm_city')||'batumi',lang:localStorage.getItem('mm_lang')||'ru',page:0,q:'',category:'',loading:false,sort:'new',filters:{deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''}};
+const state={city:localStorage.getItem('mm_city')||'batumi',lang:localStorage.getItem('mm_lang')||'ru',page:0,cursorIds:[null],q:'',category:'',loading:false,sort:'new',filters:{deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''}};
 function t(k){return (I18N[state.lang]&&I18N[state.lang][k])||I18N.ru[k]||k}
 function applyLang(){document.documentElement.lang=state.lang;document.querySelectorAll('[data-i18n]').forEach(el=>el.innerHTML=t(el.dataset.i18n));document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>el.placeholder=t(el.dataset.i18nPlaceholder));$('langSelect').value=state.lang;$('citySelect').value=state.city;Array.from($('citySelect').options).forEach(opt=>{const cityKey=opt.value;opt.textContent='📍 '+(cityNames[cityKey][state.lang]||cityNames[cityKey].en)});updateBestCityLabel();renderCats();renderQuickIcons();bindPopular();bindHomeRedesign();updateFilterVisibility()}
 
@@ -8273,7 +8273,7 @@ function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').fo
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
-async function load(reset=true){if(reset){state.page=0;$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort});/* A text search is global: do not constrain it to the last selected category or its filters. */if(requestCategory&&!requestQ)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory&&!requestQ){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
+async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* A text search is global: do not constrain it to the last selected category or its filters. */if(requestCategory&&!requestQ)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory&&!requestQ){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const renew=st==='published'?`<button class="mine-action primary" data-action="renew">↻ ${t('renew_10_days')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;const expiryLabel=state.lang==='en'?'Expires: ':state.lang==='ka'?'ვადა იწურება: ':'Истекает: ';const expiryDate=x.expires_at?new Date(x.expires_at).toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';const expiry=st==='published'?(expiryDate?`<div class="mine-expiry">📅 ${expiryLabel}${esc(expiryDate)}</div>`:`<div class="mine-expiry missing">📅 ${state.lang==='en'?'Expiry date not set':state.lang==='ka'?'ვადის თარიღი მითითებული არ არის':'Дата окончания не указана'}</div>`):'';return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span>${expiry}</div></div><div class="mine-actions">${open}${edit}${renew}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
@@ -9436,295 +9436,211 @@ def mini_app_listings():
         if not category_id:
             return jsonify({"items":[],"has_next":False,"total_hint":0})
 
-    params = {
-        "select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status",
-        "status":"eq.published",
-        "expires_at": f"gt.{_utc_now_iso()}",
-        "city_id":f"eq.{city_id}",
-        "order":"created_at.desc",
-    }
-    if category_id:
-        params["category_id"] = f"eq.{category_id}"
+    cursor_requested = str(request.args.get("cursor_mode", "")).strip() == "1"
+    cursor_filter_names = (
+        "deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area",
+        "district", "make", "model", "min_year", "max_year", "min_mileage", "max_mileage",
+        "condition", "pet_age", "pet_breed", "pet_gender",
+    )
+    cursor_has_advanced_filters = any(str(request.args.get(name, "")).strip() for name in cursor_filter_names)
+    cursor_mode_active = cursor_requested and not cursor_has_advanced_filters
 
-    # Push safe, exact filters into PostgREST before loading candidates.
-    # Python checks remain as a defensive consistency check.
-    selected_deal_db = str(request.args.get("deal", "")).strip().lower()
-    generic_filter_categories = {"tech", "home", "kids", "work", "services", "pets", "give", "search"}
-    if category == "realestate" and selected_deal_db in {"rent", "seek", "sell", "buy"}:
-        params["metadata->>type_key"] = f"eq.{selected_deal_db}"
-    elif category == "auto" and selected_deal_db in {"sell", "buy"}:
-        params["metadata->>type_key"] = f"eq.{selected_deal_db}"
-    elif category in generic_filter_categories and selected_deal_db:
-        params["metadata->>type_key"] = f"eq.{selected_deal_db}"
-
-    selected_sub_db = str(request.args.get("sub", "")).strip().lower()
-    allowed_realestate_subs = {"apartment", "house", "room", "commercial", "land", "garage"}
-    if selected_sub_db and (category in generic_filter_categories or (category == "realestate" and selected_sub_db in allowed_realestate_subs)):
-        params["metadata->>subcategory_key"] = f"eq.{selected_sub_db}"
-
-    # Price is a numeric table column, so valid bounds can be filtered in SQL
-    # instead of downloading thousands of rows and discarding most in Python.
-    price_conditions = []
-    for request_name, operator in (("min_price", "gte"), ("max_price", "lte")):
-        raw_price = str(request.args.get(request_name, "")).strip().replace(",", ".")
-        if raw_price:
-            try:
-                price_bound = float(raw_price)
-                import math
-                if price_bound >= 0 and math.isfinite(price_bound):
-                    price_conditions.append(f"price.{operator}.{price_bound}")
-            except (TypeError, ValueError):
-                pass
-    if len(price_conditions) == 1:
-        _, operator, value = price_conditions[0].split(".", 2)
-        params["price"] = f"{operator}.{value}"
-    elif len(price_conditions) == 2:
-        params["and"] = f"({','.join(price_conditions)})"
-
-    def _fetch_listing_candidates(query_params, max_candidates=10000, batch_size=1000):
-        """Fetch a bounded, stable set of listing candidates in API-sized batches."""
-        candidates = []
-        paged_params = dict(query_params)
-        paged_params["limit"] = str(batch_size)
-        for candidate_offset in range(0, max_candidates, batch_size):
-            paged_params["offset"] = str(candidate_offset)
-            batch = supabase_request("GET", "listings", params=paged_params)
-            if batch is None:
-                return None
-            candidates.extend(batch)
-            if len(batch) < batch_size:
-                break
-        return candidates
-
-    # Search is applied in Python to the candidate rows so it can match
-    # title, description, address and saved metadata consistently, including
-    # Russian category/subcategory details. Avoid fragile PostgREST `or`
-    # syntax for free-text input.
-    def _matches_search(row):
-        if not q:
-            return True
-        metadata = row.get("metadata") or {}
+    if cursor_mode_active:
+        raw_cursor_id = str(request.args.get("cursor_id", "")).strip()
         try:
-            metadata_text = json.dumps(metadata, ensure_ascii=False, default=str)
+            cursor_id = int(raw_cursor_id) if raw_cursor_id else None
+            if cursor_id is not None and cursor_id <= 0:
+                cursor_id = None
         except (TypeError, ValueError):
-            metadata_text = str(metadata)
-        haystack = " ".join((
-            str(row.get("title") or ""),
-            str(row.get("description") or ""),
-            str(row.get("address") or ""),
-            metadata_text,
-        )).casefold()
-        synonym_groups = {
-            "квартира": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
-            "квартиры": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
-            "квартиру": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
-            "телефон": ("телефон", "телефоны", "phone", "smartphone"),
-            "телефоны": ("телефон", "телефоны", "phone", "smartphone"),
-            "машина": ("машина", "авто", "автомобиль", "car", "auto"),
-            "автомобиль": ("машина", "авто", "автомобиль", "car", "auto"),
-        }
-        terms = [term.casefold() for term in q.split() if term.strip()]
-        return all(any(alias in haystack for alias in synonym_groups.get(term, (term,))) for term in terms)
-
-    sort_mode = str(request.args.get("sort", "new")).strip().lower()
-    if sort_mode not in {"new", "price_asc", "price_desc"}:
-        sort_mode = "new"
-    params["order"] = "created_at.desc" if sort_mode == "new" else ("price.asc.nullslast,created_at.desc" if sort_mode == "price_asc" else "price.desc.nullslast,created_at.desc")
-
-    # Shared numeric parser must be defined before the auto/generic filter branches.
-    # Otherwise Python treats a later nested definition as a local variable and
-    # raises UnboundLocalError when an earlier branch calls it.
-    def _generic_num(v):
-        try:
-            return float(str(v).replace(",", ".").replace("km", "").replace("км", "").strip())
-        except (TypeError, ValueError):
-            return None
-
-    # Фильтры недвижимости применяем в Python после получения ограниченного
-    # набора кандидатов. Это специально сделано так, чтобы не зависеть от
-    # типов колонок/JSON-path синтаксиса PostgREST и не получать HTTP 400.
-    # Для площади и 4+ комнат нужен числовой разбор JSON metadata.
-    # Берём ограниченный набор кандидатов, уже отфильтрованный Supabase
-    # по городу/категории/цене/типу/району.
-    # Only filters that still require Python should force a large candidate scan.
-    # Exact type/subcategory and numeric price bounds are already applied in params.
-    # If text search is combined with those filters, keep the existing Python path
-    # for now because the RPC does not yet accept these additional filter values.
-    db_filter_names = ("deal", "sub", "min_price", "max_price")
-    has_search_with_db_filters = bool(q) and any(
-        str(request.args.get(name, "")).strip() for name in db_filter_names
-    )
-    has_python_filters = category == "realestate" and (
-        any(str(request.args.get(name, "")).strip() for name in ("rooms", "min_area", "max_area", "district"))
-        or has_search_with_db_filters
-    )
-    has_auto_filters = category == "auto" and (
-        any(str(request.args.get(name, "")).strip() for name in ("make", "model", "min_year", "max_year", "min_mileage", "max_mileage"))
-        or has_search_with_db_filters
-    )
-    has_generic_filters = category in {"tech", "home", "kids", "work", "services", "pets", "give", "search"} and (
-        any(str(request.args.get(name, "")).strip() for name in ("condition", "make", "model", "pet_age", "pet_breed", "pet_gender"))
-        or has_search_with_db_filters
-    )
-
-    # Combined free-text search + advanced filters for real estate and auto
-    # are executed in PostgreSQL. This avoids the legacy 10,000-row Python scan
-    # while leaving the already-working standalone search/filter paths unchanged.
-    # Use the combined PostgreSQL RPC whenever it can replace a Python-side
-    # candidate scan: text + advanced filters, real-estate district filtering,
-    # and auto subcategory filtering. The RPC supports an empty p_query, so
-    # these cases can be paginated in PostgreSQL even without free-text input.
-    has_combined_advanced_search = (
-        (
-            category == "realestate"
-            and (
-                (bool(q) and any(
-                    str(request.args.get(name, "")).strip()
-                    for name in ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area", "district")
-                ))
-                or bool(str(request.args.get("district", "")).strip())
-            )
-        )
-        or (
-            category == "auto"
-            and (
-                (bool(q) and any(
-                    str(request.args.get(name, "")).strip()
-                    for name in ("deal", "sub", "make", "model", "min_price", "max_price",
-                                 "min_year", "max_year", "min_mileage", "max_mileage")
-                ))
-                or bool(str(request.args.get("sub", "")).strip())
-            )
-        )
-    )
-
-    def _combined_rpc_num(name):
-        raw = str(request.args.get(name, "")).strip().lower()
-        if not raw:
-            return None
-        raw = raw.replace(",", ".").replace("km", "").replace("км", "").replace("м²", "").replace("m²", "").strip()
-        try:
-            value = float(raw)
-            import math
-            return value if math.isfinite(value) and value >= 0 else None
-        except (TypeError, ValueError):
-            return None
-
-    if has_combined_advanced_search:
-        selected_rooms_combined = str(request.args.get("rooms", "")).strip()
-        min_rooms_combined = max_rooms_combined = None
-        if selected_rooms_combined in {"1", "2", "3"}:
-            min_rooms_combined = max_rooms_combined = int(selected_rooms_combined)
-        elif selected_rooms_combined == "4":
-            min_rooms_combined = 4
-
-        offset = page * per_page
-        combined_rows = supabase_request(
+            cursor_id = None
+        cursor_rows = supabase_request(
             "POST",
-            "rpc/mm_search_filtered_listings",
+            "rpc/mm_search_cursor_listings",
             payload={
                 "p_city_id": int(city_id),
-                "p_category_id": int(category_id),
-                "p_category_key": category,
-                "p_query": q,
-                "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
-                "p_subcategory": str(request.args.get("sub", "")).strip().lower() or None,
-                "p_make": str(request.args.get("make", "")).strip() or None,
-                "p_model": str(request.args.get("model", "")).strip() or None,
-                "p_min_price": _combined_rpc_num("min_price"),
-                "p_max_price": _combined_rpc_num("max_price"),
-                "p_min_year": _combined_rpc_num("min_year"),
-                "p_max_year": _combined_rpc_num("max_year"),
-                "p_min_mileage": _combined_rpc_num("min_mileage"),
-                "p_max_mileage": _combined_rpc_num("max_mileage"),
-                "p_min_area": _combined_rpc_num("min_area"),
-                "p_max_area": _combined_rpc_num("max_area"),
-                "p_min_rooms": min_rooms_combined,
-                "p_max_rooms": max_rooms_combined,
-                "p_district": str(request.args.get("district", "")).strip() or None,
-                "p_sort": sort_mode,
-                "p_offset": offset,
+                "p_category_id": int(category_id) if category_id else None,
+                "p_query": q or None,
+                "p_sort": str(request.args.get("sort", "new")).strip().lower(),
+                "p_cursor_id": cursor_id,
                 "p_limit": per_page + 1,
             },
         )
-        if combined_rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"combined_search_unavailable"}), 503
-        has_next = len(combined_rows) > per_page
-        rows = combined_rows[:per_page]
+        if cursor_rows is None:
+            return jsonify({"items": [], "has_next": False, "total_hint": 0, "error": "cursor_search_unavailable"}), 503
+        has_next = len(cursor_rows) > per_page
+        rows = cursor_rows[:per_page]
+        next_cursor_id = rows[-1].get("id") if has_next and rows else None
+    else:
+        next_cursor_id = None
 
-    # For real-estate filters, use the database RPC so numeric filtering,
-    # ordering and pagination happen in PostgreSQL instead of scanning listings in Python.
-    # Keep the established Python path for free-text search and district filtering,
-    # which are not parameters of mm_filter_realestate_listings.
-    realestate_filter_names = ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area")
-    has_realestate_rpc_filters = (
-        category == "realestate"
-        and not q
-        and not str(request.args.get("district", "")).strip()
-        and any(str(request.args.get(name, "")).strip() for name in realestate_filter_names)
-    )
+    if not cursor_mode_active:
+        params = {
+            "select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status",
+            "status":"eq.published",
+            "expires_at": f"gt.{_utc_now_iso()}",
+            "city_id":f"eq.{city_id}",
+            "order":"created_at.desc",
+        }
+        if category_id:
+            params["category_id"] = f"eq.{category_id}"
 
-    if not has_combined_advanced_search and has_realestate_rpc_filters:
-        def _rpc_num(name):
-            raw = str(request.args.get(name, "")).strip().replace(",", ".")
-            if not raw:
-                return None
+        # Push safe, exact filters into PostgREST before loading candidates.
+        # Python checks remain as a defensive consistency check.
+        selected_deal_db = str(request.args.get("deal", "")).strip().lower()
+        generic_filter_categories = {"tech", "home", "kids", "work", "services", "pets", "give", "search"}
+        if category == "realestate" and selected_deal_db in {"rent", "seek", "sell", "buy"}:
+            params["metadata->>type_key"] = f"eq.{selected_deal_db}"
+        elif category == "auto" and selected_deal_db in {"sell", "buy"}:
+            params["metadata->>type_key"] = f"eq.{selected_deal_db}"
+        elif category in generic_filter_categories and selected_deal_db:
+            params["metadata->>type_key"] = f"eq.{selected_deal_db}"
+
+        selected_sub_db = str(request.args.get("sub", "")).strip().lower()
+        allowed_realestate_subs = {"apartment", "house", "room", "commercial", "land", "garage"}
+        if selected_sub_db and (category in generic_filter_categories or (category == "realestate" and selected_sub_db in allowed_realestate_subs)):
+            params["metadata->>subcategory_key"] = f"eq.{selected_sub_db}"
+
+        # Price is a numeric table column, so valid bounds can be filtered in SQL
+        # instead of downloading thousands of rows and discarding most in Python.
+        price_conditions = []
+        for request_name, operator in (("min_price", "gte"), ("max_price", "lte")):
+            raw_price = str(request.args.get(request_name, "")).strip().replace(",", ".")
+            if raw_price:
+                try:
+                    price_bound = float(raw_price)
+                    import math
+                    if price_bound >= 0 and math.isfinite(price_bound):
+                        price_conditions.append(f"price.{operator}.{price_bound}")
+                except (TypeError, ValueError):
+                    pass
+        if len(price_conditions) == 1:
+            _, operator, value = price_conditions[0].split(".", 2)
+            params["price"] = f"{operator}.{value}"
+        elif len(price_conditions) == 2:
+            params["and"] = f"({','.join(price_conditions)})"
+
+        def _fetch_listing_candidates(query_params, max_candidates=10000, batch_size=1000):
+            """Fetch a bounded, stable set of listing candidates in API-sized batches."""
+            candidates = []
+            paged_params = dict(query_params)
+            paged_params["limit"] = str(batch_size)
+            for candidate_offset in range(0, max_candidates, batch_size):
+                paged_params["offset"] = str(candidate_offset)
+                batch = supabase_request("GET", "listings", params=paged_params)
+                if batch is None:
+                    return None
+                candidates.extend(batch)
+                if len(batch) < batch_size:
+                    break
+            return candidates
+
+        # Search is applied in Python to the candidate rows so it can match
+        # title, description, address and saved metadata consistently, including
+        # Russian category/subcategory details. Avoid fragile PostgREST `or`
+        # syntax for free-text input.
+        def _matches_search(row):
+            if not q:
+                return True
+            metadata = row.get("metadata") or {}
             try:
-                value = float(raw)
-                import math
-                return value if math.isfinite(value) and value >= 0 else None
+                metadata_text = json.dumps(metadata, ensure_ascii=False, default=str)
+            except (TypeError, ValueError):
+                metadata_text = str(metadata)
+            haystack = " ".join((
+                str(row.get("title") or ""),
+                str(row.get("description") or ""),
+                str(row.get("address") or ""),
+                metadata_text,
+            )).casefold()
+            synonym_groups = {
+                "квартира": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
+                "квартиры": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
+                "квартиру": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
+                "телефон": ("телефон", "телефоны", "phone", "smartphone"),
+                "телефоны": ("телефон", "телефоны", "phone", "smartphone"),
+                "машина": ("машина", "авто", "автомобиль", "car", "auto"),
+                "автомобиль": ("машина", "авто", "автомобиль", "car", "auto"),
+            }
+            terms = [term.casefold() for term in q.split() if term.strip()]
+            return all(any(alias in haystack for alias in synonym_groups.get(term, (term,))) for term in terms)
+
+        sort_mode = str(request.args.get("sort", "new")).strip().lower()
+        if sort_mode not in {"new", "price_asc", "price_desc"}:
+            sort_mode = "new"
+        params["order"] = "created_at.desc" if sort_mode == "new" else ("price.asc.nullslast,created_at.desc" if sort_mode == "price_asc" else "price.desc.nullslast,created_at.desc")
+
+        # Shared numeric parser must be defined before the auto/generic filter branches.
+        # Otherwise Python treats a later nested definition as a local variable and
+        # raises UnboundLocalError when an earlier branch calls it.
+        def _generic_num(v):
+            try:
+                return float(str(v).replace(",", ".").replace("km", "").replace("км", "").strip())
             except (TypeError, ValueError):
                 return None
 
-        selected_deal_rpc = str(request.args.get("deal", "")).strip().lower()
-        if selected_deal_rpc not in {"rent", "seek", "sell", "buy"}:
-            selected_deal_rpc = None
-        selected_sub_rpc = str(request.args.get("sub", "")).strip().lower()
-        if selected_sub_rpc not in allowed_realestate_subs:
-            selected_sub_rpc = None
-
-        selected_rooms_rpc = str(request.args.get("rooms", "")).strip()
-        min_rooms_rpc = max_rooms_rpc = None
-        if selected_rooms_rpc in {"1", "2", "3"}:
-            min_rooms_rpc = max_rooms_rpc = int(selected_rooms_rpc)
-        elif selected_rooms_rpc == "4":
-            min_rooms_rpc = 4
-
-        offset = page * per_page
-        filtered_rows = supabase_request(
-            "POST",
-            "rpc/mm_filter_realestate_listings",
-            payload={
-                "p_city_id": city_id,
-                "p_category_id": category_id,
-                "p_deal": selected_deal_rpc,
-                "p_subcategory": selected_sub_rpc,
-                "p_min_price": _rpc_num("min_price"),
-                "p_max_price": _rpc_num("max_price"),
-                "p_min_area": _rpc_num("min_area"),
-                "p_max_area": _rpc_num("max_area"),
-                "p_min_rooms": min_rooms_rpc,
-                "p_max_rooms": max_rooms_rpc,
-                "p_min_floor": None,
-                "p_max_floor": None,
-                "p_sort": sort_mode,
-                "p_offset": offset,
-                "p_limit": per_page + 1,
-            },
+        # Фильтры недвижимости применяем в Python после получения ограниченного
+        # набора кандидатов. Это специально сделано так, чтобы не зависеть от
+        # типов колонок/JSON-path синтаксиса PostgREST и не получать HTTP 400.
+        # Для площади и 4+ комнат нужен числовой разбор JSON metadata.
+        # Берём ограниченный набор кандидатов, уже отфильтрованный Supabase
+        # по городу/категории/цене/типу/району.
+        # Only filters that still require Python should force a large candidate scan.
+        # Exact type/subcategory and numeric price bounds are already applied in params.
+        # If text search is combined with those filters, keep the existing Python path
+        # for now because the RPC does not yet accept these additional filter values.
+        db_filter_names = ("deal", "sub", "min_price", "max_price")
+        has_search_with_db_filters = bool(q) and any(
+            str(request.args.get(name, "")).strip() for name in db_filter_names
         )
-        if filtered_rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"realestate_filter_unavailable"}), 503
-        has_next = len(filtered_rows) > per_page
-        rows = filtered_rows[:per_page]
-    elif not has_combined_advanced_search and has_auto_filters and not q and not str(request.args.get("sub", "")).strip():
-        # Use the database RPC for automotive attributes, sorting and pagination.
-        # Keep the established Python path when free-text search or subcategory
-        # is active because the RPC does not accept those parameters.
-        def _auto_rpc_num(name):
+        has_python_filters = category == "realestate" and (
+            any(str(request.args.get(name, "")).strip() for name in ("rooms", "min_area", "max_area", "district"))
+            or has_search_with_db_filters
+        )
+        has_auto_filters = category == "auto" and (
+            any(str(request.args.get(name, "")).strip() for name in ("make", "model", "min_year", "max_year", "min_mileage", "max_mileage"))
+            or has_search_with_db_filters
+        )
+        has_generic_filters = category in {"tech", "home", "kids", "work", "services", "pets", "give", "search"} and (
+            any(str(request.args.get(name, "")).strip() for name in ("condition", "make", "model", "pet_age", "pet_breed", "pet_gender"))
+            or has_search_with_db_filters
+        )
+
+        # Combined free-text search + advanced filters for real estate and auto
+        # are executed in PostgreSQL. This avoids the legacy 10,000-row Python scan
+        # while leaving the already-working standalone search/filter paths unchanged.
+        # Use the combined PostgreSQL RPC whenever it can replace a Python-side
+        # candidate scan: text + advanced filters, real-estate district filtering,
+        # and auto subcategory filtering. The RPC supports an empty p_query, so
+        # these cases can be paginated in PostgreSQL even without free-text input.
+        has_combined_advanced_search = (
+            (
+                category == "realestate"
+                and (
+                    (bool(q) and any(
+                        str(request.args.get(name, "")).strip()
+                        for name in ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area", "district")
+                    ))
+                    or bool(str(request.args.get("district", "")).strip())
+                )
+            )
+            or (
+                category == "auto"
+                and (
+                    (bool(q) and any(
+                        str(request.args.get(name, "")).strip()
+                        for name in ("deal", "sub", "make", "model", "min_price", "max_price",
+                                     "min_year", "max_year", "min_mileage", "max_mileage")
+                    ))
+                    or bool(str(request.args.get("sub", "")).strip())
+                )
+            )
+        )
+
+        def _combined_rpc_num(name):
             raw = str(request.args.get(name, "")).strip().lower()
             if not raw:
                 return None
-            raw = raw.replace(",", ".").replace("km", "").replace("км", "").strip()
+            raw = raw.replace(",", ".").replace("km", "").replace("км", "").replace("м²", "").replace("m²", "").strip()
             try:
                 value = float(raw)
                 import math
@@ -9732,252 +9648,374 @@ def mini_app_listings():
             except (TypeError, ValueError):
                 return None
 
-        offset = page * per_page
-        auto_rows = supabase_request(
-            "POST",
-            "rpc/mm_filter_auto_listings",
-            payload={
-                "p_city_id": int(city_id),
-                "p_category_id": int(category_id),
-                "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
-                "p_make": str(request.args.get("make", "")).strip() or None,
-                "p_model": str(request.args.get("model", "")).strip() or None,
-                "p_min_price": _auto_rpc_num("min_price"),
-                "p_max_price": _auto_rpc_num("max_price"),
-                "p_min_year": _auto_rpc_num("min_year"),
-                "p_max_year": _auto_rpc_num("max_year"),
-                "p_min_mileage": _auto_rpc_num("min_mileage"),
-                "p_max_mileage": _auto_rpc_num("max_mileage"),
-                "p_sort": sort_mode,
-                "p_offset": offset,
-                "p_limit": per_page + 1,
-            },
+        if has_combined_advanced_search:
+            selected_rooms_combined = str(request.args.get("rooms", "")).strip()
+            min_rooms_combined = max_rooms_combined = None
+            if selected_rooms_combined in {"1", "2", "3"}:
+                min_rooms_combined = max_rooms_combined = int(selected_rooms_combined)
+            elif selected_rooms_combined == "4":
+                min_rooms_combined = 4
+
+            offset = page * per_page
+            combined_rows = supabase_request(
+                "POST",
+                "rpc/mm_search_filtered_listings",
+                payload={
+                    "p_city_id": int(city_id),
+                    "p_category_id": int(category_id),
+                    "p_category_key": category,
+                    "p_query": q,
+                    "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
+                    "p_subcategory": str(request.args.get("sub", "")).strip().lower() or None,
+                    "p_make": str(request.args.get("make", "")).strip() or None,
+                    "p_model": str(request.args.get("model", "")).strip() or None,
+                    "p_min_price": _combined_rpc_num("min_price"),
+                    "p_max_price": _combined_rpc_num("max_price"),
+                    "p_min_year": _combined_rpc_num("min_year"),
+                    "p_max_year": _combined_rpc_num("max_year"),
+                    "p_min_mileage": _combined_rpc_num("min_mileage"),
+                    "p_max_mileage": _combined_rpc_num("max_mileage"),
+                    "p_min_area": _combined_rpc_num("min_area"),
+                    "p_max_area": _combined_rpc_num("max_area"),
+                    "p_min_rooms": min_rooms_combined,
+                    "p_max_rooms": max_rooms_combined,
+                    "p_district": str(request.args.get("district", "")).strip() or None,
+                    "p_sort": sort_mode,
+                    "p_offset": offset,
+                    "p_limit": per_page + 1,
+                },
+            )
+            if combined_rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"combined_search_unavailable"}), 503
+            has_next = len(combined_rows) > per_page
+            rows = combined_rows[:per_page]
+
+        # For real-estate filters, use the database RPC so numeric filtering,
+        # ordering and pagination happen in PostgreSQL instead of scanning listings in Python.
+        # Keep the established Python path for free-text search and district filtering,
+        # which are not parameters of mm_filter_realestate_listings.
+        realestate_filter_names = ("deal", "sub", "min_price", "max_price", "rooms", "min_area", "max_area")
+        has_realestate_rpc_filters = (
+            category == "realestate"
+            and not q
+            and not str(request.args.get("district", "")).strip()
+            and any(str(request.args.get(name, "")).strip() for name in realestate_filter_names)
         )
-        if auto_rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"auto_filter_unavailable"}), 503
-        has_next = len(auto_rows) > per_page
-        rows = auto_rows[:per_page]
-    elif not has_combined_advanced_search and has_python_filters:
-        rows = _fetch_listing_candidates(params)
-        if rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
 
-        min_area = request.args.get("min_area", "").strip()
-        max_area = request.args.get("max_area", "").strip()
-        try: min_area_n = float(min_area) if min_area else None
-        except ValueError: min_area_n = None
-        try: max_area_n = float(max_area) if max_area else None
-        except ValueError: max_area_n = None
-
-        filtered = []
-        selected_deal = str(request.args.get("deal", "")).strip().lower()
-        selected_sub = str(request.args.get("sub", "")).strip().lower()
-        selected_rooms = str(request.args.get("rooms", "")).strip()
-        for row in rows:
-            if not _matches_search(row):
-                continue
-            meta = row.get("metadata") or {}
-            meta = meta if isinstance(meta, dict) else {}
-            details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
-
-            # Цена
-            price_value = row.get("price")
-            try:
-                price_n = float(str(price_value).replace(",", ".").strip())
-            except (TypeError, ValueError):
-                price_n = None
-            min_price_raw = str(request.args.get("min_price", "")).strip()
-            max_price_raw = str(request.args.get("max_price", "")).strip()
-            try: min_price_n = float(min_price_raw) if min_price_raw else None
-            except ValueError: min_price_n = None
-            try: max_price_n = float(max_price_raw) if max_price_raw else None
-            except ValueError: max_price_n = None
-            if min_price_n is not None and (price_n is None or price_n < min_price_n):
-                continue
-            if max_price_n is not None and (price_n is None or price_n > max_price_n):
-                continue
-
-            # Район / адрес
-            selected_district = str(request.args.get("district", "")).strip().lower()
-            if selected_district:
-                saved_district_key = str(meta.get("district_key") or "").strip().lower()
-                if saved_district_key:
-                    if saved_district_key != selected_district:
-                        continue
-                else:
-                    # Backward compatibility only for old records without a saved key.
-                    address_text = str(row.get("address", "") or "").casefold()
-                    legacy_labels = {
-                        "old_batumi": ("старый батуми", "old batumi"),
-                        "new_boulevard": ("новый бульвар", "new boulevard"),
-                        "khimshiashvili": ("химшиашвили", "khimshiashvili"),
-                        "bagrationi": ("багратиони", "bagrationi"),
-                        "angisa": ("ангиса", "angisa"),
-                        "airport": ("аэропорт", "airport"),
-                        "gonio": ("гонио", "gonio"),
-                        "kvariati": ("квариати", "kvariati"),
-                        "makhinjauri": ("махинджаури", "makhinjauri"),
-                    }
-                    labels = legacy_labels.get(selected_district, (selected_district,))
-                    if not any(label in address_text for label in labels):
-                        continue
-
-            if selected_deal and selected_deal in {"rent", "seek", "sell", "buy"}:
-                if str(meta.get("type_key", "")).strip().lower() != selected_deal:
-                    continue
-            if selected_sub and selected_sub in {"apartment", "house", "room", "commercial", "land", "garage"}:
-                if str(meta.get("subcategory_key", "")).strip().lower() != selected_sub:
-                    continue
-
-            if selected_rooms in {"1", "2", "3"}:
+        if not has_combined_advanced_search and has_realestate_rpc_filters:
+            def _rpc_num(name):
+                raw = str(request.args.get(name, "")).strip().replace(",", ".")
+                if not raw:
+                    return None
                 try:
-                    if float(str(details.get("rooms", "")).replace(",", ".")) != float(selected_rooms):
-                        continue
+                    value = float(raw)
+                    import math
+                    return value if math.isfinite(value) and value >= 0 else None
                 except (TypeError, ValueError):
-                    continue
-            elif selected_rooms == "4":
+                    return None
+
+            selected_deal_rpc = str(request.args.get("deal", "")).strip().lower()
+            if selected_deal_rpc not in {"rent", "seek", "sell", "buy"}:
+                selected_deal_rpc = None
+            selected_sub_rpc = str(request.args.get("sub", "")).strip().lower()
+            if selected_sub_rpc not in allowed_realestate_subs:
+                selected_sub_rpc = None
+
+            selected_rooms_rpc = str(request.args.get("rooms", "")).strip()
+            min_rooms_rpc = max_rooms_rpc = None
+            if selected_rooms_rpc in {"1", "2", "3"}:
+                min_rooms_rpc = max_rooms_rpc = int(selected_rooms_rpc)
+            elif selected_rooms_rpc == "4":
+                min_rooms_rpc = 4
+
+            offset = page * per_page
+            filtered_rows = supabase_request(
+                "POST",
+                "rpc/mm_filter_realestate_listings",
+                payload={
+                    "p_city_id": city_id,
+                    "p_category_id": category_id,
+                    "p_deal": selected_deal_rpc,
+                    "p_subcategory": selected_sub_rpc,
+                    "p_min_price": _rpc_num("min_price"),
+                    "p_max_price": _rpc_num("max_price"),
+                    "p_min_area": _rpc_num("min_area"),
+                    "p_max_area": _rpc_num("max_area"),
+                    "p_min_rooms": min_rooms_rpc,
+                    "p_max_rooms": max_rooms_rpc,
+                    "p_min_floor": None,
+                    "p_max_floor": None,
+                    "p_sort": sort_mode,
+                    "p_offset": offset,
+                    "p_limit": per_page + 1,
+                },
+            )
+            if filtered_rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"realestate_filter_unavailable"}), 503
+            has_next = len(filtered_rows) > per_page
+            rows = filtered_rows[:per_page]
+        elif not has_combined_advanced_search and has_auto_filters and not q and not str(request.args.get("sub", "")).strip():
+            # Use the database RPC for automotive attributes, sorting and pagination.
+            # Keep the established Python path when free-text search or subcategory
+            # is active because the RPC does not accept those parameters.
+            def _auto_rpc_num(name):
+                raw = str(request.args.get(name, "")).strip().lower()
+                if not raw:
+                    return None
+                raw = raw.replace(",", ".").replace("km", "").replace("км", "").strip()
                 try:
-                    if float(str(details.get("rooms", "")).replace(",", ".")) < 4:
+                    value = float(raw)
+                    import math
+                    return value if math.isfinite(value) and value >= 0 else None
+                except (TypeError, ValueError):
+                    return None
+
+            offset = page * per_page
+            auto_rows = supabase_request(
+                "POST",
+                "rpc/mm_filter_auto_listings",
+                payload={
+                    "p_city_id": int(city_id),
+                    "p_category_id": int(category_id),
+                    "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
+                    "p_make": str(request.args.get("make", "")).strip() or None,
+                    "p_model": str(request.args.get("model", "")).strip() or None,
+                    "p_min_price": _auto_rpc_num("min_price"),
+                    "p_max_price": _auto_rpc_num("max_price"),
+                    "p_min_year": _auto_rpc_num("min_year"),
+                    "p_max_year": _auto_rpc_num("max_year"),
+                    "p_min_mileage": _auto_rpc_num("min_mileage"),
+                    "p_max_mileage": _auto_rpc_num("max_mileage"),
+                    "p_sort": sort_mode,
+                    "p_offset": offset,
+                    "p_limit": per_page + 1,
+                },
+            )
+            if auto_rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"auto_filter_unavailable"}), 503
+            has_next = len(auto_rows) > per_page
+            rows = auto_rows[:per_page]
+        elif not has_combined_advanced_search and has_python_filters:
+            rows = _fetch_listing_candidates(params)
+            if rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
+
+            min_area = request.args.get("min_area", "").strip()
+            max_area = request.args.get("max_area", "").strip()
+            try: min_area_n = float(min_area) if min_area else None
+            except ValueError: min_area_n = None
+            try: max_area_n = float(max_area) if max_area else None
+            except ValueError: max_area_n = None
+
+            filtered = []
+            selected_deal = str(request.args.get("deal", "")).strip().lower()
+            selected_sub = str(request.args.get("sub", "")).strip().lower()
+            selected_rooms = str(request.args.get("rooms", "")).strip()
+            for row in rows:
+                if not _matches_search(row):
+                    continue
+                meta = row.get("metadata") or {}
+                meta = meta if isinstance(meta, dict) else {}
+                details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
+
+                # Цена
+                price_value = row.get("price")
+                try:
+                    price_n = float(str(price_value).replace(",", ".").strip())
+                except (TypeError, ValueError):
+                    price_n = None
+                min_price_raw = str(request.args.get("min_price", "")).strip()
+                max_price_raw = str(request.args.get("max_price", "")).strip()
+                try: min_price_n = float(min_price_raw) if min_price_raw else None
+                except ValueError: min_price_n = None
+                try: max_price_n = float(max_price_raw) if max_price_raw else None
+                except ValueError: max_price_n = None
+                if min_price_n is not None and (price_n is None or price_n < min_price_n):
+                    continue
+                if max_price_n is not None and (price_n is None or price_n > max_price_n):
+                    continue
+
+                # Район / адрес
+                selected_district = str(request.args.get("district", "")).strip().lower()
+                if selected_district:
+                    saved_district_key = str(meta.get("district_key") or "").strip().lower()
+                    if saved_district_key:
+                        if saved_district_key != selected_district:
+                            continue
+                    else:
+                        # Backward compatibility only for old records without a saved key.
+                        address_text = str(row.get("address", "") or "").casefold()
+                        legacy_labels = {
+                            "old_batumi": ("старый батуми", "old batumi"),
+                            "new_boulevard": ("новый бульвар", "new boulevard"),
+                            "khimshiashvili": ("химшиашвили", "khimshiashvili"),
+                            "bagrationi": ("багратиони", "bagrationi"),
+                            "angisa": ("ангиса", "angisa"),
+                            "airport": ("аэропорт", "airport"),
+                            "gonio": ("гонио", "gonio"),
+                            "kvariati": ("квариати", "kvariati"),
+                            "makhinjauri": ("махинджаури", "makhinjauri"),
+                        }
+                        labels = legacy_labels.get(selected_district, (selected_district,))
+                        if not any(label in address_text for label in labels):
+                            continue
+
+                if selected_deal and selected_deal in {"rent", "seek", "sell", "buy"}:
+                    if str(meta.get("type_key", "")).strip().lower() != selected_deal:
                         continue
+                if selected_sub and selected_sub in {"apartment", "house", "room", "commercial", "land", "garage"}:
+                    if str(meta.get("subcategory_key", "")).strip().lower() != selected_sub:
+                        continue
+
+                if selected_rooms in {"1", "2", "3"}:
+                    try:
+                        if float(str(details.get("rooms", "")).replace(",", ".")) != float(selected_rooms):
+                            continue
+                    except (TypeError, ValueError):
+                        continue
+                elif selected_rooms == "4":
+                    try:
+                        if float(str(details.get("rooms", "")).replace(",", ".")) < 4:
+                            continue
+                    except (TypeError, ValueError):
+                        continue
+                if min_area_n is not None or max_area_n is not None:
+                    try: area_n = float(str(details.get("area", "")).replace(",", ".").replace("м²", "").replace("m²", "").strip())
+                    except (TypeError, ValueError):
+                        continue
+                    if min_area_n is not None and area_n < min_area_n: continue
+                    if max_area_n is not None and area_n > max_area_n: continue
+                filtered.append(row)
+            def _sort_price(row):
+                try:
+                    return float(str(row.get("price") or "").replace(",", ".").strip())
                 except (TypeError, ValueError):
-                    continue
-            if min_area_n is not None or max_area_n is not None:
-                try: area_n = float(str(details.get("area", "")).replace(",", ".").replace("м²", "").replace("m²", "").strip())
+                    return None
+            if sort_mode == "price_asc":
+                filtered.sort(key=lambda r: (_sort_price(r) is None, _sort_price(r) if _sort_price(r) is not None else 0))
+            elif sort_mode == "price_desc":
+                filtered.sort(key=lambda r: (_sort_price(r) is not None, _sort_price(r) if _sort_price(r) is not None else 0), reverse=True)
+
+            offset = page * per_page
+            page_rows = filtered[offset:offset + per_page]
+            has_next = len(filtered) > offset + per_page
+            rows = page_rows
+        elif not has_combined_advanced_search and has_auto_filters:
+            rows = _fetch_listing_candidates(params)
+            if rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
+
+            def _num(v):
+                try:
+                    return float(str(v).replace(",", ".").replace("km","").replace("км","").strip())
                 except (TypeError, ValueError):
+                    return None
+
+            selected_deal = str(request.args.get("deal", "")).strip().lower()
+            selected_make = str(request.args.get("make", "")).strip().lower()
+            selected_model = str(request.args.get("model", "")).strip().lower()
+            min_price_n = _num(request.args.get("min_price", ""))
+            max_price_n = _num(request.args.get("max_price", ""))
+            min_year_n = _num(request.args.get("min_year", ""))
+            max_year_n = _num(request.args.get("max_year", ""))
+            min_mileage_n = _num(request.args.get("min_mileage", ""))
+            max_mileage_n = _num(request.args.get("max_mileage", ""))
+
+            filtered = []
+            for row in rows:
+                if not _matches_search(row):
                     continue
-                if min_area_n is not None and area_n < min_area_n: continue
-                if max_area_n is not None and area_n > max_area_n: continue
-            filtered.append(row)
-        def _sort_price(row):
-            try:
-                return float(str(row.get("price") or "").replace(",", ".").strip())
-            except (TypeError, ValueError):
-                return None
-        if sort_mode == "price_asc":
-            filtered.sort(key=lambda r: (_sort_price(r) is None, _sort_price(r) if _sort_price(r) is not None else 0))
-        elif sort_mode == "price_desc":
-            filtered.sort(key=lambda r: (_sort_price(r) is not None, _sort_price(r) if _sort_price(r) is not None else 0), reverse=True)
+                meta = row.get("metadata") or {}
+                meta = meta if isinstance(meta, dict) else {}
+                details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
+                if selected_deal in {"sell","buy"} and str(meta.get("type_key","")).strip().lower() != selected_deal:
+                    continue
+                price_n = _generic_num(row.get("price"))
+                if min_price_n is not None and (price_n is None or price_n < min_price_n): continue
+                if max_price_n is not None and (price_n is None or price_n > max_price_n): continue
+                make_text = str(details.get("make") or details.get("make_model") or "").strip().lower()
+                model_text = str(details.get("model") or details.get("make_model") or "").strip().lower()
+                combined = f"{make_text} {model_text}".strip()
+                if selected_make and selected_make not in combined: continue
+                if selected_model and selected_model not in combined: continue
+                year_n = _num(details.get("year"))
+                if min_year_n is not None and (year_n is None or year_n < min_year_n): continue
+                if max_year_n is not None and (year_n is None or year_n > max_year_n): continue
+                mileage_n = _num(details.get("mileage"))
+                if min_mileage_n is not None and (mileage_n is None or mileage_n < min_mileage_n): continue
+                if max_mileage_n is not None and (mileage_n is None or mileage_n > max_mileage_n): continue
+                filtered.append(row)
 
-        offset = page * per_page
-        page_rows = filtered[offset:offset + per_page]
-        has_next = len(filtered) > offset + per_page
-        rows = page_rows
-    elif not has_combined_advanced_search and has_auto_filters:
-        rows = _fetch_listing_candidates(params)
-        if rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
+            if sort_mode == "price_asc":
+                filtered.sort(key=lambda r: (_generic_num(r.get("price")) is None, _generic_num(r.get("price")) if _generic_num(r.get("price")) is not None else 0))
+            elif sort_mode == "price_desc":
+                filtered.sort(key=lambda r: (_generic_num(r.get("price")) is not None, _generic_num(r.get("price")) if _generic_num(r.get("price")) is not None else 0), reverse=True)
 
-        def _num(v):
-            try:
-                return float(str(v).replace(",", ".").replace("km","").replace("км","").strip())
-            except (TypeError, ValueError):
-                return None
-
-        selected_deal = str(request.args.get("deal", "")).strip().lower()
-        selected_make = str(request.args.get("make", "")).strip().lower()
-        selected_model = str(request.args.get("model", "")).strip().lower()
-        min_price_n = _num(request.args.get("min_price", ""))
-        max_price_n = _num(request.args.get("max_price", ""))
-        min_year_n = _num(request.args.get("min_year", ""))
-        max_year_n = _num(request.args.get("max_year", ""))
-        min_mileage_n = _num(request.args.get("min_mileage", ""))
-        max_mileage_n = _num(request.args.get("max_mileage", ""))
-
-        filtered = []
-        for row in rows:
-            if not _matches_search(row):
-                continue
-            meta = row.get("metadata") or {}
-            meta = meta if isinstance(meta, dict) else {}
-            details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
-            if selected_deal in {"sell","buy"} and str(meta.get("type_key","")).strip().lower() != selected_deal:
-                continue
-            price_n = _generic_num(row.get("price"))
-            if min_price_n is not None and (price_n is None or price_n < min_price_n): continue
-            if max_price_n is not None and (price_n is None or price_n > max_price_n): continue
-            make_text = str(details.get("make") or details.get("make_model") or "").strip().lower()
-            model_text = str(details.get("model") or details.get("make_model") or "").strip().lower()
-            combined = f"{make_text} {model_text}".strip()
-            if selected_make and selected_make not in combined: continue
-            if selected_model and selected_model not in combined: continue
-            year_n = _num(details.get("year"))
-            if min_year_n is not None and (year_n is None or year_n < min_year_n): continue
-            if max_year_n is not None and (year_n is None or year_n > max_year_n): continue
-            mileage_n = _num(details.get("mileage"))
-            if min_mileage_n is not None and (mileage_n is None or mileage_n < min_mileage_n): continue
-            if max_mileage_n is not None and (mileage_n is None or mileage_n > max_mileage_n): continue
-            filtered.append(row)
-
-        if sort_mode == "price_asc":
-            filtered.sort(key=lambda r: (_generic_num(r.get("price")) is None, _generic_num(r.get("price")) if _generic_num(r.get("price")) is not None else 0))
-        elif sort_mode == "price_desc":
-            filtered.sort(key=lambda r: (_generic_num(r.get("price")) is not None, _generic_num(r.get("price")) if _generic_num(r.get("price")) is not None else 0), reverse=True)
-
-        offset = page * per_page
-        page_rows = filtered[offset:offset + per_page]
-        has_next = len(filtered) > offset + per_page
-        rows = page_rows
-    elif not has_combined_advanced_search and has_generic_filters:
-        # Run generic category filters in PostgreSQL. This removes the old
-        # 10,000-row Python scan for condition/brand/pet filters.
-        offset = page * per_page
-        generic_rows = supabase_request(
-            "POST",
-            "rpc/mm_filter_generic_listings",
-            payload={
-                "p_city_id": int(city_id),
-                "p_category_id": int(category_id),
-                "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
-                "p_subcategory": str(request.args.get("sub", "")).strip().lower() or None,
-                "p_condition": str(request.args.get("condition", "")).strip().lower() or None,
-                "p_make": str(request.args.get("make", "")).strip() or None,
-                "p_model": str(request.args.get("model", "")).strip() or None,
-                "p_pet_age": str(request.args.get("pet_age", "")).strip() or None,
-                "p_pet_breed": str(request.args.get("pet_breed", "")).strip() or None,
-                "p_pet_gender": ({"male": "male", "female": "female", "unknown": "unknown"}.get(str(request.args.get("pet_gender", "")).strip().lower()) or None),
-                "p_min_price": _generic_num(request.args.get("min_price", "")),
-                "p_max_price": _generic_num(request.args.get("max_price", "")),
-                "p_query": q or None,
-                "p_sort": sort_mode,
-                "p_offset": offset,
-                "p_limit": per_page + 1,
-            },
-        )
-        if generic_rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"generic_filter_unavailable"}), 503
-        has_next = len(generic_rows) > per_page
-        rows = generic_rows[:per_page]
-    elif not has_combined_advanced_search and q:
-        # Delegate text matching and pagination to the database function so
-        # the API no longer downloads up to 10,000 listings for Python filtering.
-        # Keep the old Python matcher above for category-filter branches, which
-        # may still be used when callers combine q with category filters.
-        offset = page * per_page
-        search_rows = supabase_request(
-            "POST",
-            "rpc/mm_search_listings",
-            payload={
-                "p_city_id": city_id,
-                "p_category_id": category_id,
-                "p_query": q,
-                "p_sort": sort_mode,
-                "p_offset": offset,
-                "p_limit": per_page + 1,
-            },
-        )
-        if search_rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"search_unavailable"}), 503
-        has_next = len(search_rows) > per_page
-        rows = search_rows[:per_page]
-    elif not has_combined_advanced_search:
-        offset = page * per_page
-        params["offset"] = str(offset)
-        params["limit"] = str(per_page + 1)
-        rows = supabase_request("GET", "listings", params=params)
-        if rows is None:
-            return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
-        has_next = len(rows) > per_page
-        rows = rows[:per_page]
+            offset = page * per_page
+            page_rows = filtered[offset:offset + per_page]
+            has_next = len(filtered) > offset + per_page
+            rows = page_rows
+        elif not has_combined_advanced_search and has_generic_filters:
+            # Run generic category filters in PostgreSQL. This removes the old
+            # 10,000-row Python scan for condition/brand/pet filters.
+            offset = page * per_page
+            generic_rows = supabase_request(
+                "POST",
+                "rpc/mm_filter_generic_listings",
+                payload={
+                    "p_city_id": int(city_id),
+                    "p_category_id": int(category_id),
+                    "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
+                    "p_subcategory": str(request.args.get("sub", "")).strip().lower() or None,
+                    "p_condition": str(request.args.get("condition", "")).strip().lower() or None,
+                    "p_make": str(request.args.get("make", "")).strip() or None,
+                    "p_model": str(request.args.get("model", "")).strip() or None,
+                    "p_pet_age": str(request.args.get("pet_age", "")).strip() or None,
+                    "p_pet_breed": str(request.args.get("pet_breed", "")).strip() or None,
+                    "p_pet_gender": ({"male": "male", "female": "female", "unknown": "unknown"}.get(str(request.args.get("pet_gender", "")).strip().lower()) or None),
+                    "p_min_price": _generic_num(request.args.get("min_price", "")),
+                    "p_max_price": _generic_num(request.args.get("max_price", "")),
+                    "p_query": q or None,
+                    "p_sort": sort_mode,
+                    "p_offset": offset,
+                    "p_limit": per_page + 1,
+                },
+            )
+            if generic_rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"generic_filter_unavailable"}), 503
+            has_next = len(generic_rows) > per_page
+            rows = generic_rows[:per_page]
+        elif not has_combined_advanced_search and q:
+            # Delegate text matching and pagination to the database function so
+            # the API no longer downloads up to 10,000 listings for Python filtering.
+            # Keep the old Python matcher above for category-filter branches, which
+            # may still be used when callers combine q with category filters.
+            offset = page * per_page
+            search_rows = supabase_request(
+                "POST",
+                "rpc/mm_search_listings",
+                payload={
+                    "p_city_id": city_id,
+                    "p_category_id": category_id,
+                    "p_query": q,
+                    "p_sort": sort_mode,
+                    "p_offset": offset,
+                    "p_limit": per_page + 1,
+                },
+            )
+            if search_rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"search_unavailable"}), 503
+            has_next = len(search_rows) > per_page
+            rows = search_rows[:per_page]
+        elif not has_combined_advanced_search:
+            offset = page * per_page
+            params["offset"] = str(offset)
+            params["limit"] = str(per_page + 1)
+            rows = supabase_request("GET", "listings", params=params)
+            if rows is None:
+                return jsonify({"items":[],"has_next":False,"total_hint":0,"error":"db_unavailable"}), 503
+            has_next = len(rows) > per_page
+            rows = rows[:per_page]
 
     favorite_ids = set()
     current_user = _mini_app_authenticated_user()
@@ -10014,6 +10052,8 @@ def mini_app_listings():
         "items":items,
         "has_next":has_next,
         "total_hint":per_page * (page + 1) + (1 if has_next else 0),
+        "cursor_mode": cursor_mode_active,
+        "next_cursor_id": next_cursor_id,
     })
 
 
