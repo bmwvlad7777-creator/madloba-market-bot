@@ -9009,16 +9009,27 @@ def mini_app_republish_listing(listing_id):
     data["currency"] = row.get("currency") or metadata.get("currency") or "USD"
     data["district"] = row.get("address") or metadata.get("district") or ""
     data["contact"] = row.get("phone") or metadata.get("contact") or ""
-    data["whatsapp"] = metadata.get("whatsapp", "")
-    data["telegram"] = metadata.get("telegram", "")
+    data["whatsapp"] = metadata.get("whatsapp") or ""
+    data["telegram"] = metadata.get("telegram") or ""
+
+    # Rebuild only the expected presentation fields from persisted metadata.
+    # Synthetic lifecycle-test rows contain no real category/details and must
+    # never be sent to the public Telegram channel.
+    data["category_key"] = str(metadata.get("category_key") or "").strip()
+    data["category"] = str(metadata.get("category") or "").strip()
+    data["type"] = str(metadata.get("type") or "").strip()
+    data["subcategory"] = str(metadata.get("subcategory") or "").strip()
+    data["subcategory_key"] = str(metadata.get("subcategory_key") or "").strip()
+    data["details"] = metadata.get("details") if isinstance(metadata.get("details"), dict) else {}
+    if not data["category_key"] or not data["category"] or not data["type"]:
+        _release_republish_lock()
+        print("MINI APP REPUBLISH ERROR: listing_data_incomplete", int(listing_id))
+        return jsonify({"error":"listing_data_incomplete"}), 409
 
     photo_rows = supabase_request(
         "GET", "listing_photos",
         params={"select":"photo_url,sort_order", "listing_id":f"eq.{int(listing_id)}", "order":"sort_order.asc"},
-    )
-    if photo_rows is None:
-        _release_republish_lock()
-        return jsonify({"error":"db_read_failed"}), 503
+    ) or []
     data["photos"] = [str(x.get("photo_url")) for x in photo_rows if x.get("photo_url")]
 
     try:
@@ -9048,8 +9059,7 @@ def mini_app_republish_listing(listing_id):
         params={"id":f"eq.{int(listing_id)}", "user_id":f"eq.{user_id}", "status":"eq.archived", "republish_lock_at":f"eq.{lock_time}"},
         payload={"status":"published", "published_at":_utc_now_iso(), "expires_at":(datetime.now(timezone.utc) + timedelta(days=10)).isoformat(), "reminder_sent_at":None, "channel_url":channel_url, "channel_message_id":message_id, "republish_lock_at":None},
     )
-    if not updated:
-        # Пустой список тоже означает, что запись не обновилась (например, lock/status уже изменился).
+    if updated is None:
         # Не оставляем новое сообщение в канале без связи с объявлением.
         if message_id and CHANNEL_USERNAME:
             try:
