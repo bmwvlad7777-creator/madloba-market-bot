@@ -8962,6 +8962,45 @@ def mini_app_republish_listing(listing_id):
         except (TypeError, ValueError):
             return jsonify({"error":"invalid_expiry"}), 409
 
+    # Atomic claim: only one request may republish an archived listing at a time.
+    # The DB column is added by the companion SQL migration. A stale lock can be
+    # reclaimed after five minutes if a worker crashed mid-publication.
+    lock_time = _utc_now_iso()
+    lock_params = {
+        "id": f"eq.{int(listing_id)}",
+        "user_id": f"eq.{user_id}",
+        "status": "eq.archived",
+    }
+    claimed = supabase_request(
+        "PATCH", "listings",
+        params={**lock_params, "republish_lock_at": "is.null"},
+        payload={"republish_lock_at": lock_time},
+    )
+    if claimed is None:
+        return jsonify({"error":"db_update_failed"}), 503
+    if not claimed:
+        stale_before = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+        claimed = supabase_request(
+            "PATCH", "listings",
+            params={**lock_params, "republish_lock_at": f"lt.{stale_before}"},
+            payload={"republish_lock_at": lock_time},
+        )
+        if claimed is None:
+            return jsonify({"error":"db_update_failed"}), 503
+    if not claimed:
+        return jsonify({"error":"republish_in_progress"}), 409
+
+    def _release_republish_lock():
+        supabase_request(
+            "PATCH", "listings",
+            params={
+                "id": f"eq.{int(listing_id)}",
+                "user_id": f"eq.{user_id}",
+                "republish_lock_at": f"eq.{lock_time}",
+            },
+            payload={"republish_lock_at": None},
+        )
+
     metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
     data = dict(metadata)
     data["id"] = row.get("id")
@@ -8979,9 +9018,15 @@ def mini_app_republish_listing(listing_id):
     ) or []
     data["photos"] = [str(x.get("photo_url")) for x in photo_rows if x.get("photo_url")]
 
-    result = publish_listing(data)
+    try:
+        result = publish_listing(data)
+    except Exception as exc:
+        print("MINI APP REPUBLISH ERROR:", type(exc).__name__)
+        _release_republish_lock()
+        return jsonify({"error":"channel_publish_failed"}), 503
     if not result or not result.get("ok"):
         print("MINI APP REPUBLISH ERROR:", result)
+        _release_republish_lock()
         return jsonify({"error":"channel_publish_failed"}), 503
 
     tg_result = result.get("result") if isinstance(result, dict) else None
@@ -8997,8 +9042,8 @@ def mini_app_republish_listing(listing_id):
 
     updated = supabase_request(
         "PATCH", "listings",
-        params={"id":f"eq.{int(listing_id)}", "user_id":f"eq.{user_id}"},
-        payload={"status":"published", "published_at":_utc_now_iso(), "expires_at":(datetime.now(timezone.utc) + timedelta(days=10)).isoformat(), "reminder_sent_at":None, "channel_url":channel_url, "channel_message_id":message_id},
+        params={"id":f"eq.{int(listing_id)}", "user_id":f"eq.{user_id}", "status":"eq.archived", "republish_lock_at":f"eq.{lock_time}"},
+        payload={"status":"published", "published_at":_utc_now_iso(), "expires_at":(datetime.now(timezone.utc) + timedelta(days=10)).isoformat(), "reminder_sent_at":None, "channel_url":channel_url, "channel_message_id":message_id, "republish_lock_at":None},
     )
     if updated is None:
         # Не оставляем новое сообщение в канале без связи с объявлением.
@@ -9007,6 +9052,7 @@ def mini_app_republish_listing(listing_id):
                 api("deleteMessage", {"chat_id":CHANNEL_USERNAME, "message_id":message_id})
             except Exception:
                 pass
+        _release_republish_lock()
         return jsonify({"error":"db_update_failed"}), 503
 
     load_supabase_published_listings()
