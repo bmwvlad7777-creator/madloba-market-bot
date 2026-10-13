@@ -2801,8 +2801,10 @@ def ask_contact(
 
         "contact",
 
-        "<b>📞 Контакт</b>\n\n"
-        "Укажите телефон, Telegram или WhatsApp."
+        "<b>📞 Контакт для связи</b>\n\n"
+        "Телефон укажите в международном формате Грузии: <code>+995XXXXXXXXX</code>.\n"
+        "Пример: <code>+995 599 02 47 23</code>.\n\n"
+        "Можно также указать @username в Telegram или ссылку WhatsApp."
     )
 
 
@@ -3772,7 +3774,7 @@ def edit_moderation_message(
             "inline_keyboard": keyboard
         }
 
-    api(
+    return api(
         "editMessageText",
         data
     )
@@ -3862,124 +3864,10 @@ def submit_for_moderation(
         f"🔢 Заявка: <code>#{request_id}</code>\n\n"
     )
 
-    # Если есть фотографии — отправляем их администратору
-    # компактным альбомом.
-    if photos:
-
-        result = send_album(
-
-            ADMIN_CHAT_ID,
-
-            photos,
-
-            text
-        )
-
-        if not result.get(
-            "ok"
-        ):
-
-            moderation_requests.pop(
-                request_id,
-                None
-            )
-
-            states[
-                chat_id
-            ]["step"] = "preview"
-
-            send(
-
-                chat_id,
-
-                "<b>⚠️ Не удалось отправить "
-                "объявление администратору.</b>\n\n"
-
-                "Попробуйте ещё раз."
-            )
-
-            return
-
-        control = send(
-
-            ADMIN_CHAT_ID,
-
-            admin_header +
-
-            f"📷 Фотографий: "
-            f"<b>{len(photos)}</b>\n\n"
-
-            "Выберите действие:",
-
-            moderation_keyboard(
-                request_id
-            )
-        )
-
-    # Без фотографий — всё объявление сразу
-    # отправляем администратору вместе с кнопками.
-    else:
-
-        control = send(
-
-            ADMIN_CHAT_ID,
-
-            admin_header +
-
-            text +
-
-            "\n\n"
-            "Выберите действие:",
-
-            moderation_keyboard(
-                request_id
-            )
-        )
-
-    if not control.get(
-        "ok"
-    ):
-
-        moderation_requests.pop(
-            request_id,
-            None
-        )
-
-        states[
-            chat_id
-        ]["step"] = "preview"
-
-        send(
-
-            chat_id,
-
-            "<b>⚠️ Не удалось отправить "
-            "объявление на модерацию.</b>\n\n"
-
-            "Попробуйте ещё раз."
-        )
-
-        return
-
-    result_data = control.get(
-        "result",
-        {}
-    )
-
-    moderation_requests[
-        request_id
-    ]["message_chat_id"] = (
-        result_data
-        .get("chat", {})
-        .get("id")
-    )
-
-    moderation_requests[
-        request_id
-    ]["message_id"] = (
-        result_data
-        .get("message_id")
-    )
+    # Do not send a separate admin message for every submitted listing.
+    # All requests are reviewed from the single persistent moderation queue.
+    moderation_requests[request_id]["message_chat_id"] = None
+    moderation_requests[request_id]["message_id"] = None
 
     send(
 
@@ -3993,6 +3881,9 @@ def submit_for_moderation(
 
         main_menu()
     )
+
+    # Keep one administrator queue card updated; don't send a new queue message per listing.
+    refresh_admin_moderation_queue()
 
 
 
@@ -4030,7 +3921,7 @@ def load_pending_moderation_queue():
     )
 
 
-def send_moderation_queue(admin_chat_id, page=0):
+def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     if not moderator_is_allowed(admin_chat_id):
         send(admin_chat_id, "⛔ Эта команда доступна только администратору.")
         return
@@ -4055,7 +3946,28 @@ def send_moderation_queue(admin_chat_id, page=0):
     if nav:
         keyboard.append(nav)
     keyboard.append([{"text": "🔄 Обновить", "callback_data": f"mod_queue_page_{page}"}])
-    send(admin_chat_id, text, keyboard)
+    if message_id:
+        return edit_moderation_message(admin_chat_id, message_id, text, keyboard)
+    return send(admin_chat_id, text, keyboard)
+
+
+def refresh_admin_moderation_queue(page=0):
+    """Maintain one persistent queue card for the configured administrator."""
+    if not ADMIN_CHAT_ID:
+        return
+    queue_key = _runtime_key("admin_queue", "main")
+    found, saved, ok = runtime_state_load(queue_key)
+    message_id = saved.get("message_id") if found and isinstance(saved, dict) else None
+    if message_id:
+        result = send_moderation_queue(ADMIN_CHAT_ID, page, message_id=message_id)
+        # If Telegram no longer has the message, recreate the queue card.
+        if isinstance(result, dict) and result.get("ok"):
+            return
+    result = send_moderation_queue(ADMIN_CHAT_ID, page)
+    if isinstance(result, dict) and result.get("ok"):
+        msg = result.get("result") or {}
+        if msg.get("message_id"):
+            runtime_state_save(queue_key, {"chat_id": ADMIN_CHAT_ID, "message_id": msg["message_id"]})
 
 
 def moderator_is_allowed(admin_user_id):
@@ -4082,6 +3994,7 @@ def moderation_control_text(request_id):
         f"👤 ID автора: <code>{user_chat_id}</code>\n"
         f"🔢 Заявка: <code>#{request_id}</code>\n\n"
         f"{build_listing(data)}\n\n"
+        f"📷 Фотографий: <b>{len(data.get('photos') or [])}</b>\n\n"
         "Выберите действие:"
     )
 
@@ -4142,7 +4055,27 @@ def process_moderator_text(admin_chat_id, text):
     elif step == "description":
         data["description"] = "" if text.lower() in {"ничего", "нет", "нечего", "без описания", "пропустить", "-"} else text
     elif step == "contact":
-        data["contact"] = text
+        contact_value = text.strip()
+        # Accept Telegram handles/URLs and WhatsApp URLs as alternatives.
+        is_social_contact = (
+            contact_value.startswith("@")
+            or "t.me/" in contact_value.lower()
+            or "wa.me/" in contact_value.lower()
+            or "whatsapp" in contact_value.lower()
+        )
+        if not is_social_contact and re.search(r"\d", contact_value):
+            compact = re.sub(r"[\s()\-]", "", contact_value)
+            # Georgian mobile: +995 followed by 9 digits (mobile starts with 5).
+            if not re.fullmatch(r"\+9955\d{8}", compact):
+                send(
+                    chat_id,
+                    "⚠️ Проверьте формат номера. Для грузинского мобильного укажите <code>+995</code> и ещё 9 цифр.\n"
+                    "Пример: <code>+995 599 02 47 23</code>.\n\n"
+                    "Если хотите указать Telegram, используйте формат <code>@username</code>."
+                )
+                return
+            contact_value = compact
+        data["contact"] = contact_value
     elif step.startswith("detail_"):
         try:
             index = int(step.split("_", 1)[1])
@@ -4309,6 +4242,7 @@ def moderate_publish(
 
         main_menu()
     )
+    refresh_admin_moderation_queue(0)
 
 
 def moderate_reject(
@@ -4405,6 +4339,7 @@ def moderate_reject(
 
         "🔴 Объявление отклонено."
     )
+    refresh_admin_moderation_queue(0)
 
     edit_moderation_message(
 
@@ -5001,7 +4936,7 @@ def _handle_update_core(
             if not moderator_is_allowed(chat_id):
                 send(chat_id, "⛔ Эта команда доступна только администратору.")
             else:
-                send_moderation_queue(chat_id, 0)
+                refresh_admin_moderation_queue(0)
             return
 
         if text.strip() == "/id":
@@ -5215,7 +5150,8 @@ def _handle_update_core(
             answer(callback["id"], "Некорректная страница.", True)
             return
         answer(callback["id"])
-        send_moderation_queue(callback_from_id, page)
+        queue_message_id = callback.get("message", {}).get("message_id")
+        send_moderation_queue(callback_from_id, page, message_id=queue_message_id)
         return
 
     if data.startswith("mod_queue_open_"):
@@ -5235,9 +5171,25 @@ def _handle_update_core(
         answer(callback["id"])
         text = moderation_control_text(request_id)
         if text:
-            send(callback_from_id, text, moderation_keyboard(request_id))
+            item["queue_message_id"] = callback.get("message", {}).get("message_id")
+            item["queue_chat_id"] = callback_from_id
+            runtime_state_save(_runtime_key("moderation", request_id), item)
+            keyboard = moderation_keyboard(request_id) + [[{"text": "⬅️ Вернуться в очередь", "callback_data": "mod_queue_return_0"}]]
+            edit_moderation_message(callback_from_id, item.get("queue_message_id"), text, keyboard)
         else:
             send(callback_from_id, "Заявка загружена, но данные объявления недоступны.")
+        return
+
+    if data.startswith("mod_queue_return_"):
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        try:
+            page = int(data.rsplit("_", 1)[1])
+        except ValueError:
+            page = 0
+        answer(callback["id"])
+        send_moderation_queue(callback_from_id, page, message_id=callback.get("message", {}).get("message_id"))
         return
 
     if data.startswith("mod_edit_"):
@@ -8308,9 +8260,16 @@ function localizedCategory(v){const m={'Недвижимость':'category_real
 function card(x){const photo=(x.photos||[])[0];const title=x.title||x.category||t('no_listing');const d=x.details||{};const specs=detailSpecs(d,false);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="title">${esc(title)}</div>${x.description?`<div class="desc">${esc(String(x.description).slice(0,180))}</div>`:''}${specs?`<div class="meta">${specs}</div>`:''}${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${x.address?`<div class="loc">📍 ${esc(x.address)}</div>`:''}</div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();renderDetail(x);hideViews();$('detailView').classList.add('show');window.scrollTo({top:0,behavior:'smooth'})}catch(e){toast(t('open_fail'))}}
-function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<a class="contact-btn" href="tel:${esc(phone)}" data-contact-call="${esc(phone)}">${t('contact_call')}</a><button type="button" class="contact-btn secondary" data-copy-phone="${esc(phone)}">${t('copy_phone')||'📋 Скопировать номер'}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(x.title||t('no_listing'))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
-// Keep phone actions as direct user-gesture handlers across iOS and Android WebViews.
-$('detailContent').querySelectorAll('[data-contact-call]').forEach(a=>a.addEventListener('click',function(e){e.stopPropagation();const n=String(this.dataset.contactCall||'').replace(/(?!^)\+|[^0-9+]/g,'');if(!n){e.preventDefault();toast('Номер телефона не указан');return;}/* Keep the native anchor default action. Preventing it and assigning window.location can block tel: handling inside Telegram WebViews on iOS/Android. */this.setAttribute('href','tel:'+n);}));
+function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button><button type="button" class="contact-btn secondary" data-copy-phone="${esc(phone)}">${t('copy_phone')||'📋 Скопировать номер'}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(x.title||t('no_listing'))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
+// Cross-platform contact sheet: tapping Call first displays a normal, explicit tel: link.
+// This avoids relying on Telegram WebView to navigate directly from a custom button.
+$('detailContent').querySelectorAll('[data-contact-call]').forEach(btn=>btn.addEventListener('click',function(e){
+ e.stopPropagation();const n=String(this.dataset.contactCall||'').replace(/(?!^)\+|[^0-9+]/g,'');if(!n){toast('Номер телефона не указан');return;}
+ const old=document.getElementById('mmPhoneSheet');if(old)old.remove();
+ const sheet=document.createElement('div');sheet.id='mmPhoneSheet';sheet.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(10,20,40,.58);display:flex;align-items:flex-end;justify-content:center;padding:16px;box-sizing:border-box;';
+ sheet.innerHTML=`<div style="width:100%;max-width:440px;background:#fff;color:#172033;border-radius:22px;padding:22px;box-shadow:0 16px 50px #0003;text-align:center"><div style="font-size:17px;font-weight:800;margin-bottom:12px">📞 Телефон для связи</div><a href="tel:${esc(n)}" style="display:block;font-size:25px;font-weight:800;color:#1769d2;text-decoration:none;padding:16px 8px;border-radius:14px;background:#eef5ff;user-select:text;-webkit-user-select:text">${esc(n)}</a><div style="font-size:13px;color:#697386;margin:10px 0 16px">Нажмите на номер, чтобы открыть системную звонилку</div><button type="button" data-phone-copy-sheet style="width:100%;padding:13px;border:0;border-radius:12px;background:#eef5ff;color:#1769d2;font-size:16px;font-weight:700;margin-bottom:8px">📋 Скопировать номер</button><button type="button" data-phone-close style="width:100%;padding:13px;border:0;border-radius:12px;background:#f1f3f6;color:#253047;font-size:16px;font-weight:700">Закрыть</button></div>`;
+ document.body.appendChild(sheet);sheet.addEventListener('click',ev=>{if(ev.target===sheet||ev.target.closest('[data-phone-close]'))sheet.remove();});sheet.querySelector('[data-phone-copy-sheet]').addEventListener('click',async()=>{try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(n);else{const ta=document.createElement('textarea');ta.value=n;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}sheet.querySelector('[data-phone-copy-sheet]').textContent='✓ Номер скопирован';}catch(_){sheet.querySelector('[data-phone-copy-sheet]').textContent=n;}});
+}));
 $('detailContent').querySelectorAll('[data-copy-phone]').forEach(b=>b.addEventListener('click',async function(e){e.stopPropagation();const n=String(this.dataset.copyPhone||'');try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(n);this.textContent='✓ Номер скопирован';return;}}catch(_){}try{const area=document.createElement('textarea');area.value=n;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand('copy');area.remove();this.textContent=ok?'✓ Номер скопирован':n;}catch(_){this.textContent=n;}}));
 const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{e.stopPropagation();toggleFavorite(x.id,fav,x)};if(photos.length>1){let idx=0;const img='detailImg';const update=()=>{$(img).src='/media/'+encodeURIComponent(x.id)+'/'+idx;$('photoCount').textContent=(idx+1)+'/'+photos.length};$('prevPhoto').onclick=e=>{e.stopPropagation();idx=(idx-1+photos.length)%photos.length;update()};$('nextPhoto').onclick=e=>{e.stopPropagation();idx=(idx+1)%photos.length;update()}}}
 async function toggleFavorite(id,button,x=null){try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}}
@@ -8325,7 +8284,7 @@ async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$(
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const renew=st==='published'?`<button class="mine-action primary" data-action="renew">↻ ${t('renew_10_days')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;const expiryLabel=state.lang==='en'?'Expires: ':state.lang==='ka'?'ვადა იწურება: ':'Истекает: ';const expiryDate=x.expires_at?new Date(x.expires_at).toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';const expiry=st==='published'?(expiryDate?`<div class="mine-expiry">📅 ${expiryLabel}${esc(expiryDate)}</div>`:`<div class="mine-expiry missing">📅 ${state.lang==='en'?'Expiry date not set':state.lang==='ka'?'ვადის თარიღი მითითებული არ არის':'Дата окончания не указана'}</div>`):'';return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span>${expiry}</div></div><div class="mine-actions">${open}${edit}${renew}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
-async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();const districtChoices=(String(x.city_slug||'batumi').toLowerCase()==='tbilisi'?[['vake','Ваке'],['saburtalo','Сабуртало'],['vera','Вера'],['mtatsminda','Мтацминда'],['didube','Дидубе'],['gldani','Глдани'],['isani','Исани'],['samgori','Самгори'],['dighomi','Дигоми']]:[['old_batumi','Старый Батуми'],['new_boulevard','Новый Бульвар'],['khimshiashvili','Химшиашвили'],['bagrationi','Багратиони'],['angisa','Ангиса'],['airport','Аэропорт'],['gonio','Гонио'],['kvariati','Квариати'],['makhinjauri','Махинджаури']]);showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ ${t('edit')}</div><div class="edit-field"><label>${t('description')}</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>${t('price')}</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>${t('currency')}</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>${t('address')}</label><input id="editAddress" value="${esc(x.address||'')}"></div>${x.category_key==='realestate'?`<div class="edit-field"><label>${t('district')}</label><select id="editDistrictKey"><option value="">Не указывать район</option>${districtChoices.map(([v,l])=>`<option value="${v}" ${String(x.district_key||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>`:''}<div class="edit-field"><label>${t('phone')}</label><input id="editPhone" inputmode="tel" value="${esc(x.phone||'')}"></div><div class="edit-field"><label>${t('whatsapp')}</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>${t('telegram')}</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">${t('cancel')}</button><button class="edit-save" id="editSave">${t('save')}</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value,...(document.getElementById('editDistrictKey')?{district_key:$('editDistrictKey').value}:{})};$('editSave').disabled=true;$('editSave').textContent=t('loading');try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.detail||er.error||'save_failed')}toast(t('save_ok'));await loadMine()}catch(e){toast(e.message && e.message!=='save_failed'?e.message:t('save_fail'));$('editSave').disabled=false;$('editSave').textContent=t('save')}}}catch(e){toast(t('edit_fail'))}}
+async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();const districtChoices=(String(x.city_slug||'batumi').toLowerCase()==='tbilisi'?[['vake','Ваке'],['saburtalo','Сабуртало'],['vera','Вера'],['mtatsminda','Мтацминда'],['didube','Дидубе'],['gldani','Глдани'],['isani','Исани'],['samgori','Самгори'],['dighomi','Дигоми']]:[['old_batumi','Старый Батуми'],['new_boulevard','Новый Бульвар'],['khimshiashvili','Химшиашвили'],['bagrationi','Багратиони'],['angisa','Ангиса'],['airport','Аэропорт'],['gonio','Гонио'],['kvariati','Квариати'],['makhinjauri','Махинджаури']]);showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ ${t('edit')}</div><div class="edit-field"><label>${t('description')}</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>${t('price')}</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>${t('currency')}</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>${t('address')}</label><input id="editAddress" value="${esc(x.address||'')}"></div>${x.category_key==='realestate'?`<div class="edit-field"><label>${t('district')}</label><select id="editDistrictKey"><option value="">Не указывать район</option>${districtChoices.map(([v,l])=>`<option value="${v}" ${String(x.district_key||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>`:''}<div class="edit-field"><label>${t('phone')}</label><input id="editPhone" inputmode="tel" autocomplete="tel" placeholder="+995 599 02 47 23" value="${esc(x.phone||'')}"><small style="display:block;color:#778197;margin-top:6px">Формат Грузии: +995 и 9 цифр. Пример: +995 599 02 47 23</small></div><div class="edit-field"><label>${t('whatsapp')}</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>${t('telegram')}</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">${t('cancel')}</button><button class="edit-save" id="editSave">${t('save')}</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const rawPhone=String($('editPhone').value||'').trim();if(rawPhone){const compactPhone=rawPhone.replace(/[\s()\-]/g,'');if(!/^\+9955\d{8}$/.test(compactPhone)){toast('Телефон: формат +995 и 9 цифр. Пример: +995 599 02 47 23');return;}$('editPhone').value=compactPhone;}const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value,...(document.getElementById('editDistrictKey')?{district_key:$('editDistrictKey').value}:{})};$('editSave').disabled=true;$('editSave').textContent=t('loading');try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.detail||er.error||'save_failed')}toast(t('save_ok'));await loadMine()}catch(e){toast(e.message && e.message!=='save_failed'?e.message:t('save_fail'));$('editSave').disabled=false;$('editSave').textContent=t('save')}}}catch(e){toast(t('edit_fail'))}}
 async function unpublishMine(id){if(!confirm(t('hide_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST'});if(!r.ok)throw 0;toast(t('hide_ok'));await loadMine()}catch(e){toast(t('hide_fail'))}}
 async function renewMine(id){if(!confirm('Продлить объявление на 10 дней?'))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/republish',{method:'POST'});if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'renew_failed')}const data=await r.json();toast(data.renewed?'Объявление продлено на 10 дней':'Объявление снова опубликовано');await loadMine()}catch(e){toast('Не удалось продлить объявление: '+(e.message||'ошибка'))}}
 async function republishMine(id){if(!confirm(t('republish_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/republish',{method:'POST'});if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}toast(t('republish_ok'));await loadMine()}catch(e){toast(e.message==='channel_publish_failed'?t('channel_fail'):t('republish_fail'))}}
