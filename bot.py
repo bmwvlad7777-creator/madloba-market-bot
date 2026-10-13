@@ -324,7 +324,7 @@ def _sync_runtime_record(prefix, identifier, target, target_key, loaded_keys):
 
 def _runtime_request_id(callback_data):
     match = re.match(
-        r"^mod_(?:edit|publish|reject|field_[a-z]+|details|detail|back)_(\d+)(?:_|$)",
+        r"^mod_(?:edit|publish|reject|field_[a-z]+|details|detail|back|queue_open)_(\d+)(?:_|$)",
         str(callback_data or ""),
     )
     return int(match.group(1)) if match else None
@@ -3826,18 +3826,18 @@ def submit_for_moderation(
 
     next_moderation_id += 1
 
+    # Each moderation request owns an immutable snapshot of its listing data.
+    # A user's next draft must not overwrite or invalidate this request.
     moderation_requests[
         request_id
     ] = {
-
-        "user_chat_id":
-            chat_id,
-
-        "message_chat_id":
-            None,
-
-        "message_id":
-            None
+        "request_id": request_id,
+        "user_chat_id": chat_id,
+        "message_chat_id": None,
+        "message_id": None,
+        "status": "pending",
+        "data": json.loads(json.dumps(data, ensure_ascii=False)),
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
 
     states[
@@ -3996,6 +3996,68 @@ def submit_for_moderation(
 
 
 
+def load_pending_moderation_queue():
+    """Load pending moderation snapshots from memory and durable Supabase state."""
+    if supabase_enabled():
+        rows = supabase_request(
+            "GET", RUNTIME_STATE_TABLE,
+            params={"select": "state_key,payload", "state_key": "like.moderation:%", "limit": "500"},
+        )
+        if isinstance(rows, list):
+            for row in rows:
+                key = str(row.get("state_key", ""))
+                payload = row.get("payload")
+                match = re.fullmatch(r"moderation:(\d+)", key)
+                if match and isinstance(payload, dict) and payload.get("status", "pending") == "pending":
+                    try:
+                        request_id = int(match.group(1))
+                        # Migrate legacy requests created before each request had
+                        # its own listing snapshot. This fallback is best-effort;
+                        # new requests always carry their own independent data.
+                        if not isinstance(payload.get("data"), dict):
+                            author_id = payload.get("user_chat_id")
+                            if author_id is not None:
+                                found, user_payload, ok = runtime_state_load(_runtime_key("user", author_id))
+                                if ok and found and isinstance(user_payload, dict) and isinstance(user_payload.get("data"), dict):
+                                    payload["data"] = json.loads(json.dumps(user_payload["data"], ensure_ascii=False))
+                                    runtime_state_save(_runtime_key("moderation", request_id), payload)
+                        moderation_requests[request_id] = payload
+                    except (ValueError, TypeError):
+                        pass
+    return sorted(
+        [(int(k), v) for k, v in moderation_requests.items() if isinstance(v, dict) and v.get("status", "pending") == "pending"],
+        key=lambda pair: pair[0],
+    )
+
+
+def send_moderation_queue(admin_chat_id, page=0):
+    if not moderator_is_allowed(admin_chat_id):
+        send(admin_chat_id, "⛔ Эта команда доступна только администратору.")
+        return
+    items = load_pending_moderation_queue()
+    page_size = 8
+    pages = max(1, (len(items) + page_size - 1) // page_size)
+    page = max(0, min(int(page), pages - 1))
+    start = page * page_size
+    current = items[start:start + page_size]
+    text = f"<b>🛡 ОЧЕРЕДЬ МОДЕРАЦИИ</b>\n\nОжидают решения: <b>{len(items)}</b>\nСтраница: {page + 1}/{pages}"
+    keyboard = []
+    for request_id, item in current:
+        data = item.get("data") or {}
+        title = str(data.get("title") or data.get("category") or "Объявление").strip()[:34]
+        price = str(data.get("price") or "без цены")[:16]
+        keyboard.append([{"text": f"#{request_id} · {title} · {price}", "callback_data": f"mod_queue_open_{request_id}"}])
+    nav = []
+    if page > 0:
+        nav.append({"text": "← Назад", "callback_data": f"mod_queue_page_{page - 1}"})
+    if page + 1 < pages:
+        nav.append({"text": "Дальше →", "callback_data": f"mod_queue_page_{page + 1}"})
+    if nav:
+        keyboard.append(nav)
+    keyboard.append([{"text": "🔄 Обновить", "callback_data": f"mod_queue_page_{page}"}])
+    send(admin_chat_id, text, keyboard)
+
+
 def moderator_is_allowed(admin_user_id):
     try:
         return bool(ADMIN_CHAT_ID) and int(admin_user_id) == int(ADMIN_CHAT_ID)
@@ -4008,9 +4070,13 @@ def moderation_control_text(request_id):
     if not item:
         return None
     user_chat_id = item["user_chat_id"]
-    if user_chat_id not in states:
-        return None
-    data = states[user_chat_id]["data"]
+    data = item.get("data")
+    if not isinstance(data, dict):
+        # Compatibility with requests created before snapshot support.
+        if user_chat_id not in states:
+            return None
+        data = states[user_chat_id].get("data", {})
+        item["data"] = json.loads(json.dumps(data, ensure_ascii=False))
     return (
         "<b>🛡 ОБЪЯВЛЕНИЕ НА МОДЕРАЦИИ</b>\n\n"
         f"👤 ID автора: <code>{user_chat_id}</code>\n"
@@ -4023,8 +4089,10 @@ def moderation_control_text(request_id):
 def show_moderation_editor(admin_chat_id, request_id):
     if not moderator_is_allowed(admin_chat_id):
         return
+    # Hydrate legacy request snapshots from persisted user state if possible.
+    moderation_control_text(request_id)
     item = moderation_requests.get(request_id)
-    if not item or item["user_chat_id"] not in states:
+    if not item or item.get("status", "pending") != "pending" or not isinstance(item.get("data"), dict):
         send(admin_chat_id, "⚠️ Заявка уже обработана или недоступна.")
         return
     moderator_sessions[admin_chat_id] = {"request_id": request_id, "step": "menu"}
@@ -4054,12 +4122,12 @@ def process_moderator_text(admin_chat_id, text):
         return False
     request_id = session.get("request_id")
     item = moderation_requests.get(request_id)
-    if not item or item["user_chat_id"] not in states:
+    if not item or item.get("status", "pending") != "pending" or not isinstance(item.get("data"), dict):
         moderator_sessions.pop(admin_chat_id, None)
         send(admin_chat_id, "⚠️ Заявка уже обработана или недоступна.")
         return True
 
-    data = states[item["user_chat_id"]]["data"]
+    data = item["data"]
     step = session.get("step")
     text = text.strip()
 
@@ -4089,6 +4157,7 @@ def process_moderator_text(admin_chat_id, text):
         return False
 
     moderator_sessions.pop(admin_chat_id, None)
+    runtime_state_save(_runtime_key("moderation", request_id), item)
     send(admin_chat_id, "✅ <b>Изменение сохранено.</b>\n\nПроверьте объявление ещё раз.")
     show_updated_moderation(admin_chat_id, request_id)
     return True
@@ -4154,27 +4223,10 @@ def moderate_publish(
         "user_chat_id"
     ]
 
-    if user_chat_id not in states:
-
-        moderation_requests.pop(
-            request_id,
-            None
-        )
-
-        answer(
-
-            callback_id,
-
-            "Объявление больше недоступно.",
-
-            True
-        )
-
+    data = item.get("data")
+    if not isinstance(data, dict):
+        answer(callback_id, "Заявка не содержит сохранённых данных. Откройте её заново.", True)
         return
-
-    data = states[
-        user_chat_id
-    ]["data"]
 
     result = publish_listing(
         data
@@ -4215,20 +4267,12 @@ def moderate_publish(
         user_chat_id=user_chat_id
     )
 
-    moderation_requests.pop(
-        request_id,
-        None
-    )
+    moderation_requests.pop(request_id, None)
+    runtime_state_delete(_runtime_key("moderation", request_id))
 
-    moderator_sessions.pop(
-        int(admin_user_id),
-        None
-    )
+    moderator_sessions.pop(int(admin_user_id), None)
 
-    states.pop(
-        user_chat_id,
-        None
-    )
+    # Do not clear the author's current state: it may be a newer draft.
 
     answer(
 
@@ -4326,75 +4370,33 @@ def moderate_reject(
         "user_chat_id"
     ]
 
-    # Удаляем заявку из очереди.
-    # Само объявление сохраняем, чтобы автор
-    # мог его исправить и отправить повторно.
-    moderation_requests.pop(
-        request_id,
-        None
-    )
+    # Remove only this request. A newer draft belonging to the same user must
+    # remain untouched. If this was still the active submitted draft, restore
+    # its snapshot so the user can edit and resubmit it.
+    rejected_data = item.get("data")
+    moderation_requests.pop(request_id, None)
+    runtime_state_delete(_runtime_key("moderation", request_id))
+    moderator_sessions.pop(int(admin_user_id), None)
 
-    moderator_sessions.pop(
-        int(admin_user_id),
-        None
-    )
-
-    if user_chat_id in states:
-
-        states[
-            user_chat_id
-        ]["step"] = "preview"
-
+    if user_chat_id in states and states[user_chat_id].get("step") == "moderation":
+        states[user_chat_id]["step"] = "preview"
+        if isinstance(rejected_data, dict):
+            states[user_chat_id]["data"] = json.loads(json.dumps(rejected_data, ensure_ascii=False))
         send(
-
             user_chat_id,
-
-            "<b>❌ Объявление не прошло "
-            "модерацию.</b>\n\n"
-
-            "Администратор отклонил объявление.\n\n"
-
-            "Вы можете изменить данные "
-            "и отправить его на проверку повторно.",
-
+            "<b>❌ Объявление не прошло модерацию.</b>\n\n"
+            "Администратор отклонил объявление. Вы можете изменить данные и отправить его на проверку повторно.",
             [
-
-                [
-
-                    {
-
-                        "text":
-                            "✏️ Изменить объявление",
-
-                        "callback_data":
-                            "edit_menu"
-                    }
-                ],
-
-                [
-
-                    {
-
-                        "text":
-                            "🔄 Начать заново",
-
-                        "callback_data":
-                            "restart_post"
-                    }
-                ],
-
-                [
-
-                    {
-
-                        "text":
-                            "❌ Удалить",
-
-                        "callback_data":
-                            "cancel_post"
-                    }
-                ]
-            ]
+                [{"text": "✏️ Изменить объявление", "callback_data": "edit_menu"}],
+                [{"text": "🔄 Начать заново", "callback_data": "restart_post"}],
+                [{"text": "❌ Удалить", "callback_data": "cancel_post"}],
+            ],
+        )
+    else:
+        send(
+            user_chat_id,
+            "<b>❌ Одно из ваших объявлений отклонено.</b>\n\nТекущий черновик не изменён.",
+            main_menu(),
         )
 
     answer(
@@ -4989,6 +4991,13 @@ def _handle_update_core(
         # TELEGRAM ID
         # ====================================================
 
+        if text.strip().split("@", 1)[0] in {"/moderation", "/queue"}:
+            if not moderator_is_allowed(chat_id):
+                send(chat_id, "⛔ Эта команда доступна только администратору.")
+            else:
+                send_moderation_queue(chat_id, 0)
+            return
+
         if text.strip() == "/id":
 
             send(
@@ -5190,6 +5199,41 @@ def _handle_update_core(
     # МОДЕРАЦИЯ
     # ========================================================
 
+    if data.startswith("mod_queue_page_"):
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        try:
+            page = int(data.rsplit("_", 1)[1])
+        except ValueError:
+            answer(callback["id"], "Некорректная страница.", True)
+            return
+        answer(callback["id"])
+        send_moderation_queue(callback_from_id, page)
+        return
+
+    if data.startswith("mod_queue_open_"):
+        try:
+            request_id = int(data[len("mod_queue_open_"):])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер заявки.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        item = moderation_requests.get(request_id)
+        if not item or item.get("status", "pending") != "pending":
+            answer(callback["id"], "Заявка уже обработана или недоступна.", True)
+            send_moderation_queue(callback_from_id, 0)
+            return
+        answer(callback["id"])
+        text = moderation_control_text(request_id)
+        if text:
+            send(callback_from_id, text, moderation_keyboard(request_id))
+        else:
+            send(callback_from_id, "Заявка загружена, но данные объявления недоступны.")
+        return
+
     if data.startswith("mod_edit_"):
         try:
             request_id = int(data[len("mod_edit_"):])
@@ -5263,7 +5307,7 @@ def _handle_update_core(
             answer(callback["id"], "⛔ У вас нет прав администратора.", True)
             return
         item = moderation_requests.get(request_id)
-        if not item or item["user_chat_id"] not in states:
+        if not item or item.get("status", "pending") != "pending" or not isinstance(item.get("data"), dict):
             answer(callback["id"], "Заявка уже обработана.", True)
             return
         moderator_sessions[callback_from_id] = {"request_id": request_id, "step": "details_menu"}
@@ -5271,7 +5315,7 @@ def _handle_update_core(
         send(
             callback_from_id,
             "<b>📋 Характеристики</b>\n\nЧто изменить?",
-            moderation_detail_menu(request_id, states[item["user_chat_id"]]["data"])
+            moderation_detail_menu(request_id, item["data"])
         )
         return
 
@@ -5291,10 +5335,10 @@ def _handle_update_core(
             answer(callback["id"], "⛔ У вас нет прав администратора.", True)
             return
         item = moderation_requests.get(request_id)
-        if not item or item["user_chat_id"] not in states:
+        if not item or item.get("status", "pending") != "pending" or not isinstance(item.get("data"), dict):
             answer(callback["id"], "Заявка уже обработана.", True)
             return
-        data_listing = states[item["user_chat_id"]]["data"]
+        data_listing = item["data"]
         fields = category_fields(data_listing)
         if index >= len(fields):
             answer(callback["id"], "Характеристика не найдена.", True)
@@ -8260,7 +8304,7 @@ function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el
 async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();renderDetail(x);hideViews();$('detailView').classList.add('show');window.scrollTo({top:0,behavior:'smooth'})}catch(e){toast(t('open_fail'))}}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<a class="contact-btn" href="tel:${esc(phone)}" data-contact-call="${esc(phone)}">${t('contact_call')}</a><button type="button" class="contact-btn secondary" data-copy-phone="${esc(phone)}">${t('copy_phone')||'📋 Скопировать номер'}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(x.title||t('no_listing'))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
 // Keep phone actions as direct user-gesture handlers across iOS and Android WebViews.
-$('detailContent').querySelectorAll('[data-contact-call]').forEach(a=>a.addEventListener('click',function(e){e.stopPropagation();const n=String(this.dataset.contactCall||'').replace(/(?!^)\+|[^0-9+]/g,'');if(!n)return;this.setAttribute('href','tel:'+n);}));
+$('detailContent').querySelectorAll('[data-contact-call]').forEach(a=>a.addEventListener('click',function(e){e.stopPropagation();const n=String(this.dataset.contactCall||'').replace(/(?!^)\+|[^0-9+]/g,'');if(!n){e.preventDefault();toast('Номер телефона не указан');return;}const uri='tel:'+n;this.setAttribute('href',uri);/* Trigger the system dialer from the user's direct tap; works with the platform's native URL handler where permitted. */e.preventDefault();try{window.location.href=uri;}catch(_){this.textContent='📋 '+n;toast('Не удалось открыть звонок. Скопируйте номер.');}}));
 $('detailContent').querySelectorAll('[data-copy-phone]').forEach(b=>b.addEventListener('click',async function(e){e.stopPropagation();const n=String(this.dataset.copyPhone||'');try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(n);this.textContent='✓ Номер скопирован';return;}}catch(_){}try{const area=document.createElement('textarea');area.value=n;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand('copy');area.remove();this.textContent=ok?'✓ Номер скопирован':n;}catch(_){this.textContent=n;}}));
 const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{e.stopPropagation();toggleFavorite(x.id,fav,x)};if(photos.length>1){let idx=0;const img='detailImg';const update=()=>{$(img).src='/media/'+encodeURIComponent(x.id)+'/'+idx;$('photoCount').textContent=(idx+1)+'/'+photos.length};$('prevPhoto').onclick=e=>{e.stopPropagation();idx=(idx-1+photos.length)%photos.length;update()};$('nextPhoto').onclick=e=>{e.stopPropagation();idx=(idx+1)%photos.length;update()}}}
 async function toggleFavorite(id,button,x=null){try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}}
