@@ -4832,19 +4832,34 @@ def _handle_update_core(
         # ПОСТОЯННАЯ КНОПКА АДМИНИСТРАТОРА
         # ====================================================
 
-        normalized_button_text = text.strip().replace("\ufe0f", "")
+        # Telegram may return reply-keyboard text with different emoji variation
+        # selectors, or without the emoji at all. Match the stable action label,
+        # not the exact rendered emoji sequence.
+        normalized_button_text = unicodedata.normalize("NFKC", text or "")
+        normalized_button_text = re.sub(r"[\ufe0e\ufe0f\u200d\u2060]", "", normalized_button_text)
+        normalized_button_text = " ".join(normalized_button_text.casefold().split())
+        is_moderation_button = (
+            normalized_button_text in {"модерация", "🛡 модерация"}
+            or normalized_button_text.endswith(" модерация")
+        )
 
-        if normalized_button_text == "🛡 Модерация":
-            if moderator_is_allowed(chat_id):
-                opened = refresh_admin_moderation_queue(0, admin_chat_id=chat_id)
-                if not opened:
-                    send(
-                        chat_id,
-                        "⚠️ Не удалось открыть очередь модерации. "
-                        "Попробуйте ещё раз через несколько секунд.",
-                    )
-            else:
+        if is_moderation_button:
+            if not moderator_is_allowed(chat_id):
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
+                return
+            print("MODERATION BUTTON RECEIVED:", repr(text), "chat_id=", chat_id)
+            try:
+                opened = refresh_admin_moderation_queue(0, admin_chat_id=chat_id)
+            except Exception as error:
+                print("MODERATION BUTTON ERROR:", repr(error))
+                send(chat_id, "⚠️ Ошибка открытия очереди модерации. Попробуйте ещё раз.")
+                return
+            if not opened:
+                send(
+                    chat_id,
+                    "⚠️ Не удалось открыть очередь модерации. "
+                    "Проверьте соединение и попробуйте ещё раз.",
+                )
             return
 
 
@@ -4889,7 +4904,7 @@ def _handle_update_core(
         # ====================================================
 
         is_start_command = text.startswith("/start")
-        is_main_menu_button = normalized_button_text == "🏠 Главное меню"
+        is_main_menu_button = normalized_button_text in {"главное меню", "🏠 главное меню"}
 
         if is_start_command or is_main_menu_button:
 
