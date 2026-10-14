@@ -3797,16 +3797,10 @@ def edit_moderation_message(
             "inline_keyboard": keyboard
         }
 
-    result = api(
+    return api(
         "editMessageText",
         data
     )
-    # Telegram reports "message is not modified" as an error even though the
-    # desired queue card is already current. Treat it as success to avoid a
-    # duplicate queue message being sent as a fallback.
-    if isinstance(result, dict) and not result.get("ok") and "message is not modified" in str(result.get("description", "")).lower():
-        return {"ok": True, "result": {"message_id": message_id}}
-    return result
 
 
 def submit_for_moderation(
@@ -3870,10 +3864,6 @@ def submit_for_moderation(
         "data": json.loads(json.dumps(data, ensure_ascii=False)),
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    # Persist each independent request immediately so a Render restart cannot
-    # lose it before an administrator opens the moderation queue.
-    if not runtime_state_save(_runtime_key("moderation", request_id), moderation_requests[request_id]):
-        print(f"MODERATION REQUEST PERSISTENCE WARNING: request_id={request_id}")
 
     states[
         chat_id
@@ -3955,49 +3945,30 @@ def load_pending_moderation_queue():
 
 
 def send_moderation_queue(admin_chat_id, page=0, message_id=None):
-    """Render a compact one-at-a-time moderation queue in a single Telegram message."""
     if not moderator_is_allowed(admin_chat_id):
         send(admin_chat_id, "⛔ Эта команда доступна только администратору.")
         return
-
     items = load_pending_moderation_queue()
-    # Sequential workflow: always present the oldest pending request first.
-    # After publish/reject refresh_admin_moderation_queue() advances naturally.
-    # Unique refresh marker forces Telegram to edit the existing card even when
-    # queue contents are unchanged, instead of silently returning "not modified".
-    refreshed_at = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-    if not items:
-        text = (
-            "<b>🛡 ОЧЕРЕДЬ МОДЕРАЦИИ</b>\n\n"
-            "✅ <b>Все заявки обработаны.</b>\n"
-            "Новых объявлений на проверке нет.\n\n"
-            "Новые заявки появятся здесь автоматически.\n"
-            f"<i>Обновлено: {refreshed_at}</i>"
-        )
-        keyboard = [[{"text": "🔄 Обновить очередь", "callback_data": "mod_queue_page_0"}]]
-    else:
-        request_id, item = items[0]
-        data = item.get("data") if isinstance(item.get("data"), dict) else {}
-        title = str(data.get("title") or data.get("category") or "Объявление").strip()[:90]
-        category = str(data.get("category_name") or data.get("category") or data.get("category_key") or "Категория").strip()[:50]
-        price = str(data.get("price") or "Цена не указана").strip()[:30]
-        photos = len(data.get("photos") or [])
-        text = (
-            "<b>🛡 ОЧЕРЕДЬ МОДЕРАЦИИ</b>\n\n"
-            f"Ожидают решения: <b>{len(items)}</b>\n"
-            f"Сейчас: <b>заявка #{request_id}</b>\n\n"
-            f"📂 {esc(category)}\n"
-            f"📝 {esc(title)}\n"
-            f"💰 {esc(price)}\n"
-            f"📷 Фотографий: <b>{photos}</b>\n\n"
-            "Откройте заявку, примите решение, и очередь перейдёт к следующей.\n"
-            f"<i>Обновлено: {refreshed_at}</i>"
-        )
-        keyboard = [
-            [{"text": f"🔎 Открыть заявку #{request_id}", "callback_data": f"mod_queue_open_{request_id}"}],
-            [{"text": "🔄 Обновить очередь", "callback_data": "mod_queue_page_0"}],
-        ]
-
+    page_size = 8
+    pages = max(1, (len(items) + page_size - 1) // page_size)
+    page = max(0, min(int(page), pages - 1))
+    start = page * page_size
+    current = items[start:start + page_size]
+    text = f"<b>🛡 ОЧЕРЕДЬ МОДЕРАЦИИ</b>\n\nОжидают решения: <b>{len(items)}</b>\nСтраница: {page + 1}/{pages}"
+    keyboard = []
+    for request_id, item in current:
+        data = item.get("data") or {}
+        title = str(data.get("title") or data.get("category") or "Объявление").strip()[:34]
+        price = str(data.get("price") or "без цены")[:16]
+        keyboard.append([{"text": f"#{request_id} · {title} · {price}", "callback_data": f"mod_queue_open_{request_id}"}])
+    nav = []
+    if page > 0:
+        nav.append({"text": "← Назад", "callback_data": f"mod_queue_page_{page - 1}"})
+    if page + 1 < pages:
+        nav.append({"text": "Дальше →", "callback_data": f"mod_queue_page_{page + 1}"})
+    if nav:
+        keyboard.append(nav)
+    keyboard.append([{"text": "🔄 Обновить", "callback_data": f"mod_queue_page_{page}"}])
     if message_id:
         return edit_moderation_message(admin_chat_id, message_id, text, keyboard)
     return send(admin_chat_id, text, keyboard)
@@ -4831,13 +4802,8 @@ def _handle_update_core(
         # ====================================================
 
         if text.strip() == "🛡 Модерация":
-            print(f"MODERATION BUTTON RECEIVED: chat_id={chat_id}")
             if moderator_is_allowed(chat_id):
-                try:
-                    refresh_admin_moderation_queue(0)
-                except Exception as error:
-                    print("MODERATION QUEUE REFRESH ERROR:", repr(error))
-                    send(chat_id, "⚠️ Не удалось обновить очередь модерации. Попробуйте ещё раз.")
+                refresh_admin_moderation_queue(0)
             else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
             return
@@ -8338,8 +8304,8 @@ $('detailContent').querySelectorAll('[data-contact-call]').forEach(btn=>btn.addE
  e.stopPropagation();const n=String(this.dataset.contactCall||'').replace(/(?!^)\+|[^0-9+]/g,'');if(!n){toast('Номер телефона не указан');return;}
  const old=document.getElementById('mmPhoneSheet');if(old)old.remove();
  const sheet=document.createElement('div');sheet.id='mmPhoneSheet';sheet.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(10,20,40,.58);display:flex;align-items:flex-end;justify-content:center;padding:16px;box-sizing:border-box;';
- sheet.innerHTML=`<div style="width:100%;max-width:440px;background:#fff;color:#172033;border-radius:22px;padding:22px;box-shadow:0 16px 50px #0003;text-align:center"><div style="font-size:17px;font-weight:800;margin-bottom:12px">📞 Телефон для связи</div><a href="tel:${esc(n)}" data-phone-dial style="display:block;font-size:25px;font-weight:800;color:#1769d2;text-decoration:underline;padding:16px 8px;border-radius:14px;background:#eef5ff;user-select:text;-webkit-user-select:text;cursor:pointer;position:relative;z-index:2;pointer-events:auto">${esc(n)}</a><div style="font-size:13px;color:#697386;margin:10px 0 16px">Нажмите на номер, чтобы открыть системную звонилку</div><button type="button" data-phone-copy-sheet style="width:100%;padding:13px;border:0;border-radius:12px;background:#eef5ff;color:#1769d2;font-size:16px;font-weight:700;margin-bottom:8px">📋 Скопировать номер</button><button type="button" data-phone-close style="width:100%;padding:13px;border:0;border-radius:12px;background:#f1f3f6;color:#253047;font-size:16px;font-weight:700">Закрыть</button></div>`;
- document.body.appendChild(sheet);sheet.addEventListener('click',ev=>{if(ev.target===sheet||ev.target.closest('[data-phone-close]'))sheet.remove();});// Keep the tel: anchor's native click behavior; intercepting it with preventDefault breaks dialer handoff in some Telegram WebViews.sheet.querySelector('[data-phone-copy-sheet]').addEventListener('click',async()=>{try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(n);else{const ta=document.createElement('textarea');ta.value=n;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}sheet.querySelector('[data-phone-copy-sheet]').textContent='✓ Номер скопирован';}catch(_){sheet.querySelector('[data-phone-copy-sheet]').textContent=n;}});
+ sheet.innerHTML=`<div style="width:100%;max-width:440px;background:#fff;color:#172033;border-radius:22px;padding:22px;box-shadow:0 16px 50px #0003;text-align:center"><div style="font-size:17px;font-weight:800;margin-bottom:12px">📞 Телефон для связи</div><a href="tel:${esc(n)}" target="_blank" rel="noopener" data-phone-dial style="display:block;font-size:25px;font-weight:800;color:#1769d2;text-decoration:underline;padding:16px 8px;border-radius:14px;background:#eef5ff;user-select:text;-webkit-user-select:text;cursor:pointer;position:relative;z-index:2;pointer-events:auto">${esc(n)}</a><div style="font-size:13px;color:#697386;margin:10px 0 16px">Нажмите на номер, чтобы открыть системную звонилку</div><button type="button" data-phone-copy-sheet style="width:100%;padding:13px;border:0;border-radius:12px;background:#eef5ff;color:#1769d2;font-size:16px;font-weight:700;margin-bottom:8px">📋 Скопировать номер</button><button type="button" data-phone-close style="width:100%;padding:13px;border:0;border-radius:12px;background:#f1f3f6;color:#253047;font-size:16px;font-weight:700">Закрыть</button></div>`;
+ document.body.appendChild(sheet);sheet.addEventListener('click',ev=>{if(ev.target===sheet||ev.target.closest('[data-phone-close]'))sheet.remove();});const dialLink=sheet.querySelector('[data-phone-dial]');dialLink.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();try{window.location.href='tel:'+n;}catch(_){try{window.open('tel:'+n,'_blank');}catch(__){}}});sheet.querySelector('[data-phone-copy-sheet]').addEventListener('click',async()=>{try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(n);else{const ta=document.createElement('textarea');ta.value=n;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}sheet.querySelector('[data-phone-copy-sheet]').textContent='✓ Номер скопирован';}catch(_){sheet.querySelector('[data-phone-copy-sheet]').textContent=n;}});
 }));
 $('detailContent').querySelectorAll('[data-copy-phone]').forEach(b=>b.addEventListener('click',async function(e){e.stopPropagation();const n=String(this.dataset.copyPhone||'');try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(n);this.textContent='✓ Номер скопирован';return;}}catch(_){}try{const area=document.createElement('textarea');area.value=n;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand('copy');area.remove();this.textContent=ok?'✓ Номер скопирован':n;}catch(_){this.textContent=n;}}));
 const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{e.stopPropagation();toggleFavorite(x.id,fav,x)};if(photos.length>1){let idx=0;const img='detailImg';const update=()=>{$(img).src='/media/'+encodeURIComponent(x.id)+'/'+idx;$('photoCount').textContent=(idx+1)+'/'+photos.length};$('prevPhoto').onclick=e=>{e.stopPropagation();idx=(idx-1+photos.length)%photos.length;update()};$('nextPhoto').onclick=e=>{e.stopPropagation();idx=(idx+1)%photos.length;update()}}}
