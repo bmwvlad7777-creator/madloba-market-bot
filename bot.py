@@ -3994,23 +3994,34 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     return send(admin_chat_id, text, keyboard)
 
 
-def refresh_admin_moderation_queue(page=0):
-    """Maintain one persistent queue card for the configured administrator."""
-    if not ADMIN_CHAT_ID:
-        return
+def refresh_admin_moderation_queue(page=0, admin_chat_id=None):
+    """Update the persistent queue card; recreate it if Telegram cannot edit the saved message."""
+    target_chat_id = admin_chat_id or ADMIN_CHAT_ID
+    if not target_chat_id or not moderator_is_allowed(target_chat_id):
+        return False
+
     queue_key = _runtime_key("admin_queue", "main")
     found, saved, ok = runtime_state_load(queue_key)
     message_id = saved.get("message_id") if found and isinstance(saved, dict) else None
+
     if message_id:
-        result = send_moderation_queue(ADMIN_CHAT_ID, page, message_id=message_id)
-        # If Telegram no longer has the message, recreate the queue card.
+        result = send_moderation_queue(target_chat_id, page, message_id=message_id)
         if isinstance(result, dict) and result.get("ok"):
-            return
-    result = send_moderation_queue(ADMIN_CHAT_ID, page)
+            return True
+
+    # A stale/deleted queue message must never make the button appear to do nothing.
+    result = send_moderation_queue(target_chat_id, page)
     if isinstance(result, dict) and result.get("ok"):
         msg = result.get("result") or {}
         if msg.get("message_id"):
-            runtime_state_save(queue_key, {"chat_id": ADMIN_CHAT_ID, "message_id": msg["message_id"]})
+            runtime_state_save(
+                queue_key,
+                {"chat_id": target_chat_id, "message_id": msg["message_id"]},
+            )
+        return True
+
+    print("MODERATION QUEUE ERROR:", repr(result))
+    return False
 
 
 def moderator_is_allowed(admin_user_id):
@@ -4821,9 +4832,17 @@ def _handle_update_core(
         # ПОСТОЯННАЯ КНОПКА АДМИНИСТРАТОРА
         # ====================================================
 
-        if text.strip() == "🛡 Модерация":
+        normalized_button_text = text.strip().replace("\ufe0f", "")
+
+        if normalized_button_text == "🛡 Модерация":
             if moderator_is_allowed(chat_id):
-                refresh_admin_moderation_queue(0)
+                opened = refresh_admin_moderation_queue(0, admin_chat_id=chat_id)
+                if not opened:
+                    send(
+                        chat_id,
+                        "⚠️ Не удалось открыть очередь модерации. "
+                        "Попробуйте ещё раз через несколько секунд.",
+                    )
             else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
             return
@@ -4869,34 +4888,18 @@ def _handle_update_core(
         # START
         # ====================================================
 
-        if (
+        is_start_command = text.startswith("/start")
+        is_main_menu_button = normalized_button_text == "🏠 Главное меню"
 
-            text.startswith(
-                "/start"
-            )
-
-            or
-
-            text.strip()
-            ==
-            "🏠 Главное меню"
-
-        ):
+        if is_start_command or is_main_menu_button:
 
             # Returning to the main menu clears only the active draft/session.
             # Previously submitted moderation requests must remain available.
-            states.pop(
-                chat_id,
-                None
-            )
+            states.pop(chat_id, None)
 
-
-            # Admins see the live moderation queue immediately when they open
-            # the bot with /start, followed by the normal main menu. Telegram
-            # bots cannot detect merely opening an existing chat without an update.
-            if moderator_is_allowed(chat_id):
-                # Reuse one queue message instead of creating a new card on every /start.
-                refresh_admin_moderation_queue(0)
+            # Install the persistent admin keyboard on /start only. The
+            # "Главное меню" button must not emit a second admin-panel message.
+            if moderator_is_allowed(chat_id) and is_start_command:
                 send_admin_reply_keyboard(chat_id)
 
             send(
