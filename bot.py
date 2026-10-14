@@ -239,6 +239,22 @@ def claim_telegram_update(update_id):
         return None
 
 
+def release_telegram_update(update_id):
+    """Release a claimed update after handler failure so Telegram can retry it."""
+    if update_id is None or not supabase_enabled():
+        return False
+    result = supabase_request(
+        "DELETE",
+        TELEGRAM_UPDATES_TABLE,
+        params={"update_id": f"eq.{int(update_id)}"},
+    )
+    if result is None:
+        print("TELEGRAM UPDATE RELEASE ERROR:", update_id)
+        return False
+    print("TELEGRAM UPDATE RELEASED FOR RETRY:", update_id)
+    return True
+
+
 def runtime_state_load(state_key):
     """Load one JSON state record. Returns (found, payload, request_ok)."""
     if not supabase_enabled():
@@ -10546,6 +10562,12 @@ def webhook():
         handle(update)
     except Exception as error:
         print("UPDATE ERROR:", repr(error))
+        # The update was claimed before handling. Remove that claim on failure,
+        # otherwise Telegram's retry would be mistaken for a duplicate forever.
+        if update_id is not None:
+            release_telegram_update(update_id)
+        # A non-2xx response asks Telegram to retry the update.
+        return "Update processing failed; retry requested", 500
 
     return "OK"
 
