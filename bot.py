@@ -89,6 +89,10 @@ moderation_requests = {}
 # Сессии редактирования модератора сохраняются в Supabase.
 moderator_sessions = {}
 
+# Не отправлять повторно служебное сообщение с reply-клавиатурой администратора
+# в рамках одного запуска; факт установки также сохраняется в Supabase.
+ADMIN_REPLY_KEYBOARD_INSTALLED = set()
+
 # Счётчик заявок на модерацию.
 next_moderation_id = 1
 
@@ -1406,14 +1410,25 @@ def api(method, data=None):
 # ============================================================
 
 def send_admin_reply_keyboard(chat_id):
-    """Install a persistent, one-tap moderation shortcut for the administrator."""
+    """Install the administrator shortcut once, not on every /start."""
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
-    return api(
+
+    marker = str(chat_id)
+    state_key = _runtime_key("admin_reply_keyboard", marker)
+    if marker in ADMIN_REPLY_KEYBOARD_INSTALLED:
+        return {"ok": True, "skipped": True}
+
+    found, saved, state_ok = runtime_state_load(state_key)
+    if found and isinstance(saved, dict) and saved.get("installed"):
+        ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
+        return {"ok": True, "skipped": True}
+
+    result = api(
         "sendMessage",
         {
             "chat_id": chat_id,
-            "text": "🛡 <b>Панель администратора</b>\n\nНажмите «🛡 Модерация», чтобы открыть актуальную очередь заявок.",
+            "text": "🛡 <b>Панель администратора</b>\n\nИспользуйте кнопки ниже для переключения между модерацией и главным меню.",
             "parse_mode": "HTML",
             "reply_markup": {
                 "keyboard": [
@@ -1426,6 +1441,10 @@ def send_admin_reply_keyboard(chat_id):
             },
         },
     )
+    if isinstance(result, dict) and result.get("ok"):
+        ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
+        runtime_state_save(state_key, {"installed": True})
+    return result
 
 
 def send(
@@ -3904,7 +3923,9 @@ def submit_for_moderation(
         "После решения администратора "
         "вы получите уведомление.",
 
-        main_menu()
+        # When the administrator is also testing as a listing author, do not
+        # attach the public category keyboard after every submission.
+        None if moderator_is_allowed(chat_id) else main_menu()
     )
 
     # Keep one administrator queue card updated; don't send a new queue message per listing.
@@ -3993,6 +4014,45 @@ def refresh_admin_moderation_queue(page=0):
         msg = result.get("result") or {}
         if msg.get("message_id"):
             runtime_state_save(queue_key, {"chat_id": ADMIN_CHAT_ID, "message_id": msg["message_id"]})
+
+
+def show_admin_main_menu(admin_chat_id):
+    """Switch the single reusable admin card between categories and moderation."""
+    if not moderator_is_allowed(admin_chat_id):
+        return
+
+    menu_key = _runtime_key("admin_queue", "main")
+    found, saved, ok = runtime_state_load(menu_key)
+    message_id = saved.get("message_id") if found and isinstance(saved, dict) else None
+    text = (
+        "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
+        "Главная доска объявлений Батуми.\n\n"
+        "Купи · Продай · Сдай · Найди\n\n"
+        "<b>Выберите категорию:</b>"
+    )
+    if message_id:
+        result = api(
+            "editMessageText",
+            {
+                "chat_id": admin_chat_id,
+                "message_id": message_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "reply_markup": {"inline_keyboard": main_menu()},
+            },
+        )
+        if isinstance(result, dict) and result.get("ok"):
+            return result
+        description = str((result or {}).get("description", "")).lower() if isinstance(result, dict) else ""
+        if "message is not modified" in description:
+            return result
+
+    result = send(admin_chat_id, text, main_menu())
+    if isinstance(result, dict) and result.get("ok"):
+        message = result.get("result") or {}
+        if message.get("message_id"):
+            runtime_state_save(menu_key, {"chat_id": admin_chat_id, "message_id": message["message_id"]})
+    return result
 
 
 def moderator_is_allowed(admin_user_id):
@@ -4394,7 +4454,7 @@ def moderate_reject(
         send(
             user_chat_id,
             "<b>❌ Одно из ваших объявлений отклонено.</b>\n\nТекущий черновик не изменён.",
-            main_menu(),
+            None if moderator_is_allowed(user_chat_id) else main_menu(),
         )
 
     answer(
@@ -4887,59 +4947,40 @@ def _handle_update_core(
                 return
 
         # ====================================================
-        # START
+        # START / ГЛАВНОЕ МЕНЮ
         # ====================================================
 
-        if (
-
-            text.startswith(
-                "/start"
-            )
-
-            or
-
-            text.strip()
-            ==
-            "🏠 Главное меню"
-
-        ):
-
+        if text.startswith("/start") or text.strip() == "🏠 Главное меню":
             # Returning to the main menu clears only the active draft/session.
             # Previously submitted moderation requests must remain available.
-            states.pop(
-                chat_id,
-                None
-            )
+            states.pop(chat_id, None)
 
-
-            # Admins see the live moderation queue immediately when they open
-            # the bot with /start, followed by the normal main menu. Telegram
-            # bots cannot detect merely opening an existing chat without an update.
             if moderator_is_allowed(chat_id):
-                # Reuse one queue message instead of creating a new card on every /start.
-                refresh_admin_moderation_queue(0)
-                send_admin_reply_keyboard(chat_id)
+                if text.startswith("/start"):
+                    # Install the persistent reply keyboard only once, then show
+                    # the main menu in the same reusable inline card used by the
+                    # moderation queue. Repeated /start must not add new panels.
+                    send_admin_reply_keyboard(chat_id)
+                    show_admin_main_menu(chat_id)
+                    return
 
+                # The explicit Main Menu action shows only the public category menu.
+                # The persistent admin reply keyboard remains available for switching
+                # back to moderation without adding another admin-panel message.
+                # Reuse one saved menu message instead of appending a new
+                # category panel to the administrator chat on every tap.
+                show_admin_main_menu(chat_id)
+                return
+
+            # Normal user flow is unchanged.
             send(
-
                 chat_id,
-
-                "<b>"
-                "🛒 MADLOBA MARKET | БАТУМИ"
-                "</b>\n\n"
-
+                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
                 "Главная доска объявлений Батуми.\n\n"
-
                 "Купи · Продай · Сдай · Найди\n\n"
-
-                "<b>"
-                "Выберите категорию:"
-                "</b>",
-
+                "<b>Выберите категорию:</b>",
                 main_menu()
             )
-
-
             return
 
 
