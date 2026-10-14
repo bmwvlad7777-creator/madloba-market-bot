@@ -8188,6 +8188,101 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
   border-radius:0!important;background:transparent!important;
 }
 </style>
+<style id="madloba-listing-detail-and-pagination-polish-v1">
+/* Keep pagination balanced: navigation on the edges, page number in a compact centered pill. */
+.more#pager{
+  display:none;
+  width:100%;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  margin:20px 0 24px;
+}
+.more#pager[style*="flex"]{display:grid!important;}
+#pager button{
+  min-width:0;
+  min-height:54px;
+  padding:12px 14px;
+  border:1px solid #dce6f4;
+  border-radius:18px;
+  background:#fff;
+  color:#2672d8;
+  font-size:16px;
+  font-weight:850;
+  box-shadow:0 5px 16px rgba(29,78,137,.06);
+  white-space:nowrap;
+}
+#prevBtn{justify-self:start;}
+#nextBtn{justify-self:end;}
+#pager #pageLabel{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:62px;
+  min-height:40px;
+  padding:0 15px;
+  border:1px solid #dce9ff;
+  border-radius:999px;
+  background:linear-gradient(180deg,#f1f7ff,#e7f0ff);
+  color:#2369c9;
+  font-size:15px;
+  line-height:1;
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95);
+}
+#pager button:disabled{opacity:.42;box-shadow:none;}
+/* Make the photo and information read as one intentional listing card. */
+#detailView #detailContent{
+  overflow:hidden;
+  border:1px solid #dce6f4;
+  border-radius:26px;
+  background:#fff;
+  box-shadow:0 10px 28px rgba(29,78,137,.07);
+}
+#detailView #detailContent .detail-photo{
+  height:clamp(230px,58vw,390px);
+  min-height:230px;
+  border:0;
+  border-radius:25px 25px 0 0;
+  background:linear-gradient(145deg,#edf4ff 0%,#f5f8fd 100%);
+}
+#detailView #detailContent .detail-photo .photo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#91a3bd;font-size:38px;}
+#detailView #detailContent .detail-photo .photo-empty small{font-size:14px;font-weight:600;letter-spacing:.1px;}
+#detailView #detailContent .detail-body{
+  margin:0;
+  padding:20px;
+  border:0;
+  border-top:1px solid #edf2f8;
+  border-radius:0;
+  box-shadow:none;
+}
+#detailView #detailContent .detail-title{
+  font-size:clamp(21px,5.4vw,27px);
+  line-height:1.18;
+  letter-spacing:-.55px;
+  overflow-wrap:anywhere;
+  margin-bottom:8px;
+}
+#detailView #detailContent .detail-price{font-size:clamp(25px,6vw,32px);line-height:1.1;margin:18px 0 14px;letter-spacing:-.5px;}
+#detailView #detailContent .detail-meta{gap:8px;margin:16px 0;}
+#detailView #detailContent .detail-spec{padding:12px 10px;border-radius:17px;background:#f6f8fc;border-color:#e9eff7;}
+#detailView #detailContent .detail-spec-value{font-size:clamp(14px,3.8vw,17px);}
+#detailView #detailContent .detail-spec-label{font-size:12px;line-height:1.2;}
+#detailView #detailContent .detail-loc{font-size:15px;line-height:1.4;margin-top:12px;overflow-wrap:anywhere;}
+#detailView #detailContent .detail-desc{font-size:16px;line-height:1.55;color:#465267;margin-top:16px;}
+#detailView #detailContent .contacts{gap:10px;margin-top:22px;}
+#detailView #detailContent .contact-btn{min-height:54px;display:flex;align-items:center;justify-content:center;padding:14px 16px;border-radius:17px;font-size:17px;}
+#detailView #detailContent .contact-btn.secondary{background:#edf4ff;color:#2672d8;}
+@media(max-width:390px){
+  #pager{gap:6px!important;}
+  #pager button{padding:11px 9px;font-size:14px;border-radius:15px;}
+  #pager #pageLabel{min-width:52px;padding:0 11px;font-size:14px;}
+  #detailView #detailContent .detail-body{padding:16px;}
+  #detailView #detailContent .detail-meta{gap:6px;}
+  #detailView #detailContent .detail-spec{padding:10px 7px;}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
@@ -8399,7 +8494,7 @@ function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').fo
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
-async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
+async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent=String(requestPage+1);$('pageLabel').setAttribute('aria-label','Страница '+(requestPage+1));$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const renew=st==='published'?`<button class="mine-action primary" data-action="renew">↻ ${t('renew_10_days')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;const expiryLabel=state.lang==='en'?'Expires: ':state.lang==='ka'?'ვადა იწურება: ':'Истекает: ';const expiryDate=x.expires_at?new Date(x.expires_at).toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';const expiry=st==='published'?(expiryDate?`<div class="mine-expiry">📅 ${expiryLabel}${esc(expiryDate)}</div>`:`<div class="mine-expiry missing">📅 ${state.lang==='en'?'Expiry date not set':state.lang==='ka'?'ვადის თარიღი მითითებული არ არის':'Дата окончания не указана'}</div>`):'';return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span>${expiry}</div></div><div class="mine-actions">${open}${edit}${renew}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
