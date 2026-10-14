@@ -8399,7 +8399,7 @@ function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').fo
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
-async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* A text search is global: do not constrain it to the last selected category or its filters. */if(requestCategory&&!requestQ)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory&&!requestQ){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
+async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent='Страница '+(requestPage+1);$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const renew=st==='published'?`<button class="mine-action primary" data-action="renew">↻ ${t('renew_10_days')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;const expiryLabel=state.lang==='en'?'Expires: ':state.lang==='ka'?'ვადა იწურება: ':'Истекает: ';const expiryDate=x.expires_at?new Date(x.expires_at).toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';const expiry=st==='published'?(expiryDate?`<div class="mine-expiry">📅 ${expiryLabel}${esc(expiryDate)}</div>`:`<div class="mine-expiry missing">📅 ${state.lang==='en'?'Expiry date not set':state.lang==='ka'?'ვადის თარიღი მითითებული არ არის':'Дата окончания не указана'}</div>`):'';return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span>${expiry}</div></div><div class="mine-actions">${open}${edit}${renew}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
@@ -9251,7 +9251,7 @@ def mini_app_favorites():
         "GET",
         "listings",
         params={
-            "select":"id,title,description,price,currency,address,metadata,channel_url,created_at,category_id,city_id,status",
+            "select":"id,title,description,price,currency,address,phone,metadata,channel_url,created_at,category_id,city_id,status",
             "id":f"in.({','.join(map(str,ids))})",
             "status":"eq.published",
             "expires_at": f"gt.{_utc_now_iso()}",
@@ -9569,7 +9569,12 @@ def mini_app_listings():
         "condition", "pet_age", "pet_breed", "pet_gender",
     )
     cursor_has_advanced_filters = any(str(request.args.get(name, "")).strip() for name in cursor_filter_names)
-    cursor_mode_active = cursor_requested and not cursor_has_advanced_filters
+    # Generic-category free-text search must use the server-side matcher below,
+    # which searches title, description, address and phone. The cursor RPC does
+    # not currently include the phone column in its text haystack.
+    generic_filter_categories = {"tech", "home", "kids", "work", "services", "pets", "give", "search"}
+    generic_text_search = category in generic_filter_categories and bool(q)
+    cursor_mode_active = cursor_requested and not cursor_has_advanced_filters and not generic_text_search
 
     if cursor_mode_active:
         raw_cursor_id = str(request.args.get("cursor_id", "")).strip()
@@ -9676,8 +9681,14 @@ def mini_app_listings():
                 str(row.get("title") or ""),
                 str(row.get("description") or ""),
                 str(row.get("address") or ""),
+                str(row.get("phone") or ""),
                 metadata_text,
             )).casefold()
+            # Also search a compact digit-only phone representation, so queries
+            # with or without spaces, parentheses, +, or hyphens match the same number.
+            phone_digits = re.sub(r"\D", "", str(row.get("phone") or ""))
+            if phone_digits:
+                haystack += " " + phone_digits
             synonym_groups = {
                 "квартира": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
                 "квартиры": ("квартира", "квартиры", "квартиру", "квартире", "apartment", "apartments"),
@@ -10081,6 +10092,121 @@ def mini_app_listings():
             page_rows = filtered[offset:offset + per_page]
             has_next = len(filtered) > offset + per_page
             rows = page_rows
+        elif not has_combined_advanced_search and category in generic_filter_categories and (
+            q or (category == "tech" and any(
+                str(request.args.get(name, "")).strip() for name in ("make", "model")
+            ))
+        ):
+            # Generic-category text search: keep the selected category/filters and
+            # search title, description, address, metadata and phone consistently.
+            # Technology brand/model filters also use this path even without q,
+            # because technology listings store their selected brand in details.brand_model
+            # while the generic SQL RPC primarily checks details.make_model.
+            # This is deliberately isolated from real-estate and auto branches.
+            rows = _fetch_listing_candidates(params)
+            if rows is None:
+                return jsonify({"items": [], "has_next": False, "total_hint": 0, "error": "generic_search_unavailable"}), 503
+
+            selected_deal_generic = str(request.args.get("deal", "")).strip().lower()
+            selected_sub_generic = str(request.args.get("sub", "")).strip().lower()
+            selected_condition_generic = str(request.args.get("condition", "")).strip().casefold()
+            selected_make_generic = str(request.args.get("make", "")).strip().casefold()
+            selected_model_generic = str(request.args.get("model", "")).strip().casefold()
+            selected_pet_age_generic = str(request.args.get("pet_age", "")).strip().casefold()
+            selected_pet_breed_generic = str(request.args.get("pet_breed", "")).strip().casefold()
+            selected_pet_gender_generic = str(request.args.get("pet_gender", "")).strip().casefold()
+            selected_district_generic = str(request.args.get("district", "")).strip().casefold()
+            min_price_generic = _generic_num(request.args.get("min_price", ""))
+            max_price_generic = _generic_num(request.args.get("max_price", ""))
+
+            filtered_generic = []
+            for row in rows:
+                if not _matches_search(row):
+                    continue
+                meta = row.get("metadata") or {}
+                meta = meta if isinstance(meta, dict) else {}
+                details = meta.get("details") if isinstance(meta.get("details"), dict) else {}
+                if selected_deal_generic and str(meta.get("type_key", "")).strip().lower() != selected_deal_generic:
+                    continue
+                if selected_sub_generic and str(meta.get("subcategory_key", "")).strip().lower() != selected_sub_generic:
+                    continue
+
+                price_generic = _generic_num(row.get("price"))
+                if min_price_generic is not None and (price_generic is None or price_generic < min_price_generic):
+                    continue
+                if max_price_generic is not None and (price_generic is None or price_generic > max_price_generic):
+                    continue
+
+                details_text = json.dumps(details, ensure_ascii=False, default=str).casefold()
+                if selected_condition_generic and selected_condition_generic not in details_text:
+                    continue
+                if selected_make_generic:
+                    if category == "tech":
+                        # Match the structured brand fields first, with title/description
+                        # as a compatibility fallback for older listings lacking brand_model.
+                        brand_values = [
+                            details.get("brand_model"), details.get("brand"),
+                            details.get("make"), details.get("make_model"),
+                            row.get("title"), row.get("description"),
+                        ]
+                        brand_text = " ".join(str(value or "") for value in brand_values).casefold()
+                        if selected_make_generic not in brand_text:
+                            continue
+                    elif selected_make_generic not in details_text:
+                        continue
+                if selected_model_generic:
+                    if category == "tech":
+                        model_values = [
+                            details.get("brand_model"), details.get("model"),
+                            details.get("make_model"), row.get("title"), row.get("description"),
+                        ]
+                        model_text = " ".join(str(value or "") for value in model_values).casefold()
+                        if selected_model_generic not in model_text:
+                            continue
+                    elif selected_model_generic not in details_text:
+                        continue
+                if selected_pet_breed_generic and selected_pet_breed_generic not in details_text:
+                    continue
+                if selected_pet_gender_generic and selected_pet_gender_generic not in details_text:
+                    continue
+                if selected_pet_age_generic:
+                    # Pet-age range controls use range:years|min|max / range:months|min|max.
+                    age_match = re.fullmatch(r"range:(years|months):([^:]*):([^:]*)", selected_pet_age_generic)
+                    if age_match:
+                        age_text = str(details.get("age", "")).casefold()
+                        age_num_match = re.search(r"(\d+(?:[.,]\d+)?)", age_text)
+                        if not age_num_match:
+                            continue
+                        try:
+                            age_num = float(age_num_match.group(1).replace(",", "."))
+                            age_min = float(age_match.group(2)) if age_match.group(2) else None
+                            age_max = float(age_match.group(3)) if age_match.group(3) else None
+                        except ValueError:
+                            continue
+                        if age_match.group(1) == "months" and "лет" not in age_text and "год" not in age_text:
+                            age_num /= 12.0
+                        if age_min is not None and age_num < age_min:
+                            continue
+                        if age_max is not None and age_num > age_max:
+                            continue
+                    elif selected_pet_age_generic not in details_text:
+                        continue
+
+                if selected_district_generic:
+                    district_key_generic = str(meta.get("district_key") or "").strip().casefold()
+                    address_generic = str(row.get("address") or "").casefold()
+                    if selected_district_generic != district_key_generic and selected_district_generic not in address_generic:
+                        continue
+                filtered_generic.append(row)
+
+            if sort_mode == "price_asc":
+                filtered_generic.sort(key=lambda r: (_generic_num(r.get("price")) is None, _generic_num(r.get("price")) if _generic_num(r.get("price")) is not None else 0))
+            elif sort_mode == "price_desc":
+                filtered_generic.sort(key=lambda r: (_generic_num(r.get("price")) is not None, _generic_num(r.get("price")) if _generic_num(r.get("price")) is not None else 0), reverse=True)
+
+            offset = page * per_page
+            rows = filtered_generic[offset:offset + per_page]
+            has_next = len(filtered_generic) > offset + per_page
         elif not has_combined_advanced_search and has_generic_filters:
             # Run generic category filters in PostgreSQL. This removes the old
             # 10,000-row Python scan for condition/brand/pet filters.
