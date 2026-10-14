@@ -4297,16 +4297,14 @@ def moderate_publish(
         f"Автор ID: <code>{user_chat_id}</code>"
     )
 
+    # Keep the publication confirmation compact. Do not attach the full
+    # category menu here: when the author is also testing/administering the bot,
+    # it creates unnecessary inline buttons after every moderated listing.
     send(
-
         user_chat_id,
-
         "<b>🎉 Объявление опубликовано!</b>\n\n"
-
         "Оно прошло модерацию и добавлено "
-        "в <b>MADLOBA MARKET | БАТУМИ</b>.",
-
-        main_menu()
+        "в <b>MADLOBA MARKET | БАТУМИ</b>."
     )
     refresh_admin_moderation_queue(0)
 
