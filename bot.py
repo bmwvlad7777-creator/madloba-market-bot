@@ -3870,6 +3870,10 @@ def submit_for_moderation(
         "data": json.loads(json.dumps(data, ensure_ascii=False)),
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+    # Persist each independent request immediately so a Render restart cannot
+    # lose it before an administrator opens the moderation queue.
+    if not runtime_state_save(_runtime_key("moderation", request_id), moderation_requests[request_id]):
+        print(f"MODERATION REQUEST PERSISTENCE WARNING: request_id={request_id}")
 
     states[
         chat_id
@@ -3959,12 +3963,16 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     items = load_pending_moderation_queue()
     # Sequential workflow: always present the oldest pending request first.
     # After publish/reject refresh_admin_moderation_queue() advances naturally.
+    # Unique refresh marker forces Telegram to edit the existing card even when
+    # queue contents are unchanged, instead of silently returning "not modified".
+    refreshed_at = datetime.now().strftime("%H:%M:%S.%f")[:-3]
     if not items:
         text = (
             "<b>🛡 ОЧЕРЕДЬ МОДЕРАЦИИ</b>\n\n"
             "✅ <b>Все заявки обработаны.</b>\n"
             "Новых объявлений на проверке нет.\n\n"
-            "Новые заявки появятся здесь автоматически."
+            "Новые заявки появятся здесь автоматически.\n"
+            f"<i>Обновлено: {refreshed_at}</i>"
         )
         keyboard = [[{"text": "🔄 Обновить очередь", "callback_data": "mod_queue_page_0"}]]
     else:
@@ -3982,7 +3990,8 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
             f"📝 {esc(title)}\n"
             f"💰 {esc(price)}\n"
             f"📷 Фотографий: <b>{photos}</b>\n\n"
-            "Откройте заявку, примите решение, и очередь перейдёт к следующей."
+            "Откройте заявку, примите решение, и очередь перейдёт к следующей.\n"
+            f"<i>Обновлено: {refreshed_at}</i>"
         )
         keyboard = [
             [{"text": f"🔎 Открыть заявку #{request_id}", "callback_data": f"mod_queue_open_{request_id}"}],
@@ -3994,34 +4003,23 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     return send(admin_chat_id, text, keyboard)
 
 
-def refresh_admin_moderation_queue(page=0, admin_chat_id=None):
-    """Update the persistent queue card; recreate it if Telegram cannot edit the saved message."""
-    target_chat_id = admin_chat_id or ADMIN_CHAT_ID
-    if not target_chat_id or not moderator_is_allowed(target_chat_id):
-        return False
-
+def refresh_admin_moderation_queue(page=0):
+    """Maintain one persistent queue card for the configured administrator."""
+    if not ADMIN_CHAT_ID:
+        return
     queue_key = _runtime_key("admin_queue", "main")
     found, saved, ok = runtime_state_load(queue_key)
     message_id = saved.get("message_id") if found and isinstance(saved, dict) else None
-
     if message_id:
-        result = send_moderation_queue(target_chat_id, page, message_id=message_id)
+        result = send_moderation_queue(ADMIN_CHAT_ID, page, message_id=message_id)
+        # If Telegram no longer has the message, recreate the queue card.
         if isinstance(result, dict) and result.get("ok"):
-            return True
-
-    # A stale/deleted queue message must never make the button appear to do nothing.
-    result = send_moderation_queue(target_chat_id, page)
+            return
+    result = send_moderation_queue(ADMIN_CHAT_ID, page)
     if isinstance(result, dict) and result.get("ok"):
         msg = result.get("result") or {}
         if msg.get("message_id"):
-            runtime_state_save(
-                queue_key,
-                {"chat_id": target_chat_id, "message_id": msg["message_id"]},
-            )
-        return True
-
-    print("MODERATION QUEUE ERROR:", repr(result))
-    return False
+            runtime_state_save(queue_key, {"chat_id": ADMIN_CHAT_ID, "message_id": msg["message_id"]})
 
 
 def moderator_is_allowed(admin_user_id):
@@ -4832,34 +4830,16 @@ def _handle_update_core(
         # ПОСТОЯННАЯ КНОПКА АДМИНИСТРАТОРА
         # ====================================================
 
-        # Telegram may return reply-keyboard text with different emoji variation
-        # selectors, or without the emoji at all. Match the stable action label,
-        # not the exact rendered emoji sequence.
-        normalized_button_text = unicodedata.normalize("NFKC", text or "")
-        normalized_button_text = re.sub(r"[\ufe0e\ufe0f\u200d\u2060]", "", normalized_button_text)
-        normalized_button_text = " ".join(normalized_button_text.casefold().split())
-        is_moderation_button = (
-            normalized_button_text in {"модерация", "🛡 модерация"}
-            or normalized_button_text.endswith(" модерация")
-        )
-
-        if is_moderation_button:
-            if not moderator_is_allowed(chat_id):
+        if text.strip() == "🛡 Модерация":
+            print(f"MODERATION BUTTON RECEIVED: chat_id={chat_id}")
+            if moderator_is_allowed(chat_id):
+                try:
+                    refresh_admin_moderation_queue(0)
+                except Exception as error:
+                    print("MODERATION QUEUE REFRESH ERROR:", repr(error))
+                    send(chat_id, "⚠️ Не удалось обновить очередь модерации. Попробуйте ещё раз.")
+            else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
-                return
-            print("MODERATION BUTTON RECEIVED:", repr(text), "chat_id=", chat_id)
-            try:
-                opened = refresh_admin_moderation_queue(0, admin_chat_id=chat_id)
-            except Exception as error:
-                print("MODERATION BUTTON ERROR:", repr(error))
-                send(chat_id, "⚠️ Ошибка открытия очереди модерации. Попробуйте ещё раз.")
-                return
-            if not opened:
-                send(
-                    chat_id,
-                    "⚠️ Не удалось открыть очередь модерации. "
-                    "Проверьте соединение и попробуйте ещё раз.",
-                )
             return
 
 
@@ -4903,18 +4883,34 @@ def _handle_update_core(
         # START
         # ====================================================
 
-        is_start_command = text.startswith("/start")
-        is_main_menu_button = normalized_button_text in {"главное меню", "🏠 главное меню"}
+        if (
 
-        if is_start_command or is_main_menu_button:
+            text.startswith(
+                "/start"
+            )
+
+            or
+
+            text.strip()
+            ==
+            "🏠 Главное меню"
+
+        ):
 
             # Returning to the main menu clears only the active draft/session.
             # Previously submitted moderation requests must remain available.
-            states.pop(chat_id, None)
+            states.pop(
+                chat_id,
+                None
+            )
 
-            # Install the persistent admin keyboard on /start only. The
-            # "Главное меню" button must not emit a second admin-panel message.
-            if moderator_is_allowed(chat_id) and is_start_command:
+
+            # Admins see the live moderation queue immediately when they open
+            # the bot with /start, followed by the normal main menu. Telegram
+            # bots cannot detect merely opening an existing chat without an update.
+            if moderator_is_allowed(chat_id):
+                # Reuse one queue message instead of creating a new card on every /start.
+                refresh_admin_moderation_queue(0)
                 send_admin_reply_keyboard(chat_id)
 
             send(
