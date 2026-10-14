@@ -3308,9 +3308,11 @@ def build_listing(
 
                 "",
 
-                f"📞 <b>"
+                # Telegram auto-links phone numbers in ordinary/bold text.
+                # A code entity displays the same number without the underline/link popup.
+                f"📞 <code>"
                 f"{esc(data['contact'])}"
-                f"</b>",
+                f"</code>",
 
                 "<i>"
                 "WhatsApp / Telegram"
@@ -4040,16 +4042,57 @@ def show_moderation_editor(admin_chat_id, request_id):
 
 
 def show_updated_moderation(admin_chat_id, request_id):
+    """Refresh the exact moderation card the administrator is currently viewing."""
     text = moderation_control_text(request_id)
     item = moderation_requests.get(request_id)
     if not text or not item:
         return
-    edit_moderation_message(
-        item.get("message_chat_id"),
-        item.get("message_id"),
+
+    # New requests are handled through one persistent queue message. When the
+    # admin opens a queue row, that message is edited into the listing detail;
+    # its identifiers are stored as queue_chat_id / queue_message_id. Prefer
+    # those identifiers so edits (price, address, etc.) are immediately visible.
+    target_chat_id = item.get("queue_chat_id") or item.get("message_chat_id") or admin_chat_id
+    target_message_id = item.get("queue_message_id") or item.get("message_id")
+    if not target_message_id:
+        # Legacy requests may not have a message attached yet. Show the current
+        # version as a fresh card rather than silently hiding the saved change.
+        result = send(admin_chat_id, text, moderation_keyboard(request_id))
+        if isinstance(result, dict) and result.get("ok"):
+            msg = result.get("result") or {}
+            if msg.get("message_id"):
+                item["queue_chat_id"] = admin_chat_id
+                item["queue_message_id"] = msg["message_id"]
+                runtime_state_save(_runtime_key("moderation", request_id), item)
+        return
+
+    keyboard = moderation_keyboard(request_id) + [[{"text": "⬅️ Вернуться в очередь", "callback_data": "mod_queue_return_0"}]]
+    result = edit_moderation_message(
+        target_chat_id,
+        target_message_id,
         text,
-        moderation_keyboard(request_id)
+        keyboard,
     )
+    if isinstance(result, dict) and result.get("ok"):
+        item["queue_chat_id"] = target_chat_id
+        item["queue_message_id"] = target_message_id
+        runtime_state_save(_runtime_key("moderation", request_id), item)
+        return
+
+    # If Telegram refuses to edit the old queue/detail message (stale message ID,
+    # inaccessible message, or another API error), send the updated snapshot as a
+    # fresh card instead of leaving the administrator looking at the old price.
+    error_description = result.get("description", "") if isinstance(result, dict) else "no API response"
+    print("MODERATION PREVIEW EDIT FAILED:", request_id, str(error_description)[:300])
+    fallback = send(admin_chat_id, text, keyboard)
+    if isinstance(fallback, dict) and fallback.get("ok"):
+        message = fallback.get("result") or {}
+        new_message_id = message.get("message_id")
+        new_chat_id = (message.get("chat") or {}).get("id") or admin_chat_id
+        if new_message_id:
+            item["queue_chat_id"] = new_chat_id
+            item["queue_message_id"] = new_message_id
+            runtime_state_save(_runtime_key("moderation", request_id), item)
 
 
 def process_moderator_text(admin_chat_id, text):
@@ -8298,15 +8341,13 @@ function card(x){const photo=(x.photos||[])[0];const title=x.title||x.category||
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();renderDetail(x);hideViews();$('detailView').classList.add('show');window.scrollTo({top:0,behavior:'smooth'})}catch(e){toast(t('open_fail'))}}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(x.title||t('no_listing'))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
-// Cross-platform contact sheet: tapping Call first displays a normal, explicit tel: link.
-// This avoids relying on Telegram WebView to navigate directly from a custom button.
+// Cross-platform contact sheet: show the contact number without a misleading underlined link.
 $('detailContent').querySelectorAll('[data-contact-call]').forEach(btn=>btn.addEventListener('click',function(e){
  e.stopPropagation();const n=String(this.dataset.contactCall||'').replace(/(?!^)\+|[^0-9+]/g,'');if(!n){toast('Номер телефона не указан');return;}
  const old=document.getElementById('mmPhoneSheet');if(old)old.remove();
  const sheet=document.createElement('div');sheet.id='mmPhoneSheet';sheet.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(10,20,40,.58);display:flex;align-items:flex-end;justify-content:center;padding:16px;box-sizing:border-box;';
- sheet.innerHTML=`<div style="width:100%;max-width:440px;background:#fff;color:#172033;border-radius:22px;padding:22px;box-shadow:0 16px 50px #0003;text-align:center"><div style="font-size:17px;font-weight:800;margin-bottom:12px">📞 Телефон для связи</div><a href="tel:${esc(n)}" data-phone-dial style="display:block;font-size:25px;font-weight:800;color:#1769d2;text-decoration:underline;padding:16px 8px;border-radius:14px;background:#eef5ff;user-select:text;-webkit-user-select:text;cursor:pointer;position:relative;z-index:2;pointer-events:auto">${esc(n)}</a><div style="font-size:13px;color:#697386;margin:10px 0 16px">Нажмите на номер, чтобы открыть системную звонилку</div><button type="button" data-phone-copy-sheet style="width:100%;padding:13px;border:0;border-radius:12px;background:#eef5ff;color:#1769d2;font-size:16px;font-weight:700;margin-bottom:8px">📋 Скопировать номер</button><button type="button" data-phone-close style="width:100%;padding:13px;border:0;border-radius:12px;background:#f1f3f6;color:#253047;font-size:16px;font-weight:700">Закрыть</button></div>`;
- document.body.appendChild(sheet);sheet.addEventListener('click',ev=>{if(ev.target===sheet||ev.target.closest('[data-phone-close]'))sheet.remove();});// Keep the tel: anchor native. Do not preventDefault or redirect manually here:
- // Telegram iOS/Android WebViews must handle the phone link themselves.
+ sheet.innerHTML=`<div style="width:100%;max-width:440px;background:#fff;color:#172033;border-radius:22px;padding:22px;box-shadow:0 16px 50px #0003;text-align:center"><div style="font-size:17px;font-weight:800;margin-bottom:12px">📞 Телефон для связи</div><div style="display:block;font-size:25px;font-weight:800;color:#1769d2;text-decoration:none;padding:16px 8px;border-radius:14px;background:#eef5ff;user-select:text;-webkit-user-select:text;overflow-wrap:anywhere">${esc(n)}</div><button type="button" data-phone-copy-sheet style="width:100%;padding:13px;border:0;border-radius:12px;background:#eef5ff;color:#1769d2;font-size:16px;font-weight:700;margin-bottom:8px">📋 Скопировать номер</button><button type="button" data-phone-close style="width:100%;padding:13px;border:0;border-radius:12px;background:#f1f3f6;color:#253047;font-size:16px;font-weight:700">Закрыть</button></div>`;
+ document.body.appendChild(sheet);sheet.addEventListener('click',ev=>{if(ev.target===sheet||ev.target.closest('[data-phone-close]'))sheet.remove();});
  sheet.querySelector('[data-phone-copy-sheet]').addEventListener('click',async()=>{try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(n);else{const ta=document.createElement('textarea');ta.value=n;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}sheet.querySelector('[data-phone-copy-sheet]').textContent='✓ Номер скопирован';}catch(_){sheet.querySelector('[data-phone-copy-sheet]').textContent=n;}});
 }));
 $('detailContent').querySelectorAll('[data-copy-phone]').forEach(b=>b.addEventListener('click',async function(e){e.stopPropagation();const n=String(this.dataset.copyPhone||'');try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(n);this.textContent='✓ Номер скопирован';return;}}catch(_){}try{const area=document.createElement('textarea');area.value=n;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand('copy');area.remove();this.textContent=ok?'✓ Номер скопирован':n;}catch(_){this.textContent=n;}}));
