@@ -8284,169 +8284,33 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 }
 </style>
 
-<style id="madloba-home-compact-redesign-v5">
-/* Compact home redesign: intentionally overrides older conflicting visual patches only. */
-:root { --mm-blue:#1677f2; --mm-ink:#142033; --mm-muted:#718096; }
-body::before{
-  height:56vh!important;
-  min-height:430px!important;
-  max-height:520px!important;
-  background-position:center 42%!important;
-  border-radius:0 0 26px 26px!important;
-}
-.wrap{
-  padding-top:calc(62px + var(--tg-content-safe-area-inset-top,0px))!important;
-  padding-left:14px!important;
-  padding-right:14px!important;
-  padding-bottom:24px!important;
-}
-.top{
-  margin:0 1px 12px!important;
-  gap:7px!important;
-  align-items:center!important;
-}
-.brand{font-size:clamp(15px,4.3vw,20px)!important;letter-spacing:-.65px!important}
-.city{height:42px!important;min-height:42px!important;padding:0 10px!important;font-size:13px!important}
-.city#langSelect{width:74px!important;min-width:74px!important}
-.city#citySelect{width:auto!important;min-width:112px!important;max-width:130px!important}
-.hero{
-  min-height:0!important;
-  height:auto!important;
-  padding:0 2px 0!important;
-  margin:0 0 15px!important;
-  overflow:visible!important;
-  background:transparent!important;
-  background-image:none!important;
-  box-shadow:none!important;
-  border-radius:0!important;
-}
-.hero h1{
-  margin:30px 0 8px!important;
-  font-size:clamp(27px,7.4vw,32px)!important;
-  line-height:1.02!important;
-  letter-spacing:-.9px!important;
-  max-width:340px!important;
-  text-shadow:0 2px 12px rgba(0,0,0,.32)!important;
-}
-.hero h1 span{display:inline!important}
-.hero p{
-  margin:0 0 14px!important;
-  font-size:14px!important;
-  line-height:1.38!important;
-  max-width:360px!important;
-  text-shadow:0 1px 8px rgba(0,0,0,.35)!important;
-}
-.search{
-  height:54px!important;
-  min-height:54px!important;
-  margin:0!important;
-  border-radius:18px!important;
-  padding:0 12px!important;
-  background:rgba(255,255,255,.98)!important;
-  border:1px solid rgba(22,119,242,.45)!important;
-  box-shadow:0 5px 16px rgba(12,45,90,.10)!important;
-}
-.search input{font-size:15px!important;min-width:0!important}
-.search-icon{width:40px!important;height:40px!important;min-width:40px!important}
-.quick-actions{
-  display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  grid-auto-flow:row!important;
-  gap:8px 5px!important;
-  width:100%!important;
-  box-sizing:border-box!important;
-  margin:12px 0 0!important;
-  padding:12px 8px 13px!important;
-  overflow:visible!important;
-  border:1px solid rgba(22,119,242,.28)!important;
-  border-radius:22px!important;
-  background:#fff!important;
-  background-image:none!important;
-  box-shadow:0 8px 22px rgba(26,82,145,.08)!important;
-  -webkit-backdrop-filter:none!important;
-  backdrop-filter:none!important;
-}
-.quick-action{
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  gap:5px!important;
-  width:100%!important;
-  min-width:0!important;
-  min-height:70px!important;
-  height:auto!important;
-  max-height:none!important;
-  box-sizing:border-box!important;
-  padding:4px 2px 5px!important;
-  overflow:visible!important;
-  white-space:normal!important;
-  text-overflow:clip!important;
-  border:1px solid transparent!important;
-  border-radius:14px!important;
-  background:transparent!important;
-  color:var(--mm-ink)!important;
-  box-shadow:none!important;
-  font-size:10.5px!important;
-  line-height:1.18!important;
-  font-weight:800!important;
-}
-.quick-icon{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  width:46px!important;
-  height:46px!important;
-  min-width:46px!important;
-  min-height:46px!important;
-  margin:0 auto!important;
-  border-radius:14px!important;
-  background:#f3f7ff!important;
-  border:1px solid #e0eaff!important;
-  box-shadow:0 3px 8px rgba(20,80,150,.06)!important;
-}
-.quick-icon svg,.quick-icon img{max-width:36px!important;max-height:36px!important}
-.quick-label{
-  display:block!important;
-  width:100%!important;
-  max-width:100%!important;
-  overflow:visible!important;
-  white-space:normal!important;
-  text-overflow:clip!important;
-  overflow-wrap:anywhere!important;
-  text-align:center!important;
-}
-.quick-action.active{background:#eef5ff!important;border-color:#d8e8ff!important;color:var(--mm-blue)!important}
-.popular-section{
-  position:relative!important;
-  z-index:1!important;
-  clear:both!important;
-  margin-top:18px!important;
-  padding-top:0!important;
-}
-.popular-section .section-head{margin:0 1px 10px!important;align-items:center!important}
-.popular-section .section-head h2{font-size:24px!important;line-height:1.1!important;letter-spacing:-.7px!important;color:var(--mm-ink)!important}
-.section-link{font-size:14px!important}
-.popular-row{gap:10px!important;padding:0 1px 10px!important;overflow-x:auto!important;overflow-y:hidden!important}
-.popular-card{
-  flex:0 0 min(43vw,180px)!important;
-  width:min(43vw,180px)!important;
-  min-width:min(43vw,180px)!important;
-  max-width:min(43vw,180px)!important;
-  border-radius:19px!important;
-  box-shadow:0 5px 18px rgba(18,42,74,.07)!important;
-}
-@media(max-width:380px){
-  .wrap{padding-left:11px!important;padding-right:11px!important}
-  .brand{font-size:14px!important;letter-spacing:-.7px!important}
-  .city#langSelect{width:65px!important;min-width:65px!important}
-  .city#citySelect{min-width:98px!important}
-  .hero h1{margin-top:24px!important}
-  .quick-actions{gap:6px 3px!important;padding:10px 5px!important}
-  .quick-action{font-size:9.5px!important}
-}
+<style id="madloba-home-layout-repair-v2">
+/* Visual-only repair based on the iPhone screenshot. Preserve all existing app logic. */
+body::before{height:610px!important;min-height:0!important;max-height:none!important;border-radius:0 0 28px 28px!important;background-position:center 40%!important;}
+.wrap{min-width:0!important;overflow:visible!important;}
+.top{grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto!important;gap:8px!important;margin-bottom:12px!important;}
+.top .brand{font-size:17px!important;letter-spacing:-.6px!important;}
+.top>div:last-child{display:flex!important;gap:6px!important;align-items:center!important;justify-content:flex-end!important;min-width:0!important;}
+.city#langSelect{width:72px!important;min-width:72px!important;height:42px!important;font-size:12px!important;}
+.city#citySelect{width:auto!important;min-width:108px!important;max-width:124px!important;height:42px!important;font-size:12px!important;}
+.hero{width:auto!important;max-width:100%!important;margin:0 0 14px!important;padding:12px 4px 12px!important;border-radius:0!important;min-height:0!important;overflow:visible!important;}
+.hero h1{font-size:27px!important;line-height:1.04!important;margin:14px 0 8px!important;letter-spacing:-.65px!important;}
+.hero p{font-size:14px!important;line-height:1.35!important;margin:0 0 12px!important;}
+.search{height:54px!important;border-radius:17px!important;margin:0!important;}
+.quick-actions{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px 6px!important;margin:12px 0 0!important;padding:10px 8px!important;width:100%!important;box-sizing:border-box!important;background:#fff!important;border:1px solid rgba(92,157,255,.55)!important;border-radius:22px!important;box-shadow:0 8px 22px rgba(20,111,232,.09)!important;overflow:visible!important;}
+.quick-action{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:5px!important;min-width:0!important;width:100%!important;height:78px!important;min-height:78px!important;max-height:none!important;padding:6px 3px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;background:transparent!important;border:1px solid transparent!important;border-radius:14px!important;backdrop-filter:none!important;color:#172033!important;}
+.quick-action .quick-icon{width:42px!important;height:42px!important;flex:0 0 42px!important;border-radius:14px!important;background:linear-gradient(145deg,#f1f7ff,#e6f0ff)!important;border:1px solid #dce9fb!important;box-shadow:0 3px 8px rgba(29,78,137,.06)!important;}
+.quick-action .quick-icon .mm-category-svg{width:31px!important;height:31px!important;max-width:31px!important;max-height:31px!important;}
+.quick-action .quick-label{display:-webkit-box!important;width:100%!important;min-height:22px!important;max-height:25px!important;overflow:hidden!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;text-overflow:clip!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;font-size:10px!important;line-height:1.12!important;font-weight:800!important;text-align:center!important;color:#19263c!important;}
+.quick-action.active{background:#f1f7ff!important;border-color:#dceaff!important;}
+.popular-section{position:relative!important;z-index:2!important;margin-top:20px!important;clear:both!important;}
+.popular-section .section-head{margin:0 2px 11px!important;}
+.popular-section .section-head h2{font-size:23px!important;line-height:1.1!important;}
+.list{position:relative!important;z-index:1!important;}
+.card{min-width:0!important;}
+.title{display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;overflow-wrap:anywhere!important;}
+@media(max-width:380px){.top .brand{font-size:15px!important}.city#citySelect{min-width:98px!important;max-width:108px!important}.quick-actions{gap:7px 3px!important;padding:8px 5px!important}.quick-action{height:76px!important;min-height:76px!important;padding:5px 2px!important}.quick-action .quick-label{font-size:9.5px!important}}
 </style>
-
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
