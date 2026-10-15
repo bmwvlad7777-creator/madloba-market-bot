@@ -8329,6 +8329,82 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
  .best-photo{height:96px!important;min-height:96px!important;max-height:96px!important;}
 }
 </style>
+<style id="madloba-category-compact-v8">
+/* Focused category-panel compaction: visual only, keep category buttons and handlers intact. */
+.quick-actions{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  grid-auto-rows:52px!important;
+  align-items:start!important;
+  gap:5px 3px!important;
+  width:100%!important;
+  min-height:0!important;
+  height:auto!important;
+  max-height:none!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+  padding:6px 5px!important;
+  margin:8px 0 0!important;
+  border-radius:18px!important;
+}
+.quick-action{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:2px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:52px!important;
+  min-height:52px!important;
+  max-height:52px!important;
+  box-sizing:border-box!important;
+  padding:0 1px!important;
+  margin:0!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.quick-action .quick-icon{
+  flex:0 0 30px!important;
+  width:30px!important;height:30px!important;
+  min-width:30px!important;min-height:30px!important;
+  max-width:30px!important;max-height:30px!important;
+  margin:0!important;border-radius:9px!important;
+  overflow:hidden!important;
+}
+.quick-action .quick-icon img,
+.quick-action .quick-icon .mm-category-3d,
+.quick-action .quick-icon .reference-category-icon{
+  width:100%!important;height:100%!important;
+  min-width:0!important;min-height:0!important;
+  max-width:100%!important;max-height:100%!important;
+  object-fit:contain!important;
+}
+.quick-action .quick-label{
+  display:-webkit-box!important;
+  width:100%!important;max-width:100%!important;
+  min-height:0!important;max-height:19px!important;
+  overflow:hidden!important;white-space:normal!important;
+  overflow-wrap:normal!important;word-break:normal!important;
+  text-overflow:clip!important;
+  -webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;
+  font-size:9px!important;line-height:1.02!important;
+  font-weight:850!important;text-align:center!important;
+}
+.quick-action.active{border-radius:9px!important;}
+.best-section{margin-top:9px!important;}
+.best-section .section-head{margin-bottom:7px!important;}
+@media(max-width:390px){
+ .quick-actions{grid-auto-rows:50px!important;gap:4px 2px!important;padding:5px 4px!important;}
+ .quick-action{height:50px!important;min-height:50px!important;max-height:50px!important;}
+ .quick-action .quick-icon{flex-basis:28px!important;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important;max-width:28px!important;max-height:28px!important;}
+ .quick-action .quick-label{font-size:8.5px!important;max-height:18px!important;}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
