@@ -8283,6 +8283,30 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
   #detailView #detailContent .detail-spec{padding:10px 7px;}
 }
 </style>
+
+<style id="madloba-listing-detail-photo-and-bottom-safe-v1">
+/* Mobile-only polish: reduce oversized photo and keep contact actions clear of the fixed nav. */
+#detailView #detailContent .detail-photo{
+  height:clamp(190px,46vw,290px)!important;
+  min-height:190px!important;
+  max-height:290px!important;
+}
+#detailView #detailContent{
+  margin-bottom:calc(112px + var(--tg-content-safe-area-inset-bottom, 0px))!important;
+  scroll-margin-bottom:calc(112px + var(--tg-content-safe-area-inset-bottom, 0px))!important;
+}
+#detailView{
+  scroll-padding-bottom:calc(120px + var(--tg-content-safe-area-inset-bottom, 0px))!important;
+}
+@media(max-width:390px){
+  #detailView #detailContent .detail-photo{
+    height:clamp(180px,45vw,250px)!important;
+    min-height:180px!important;
+    max-height:250px!important;
+  }
+}
+</style>
+
 <style id="madloba-listing-detail-compact-v2">
 /* Keep the listing detail immediately in view and give it a cleaner, less bulky mobile layout. */
 #detailView{scroll-margin-top:12px;}
