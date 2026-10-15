@@ -8859,12 +8859,12 @@ def mini_app_admin_page():
 <style id="madloba-home-finish-v7">
 /* Final focused polish: preserve the current hero composition; compact category grid and declutter home-card titles. */
 @media(max-width:520px){
- .quick-actions{grid-auto-rows:49px!important;gap:3px 3px!important;padding:7px 6px 6px!important;margin-top:8px!important;border-radius:18px!important;}
+ .quick-actions{grid-auto-rows:49px!important;row-gap:1px!important;column-gap:3px!important;padding:6px 6px 2px!important;margin-top:8px!important;margin-bottom:0!important;border-radius:18px!important;}
  .quick-action{height:49px!important;min-height:49px!important;max-height:49px!important;gap:2px!important;padding:0 2px!important;border-radius:9px!important;}
  .quick-action .quick-icon{flex:0 0 31px!important;width:31px!important;height:31px!important;min-width:31px!important;min-height:31px!important;max-width:31px!important;max-height:31px!important;border-radius:10px!important;}
  .quick-action .quick-icon .reference-category-icon{width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;}
  .quick-action .quick-label{min-height:15px!important;max-height:15px!important;font-size:9px!important;line-height:1.05!important;-webkit-line-clamp:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
- .best-section{margin-top:10px!important;margin-bottom:14px!important;}
+ .best-section{margin-top:7px!important;margin-bottom:14px!important;}
  .best-section .section-head{margin-bottom:7px!important;}
  .best-row{gap:9px!important;}
  .best-card{border-radius:16px!important;}
