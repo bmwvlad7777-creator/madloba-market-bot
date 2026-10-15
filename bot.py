@@ -8680,10 +8680,10 @@ function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if($('bestCityName'))$('bestCityName').textContent='в '+(cityNames[state.city][state.lang]||state.city)}
 function bestCard(x){const photo=(x.photos||[])[0];const title=x.title||x.category||t('no_listing');const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();let displayTitle=String(title).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/[\uFE0E\uFE0F]/g,'').replace(/\s+/g,' ').trim();if(categoryLabel){const escCat=categoryLabel.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');displayTitle=displayTitle.replace(new RegExp('^'+escCat+'\\s*[·•|–-]\\s*','i'),'').trim();}const parts=displayTitle.split(/\s*[·•|]\s*/).filter(Boolean);if(parts.length>1&&categoryLabel&&parts[0].toLowerCase()===categoryLabel.toLowerCase())parts.shift();displayTitle=parts.join(' · ')||displayTitle;return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="best-tag">${esc(categoryLabel)}</div><div class="best-title">${esc(displayTitle)}</div>${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}${x.address?`<div class="best-loc">📍 ${esc(x.address)}</div>`:''}</div></article>`}
 function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.bestId));document.querySelectorAll('#bestRow [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
-function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
+function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()} async function loadPopularListings(fallbackItems){if(state.category||state.q){renderBestListings(fallbackItems||[]);return}try{const r=await apiFetch('/api/popular-listings?city='+encodeURIComponent(state.city||'batumi'));if(!r.ok)throw 0;const data=await r.json();if(Array.isArray(data.items)&&data.items.length){renderBestListings(data.items);return}}catch(e){}renderBestListings(fallbackItems||[])}
 
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
-async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent=String(requestPage+1);$('pageLabel').setAttribute('aria-label','Страница '+(requestPage+1));$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
+async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)loadPopularListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent=String(requestPage+1);$('pageLabel').setAttribute('aria-label','Страница '+(requestPage+1));$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;loadPopularListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const renew=st==='published'?`<button class="mine-action primary" data-action="renew">↻ ${t('renew_10_days')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;const expiryLabel=state.lang==='en'?'Expires: ':state.lang==='ka'?'ვადა იწურება: ':'Истекает: ';const expiryDate=x.expires_at?new Date(x.expires_at).toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';const expiry=st==='published'?(expiryDate?`<div class="mine-expiry">📅 ${expiryLabel}${esc(expiryDate)}</div>`:`<div class="mine-expiry missing">📅 ${state.lang==='en'?'Expiry date not set':state.lang==='ka'?'ვადის თარიღი მითითებული არ არის':'Дата окончания не указана'}</div>`):'';return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span>${expiry}</div></div><div class="mine-actions">${open}${edit}${renew}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
@@ -9842,6 +9842,92 @@ def mini_app_auto_options():
     base_models = set(fallback_models.get(make_filter, [])) if make_filter else set()
     models = sorted(base_models | db_models, key=str.casefold)
     return jsonify({"makes": makes, "models": models})
+
+
+@app.get("/api/popular-listings")
+def mini_app_popular_listings():
+    """Return up to four currently published listings ranked by real views over 7 days."""
+    if not supabase_enabled():
+        return jsonify({"items": []})
+
+    city = str(request.args.get("city", DEFAULT_CITY_SLUG)).strip().lower()
+    if city not in {"batumi", "tbilisi"}:
+        city = DEFAULT_CITY_SLUG
+    city_id = _supabase_city_id(city)
+    if not city_id:
+        return jsonify({"items": []})
+
+    # Reuse the existing database-side analytics function. It aggregates events
+    # in PostgreSQL and avoids downloading the analytics event table to the bot.
+    analytics_result = supabase_request(
+        "POST",
+        "rpc/mm_admin_analytics_stats",
+        payload={"p_period_days": 7},
+    )
+    if isinstance(analytics_result, list) and analytics_result and isinstance(analytics_result[0], dict):
+        analytics_result = analytics_result[0]
+    if not isinstance(analytics_result, dict) or not analytics_result.get("analytics_available"):
+        return jsonify({"items": []})
+
+    top = analytics_result.get("top_listings")
+    if not isinstance(top, list):
+        return jsonify({"items": []})
+    ranked = []
+    seen_ids = set()
+    for entry in top:
+        if not isinstance(entry, dict):
+            continue
+        raw_id = entry.get("id")
+        try:
+            listing_id = int(raw_id)
+        except (TypeError, ValueError):
+            continue
+        if listing_id <= 0 or listing_id in seen_ids:
+            continue
+        seen_ids.add(listing_id)
+        try:
+            views = max(0, int(entry.get("views") or 0))
+        except (TypeError, ValueError):
+            views = 0
+        ranked.append((listing_id, views))
+    if not ranked:
+        return jsonify({"items": []})
+
+    ids = [str(listing_id) for listing_id, _ in ranked]
+    rows = supabase_request(
+        "GET",
+        "listings",
+        params={
+            "select":"id,title,description,price,currency,price_usd,address,metadata,channel_url,created_at,category_id,city_id,status",
+            "id":f"in.({','.join(ids)})",
+            "status":"eq.published",
+            "expires_at":f"gt.{_utc_now_iso()}",
+            "city_id":f"eq.{city_id}",
+            "limit":"10",
+        },
+    )
+    if rows is None:
+        return jsonify({"items": []}), 503
+    rows_by_id = {str(row.get("id")): row for row in rows if isinstance(row, dict)}
+    ordered_rows = [rows_by_id[str(listing_id)] for listing_id, _ in ranked if str(listing_id) in rows_by_id]
+    if not ordered_rows:
+        return jsonify({"items": []})
+
+    items = _attach_catalog_photos(ordered_rows)
+    views_by_id = {str(listing_id): views for listing_id, views in ranked}
+    for idx, item in enumerate(items):
+        row = ordered_rows[idx]
+        item["title"] = row.get("title") or item.get("title") or listing_title(item)
+        item["description"] = row.get("description") or item.get("description") or ""
+        item["price"] = str(row.get("price")) if row.get("price") is not None else item.get("price", "")
+        item["currency"] = row.get("currency") or item.get("currency", "")
+        item["address"] = row.get("address") or item.get("district", "")
+        item["category_name"] = item.get("category") or "Объявление"
+        item["views"] = views_by_id.get(str(row.get("id")), 0)
+        _strip_public_listing_fields(item)
+        _strip_listing_contact_fields(item)
+
+    return jsonify({"items": items[:4]})
 
 
 @app.get("/api/listings")
