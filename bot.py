@@ -8405,6 +8405,40 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
  .quick-action .quick-label{font-size:8.5px!important;max-height:18px!important;}
 }
 </style>
+
+<style id="madloba-detail-refinement-v2">
+/* Detail screen only. Keep the home page, catalog, and other views untouched. */
+#detailView .detail-top{margin:2px 0 12px;gap:9px}
+#detailView .detail-top .section-head h2{font-size:23px;line-height:1.1;letter-spacing:-.45px}
+#detailView .detail-back{min-height:42px;padding:9px 13px;border-radius:14px}
+#detailView #detailContent{overflow:hidden;border:1px solid #dce6f4;border-radius:25px;background:#fff;box-shadow:0 12px 30px rgba(25,55,95,.075)}
+#detailView #detailContent .detail-photo{height:clamp(210px,52vw,340px);min-height:210px;margin:0;border:0;border-radius:24px 24px 0 0;background:linear-gradient(145deg,#eaf2fc,#f7f9fc)}
+#detailView #detailContent .detail-photo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#fff}
+#detailView #detailContent .gallery-btn{width:38px;height:38px;background:rgba(18,31,51,.62);backdrop-filter:blur(8px)}
+#detailView #detailContent .gallery-count{padding:6px 10px;background:rgba(18,31,51,.72);backdrop-filter:blur(8px)}
+#detailView #detailContent .detail-body{margin:0;padding:17px 16px 18px;border:0;border-top:1px solid #edf2f8;border-radius:0;box-shadow:none}
+#detailView #detailContent .detail-head-row{align-items:flex-start;gap:10px}
+#detailView #detailContent .detail-tag{padding:5px 10px;margin-bottom:9px;border-radius:999px;font-size:12px;letter-spacing:.1px}
+#detailView #detailContent .detail-title{font-size:clamp(20px,5.1vw,23px);line-height:1.2;letter-spacing:-.35px;font-weight:850;margin:0 0 5px;overflow-wrap:anywhere}
+#detailView #detailContent .detail-fav{width:42px;height:42px;flex:0 0 42px;font-size:22px;box-shadow:0 4px 14px rgba(31,55,88,.07)}
+#detailView #detailContent .detail-price{font-size:clamp(25px,6vw,29px);line-height:1.08;letter-spacing:-.5px;margin:12px 0 14px}
+#detailView #detailContent .detail-meta{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:14px 0}
+#detailView #detailContent .detail-spec{min-height:76px;padding:10px 8px;border-radius:16px;background:#f5f8fd;border:1px solid #e7eef8}
+#detailView #detailContent .detail-spec-value{font-size:clamp(13px,3.7vw,16px);line-height:1.2;font-weight:850;overflow-wrap:anywhere}
+#detailView #detailContent .detail-spec-label{font-size:11px;line-height:1.2;margin-top:5px;color:#7a879a}
+#detailView #detailContent .detail-loc{display:flex;align-items:flex-start;gap:5px;font-size:14px;line-height:1.45;margin-top:12px;color:#617087;overflow-wrap:anywhere}
+#detailView #detailContent .detail-desc{font-size:15px;line-height:1.55;color:#39475d;margin-top:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+#detailView #detailContent .contacts{gap:9px;margin-top:18px}
+#detailView #detailContent .contact-btn{min-height:52px;display:flex;align-items:center;justify-content:center;padding:13px 15px;border-radius:16px;font-size:16px;font-weight:850;box-shadow:0 7px 16px rgba(20,111,232,.14)}
+#detailView #detailContent .contact-btn.secondary{background:#edf4ff;color:#216bd1;border:1px solid #e1ecff;box-shadow:none}
+@media(max-width:390px){
+ #detailView #detailContent .detail-body{padding:15px 13px 16px}
+ #detailView #detailContent .detail-meta{gap:6px}
+ #detailView #detailContent .detail-spec{padding:9px 7px;min-height:72px}
+ #detailView #detailContent .detail-spec-value{font-size:13px}
+}
+</style>
+
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
@@ -8596,7 +8630,14 @@ function localizedCategory(v){const m={'Недвижимость':'category_real
 function card(x){const photo=(x.photos||[])[0];const title=x.title||x.category||t('no_listing');const d=x.details||{};const specs=detailSpecs(d,false);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="title">${esc(title)}</div>${x.description?`<div class="desc">${esc(String(x.description).slice(0,180))}</div>`:''}${specs?`<div class="meta">${specs}</div>`:''}${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${x.address?`<div class="loc">📍 ${esc(x.address)}</div>`:''}</div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 async function openDetail(id){try{const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();renderDetail(x);hideViews();$('detailView').classList.add('show');window.scrollTo({top:0,behavior:'smooth'})}catch(e){toast(t('open_fail'))}}
-function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(x.title||t('no_listing'))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
+function detailDisplayTitle(raw,category){
+ const clean=v=>String(v||'').replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/\s+/g,' ').replace(/^[\s·•|,]+|[\s·•|,]+$/g,'').trim();
+ const categoryText=clean(localizedCategory(category||'')).toLocaleLowerCase();
+ let parts=String(raw||'').split(/[·•]/).map(clean).filter(Boolean);
+ if(categoryText) parts=parts.filter(part=>clean(part).toLocaleLowerCase()!==categoryText);
+ return parts.join(' · ')||clean(raw)||t('no_listing');
+}
+function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(detailDisplayTitle(x.title||t('no_listing'),x.category_name||x.category||''))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc">📍 ${esc(x.address)}</div>`:''}${x.description?`<div class="detail-desc">${esc(x.description)}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
 // Cross-platform contact sheet: show the contact number without a misleading underlined link.
 $('detailContent').querySelectorAll('[data-contact-call]').forEach(btn=>btn.addEventListener('click',function(e){
  e.stopPropagation();const n=String(this.dataset.contactCall||'').replace(/(?!^)\+|[^0-9+]/g,'');if(!n){toast('Номер телефона не указан');return;}
