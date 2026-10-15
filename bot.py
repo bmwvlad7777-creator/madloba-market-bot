@@ -10868,7 +10868,7 @@ def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
         app_url = MINI_APP_URL + ("&" if "?" in MINI_APP_URL else "?") + "renew=" + urllib.parse.quote(str(listing_id))
         result = api("sendMessage", {
             "chat_id":owner_telegram_id,
-            "text":f"⏳ <b>Объявление скоро закончится</b>\n\n{html.escape(title)}\n\nДо окончания публикации осталось не больше 2 дней. Продлите объявление ещё на 10 дней, чтобы оно оставалось доступным.",
+            "text":f"⏳ <b>Скоро закончится публикация</b>\n\n{html.escape(title)}\n\nОсталось до 2 дней. Продлите объявление, чтобы оно оставалось доступным.",
             "parse_mode":"HTML",
             "reply_markup":{"inline_keyboard":[[{
                 "text":"Продлить на 10 дней",
