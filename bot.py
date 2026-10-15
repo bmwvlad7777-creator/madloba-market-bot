@@ -10831,7 +10831,7 @@ def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
     rows = supabase_request(
         "GET", "listings",
         params={
-            "select":"id,user_id,title,expires_at,reminder_sent_at,metadata",
+            "select":"id,user_id,title,description,price,currency,address,expires_at,reminder_sent_at,metadata",
             "status":"eq.published",
             "expires_at":f"gt.{now_iso}",
             "and":f"(expires_at.lte.{reminder_cutoff_iso},reminder_sent_at.is.null)",
@@ -10864,11 +10864,44 @@ def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
             # Don't permanently consume the reminder if the owner link is missing.
             supabase_request("PATCH", "listings", params={"id":f"eq.{listing_id}", "reminder_sent_at":f"eq.{now_iso}"}, payload={"reminder_sent_at":None})
             continue
-        title = str(row.get("title") or "Ваше объявление")
+        title = str(row.get("title") or "Ваше объявление").strip()
+        metadata = row.get("metadata") or {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        # Show enough listing-specific information to distinguish similar ads.
+        price = str(metadata.get("price") or row.get("price") or "").strip()
+        currency = str(metadata.get("currency") or row.get("currency") or "").strip().upper()
+        address = str(metadata.get("address") or metadata.get("district") or row.get("address") or "").strip()
+        description = str(row.get("description") or metadata.get("description") or "").strip()
+        description = re.sub(r"\s+", " ", description)
+        if len(description) > 140:
+            description = description[:137].rstrip() + "…"
+
+        details = [f"🆔 Объявление №{listing_id}", f"📌 {title}"]
+        listing_details = metadata.get("details") if isinstance(metadata.get("details"), dict) else {}
+        identifying_parts = []
+        for key in ("brand", "model", "make", "year", "rooms", "area", "item_name", "product_name"):
+            value = str(listing_details.get(key) or metadata.get(key) or "").strip()
+            if value and value not in identifying_parts:
+                identifying_parts.append(value)
+        if identifying_parts:
+            details.append("🔎 " + " · ".join(identifying_parts[:4]))
+        if price:
+            details.append("💰 " + price + (f" {currency}" if currency else ""))
+        if address:
+            details.append("📍 " + address)
+        if description and description.casefold() != title.casefold():
+            details.append("📝 " + description)
+
         app_url = MINI_APP_URL + ("&" if "?" in MINI_APP_URL else "?") + "renew=" + urllib.parse.quote(str(listing_id))
         result = api("sendMessage", {
             "chat_id":owner_telegram_id,
-            "text":f"⏳ <b>Скоро закончится публикация</b>\n\n{html.escape(title)}\n\nОсталось до 2 дней. Продлите объявление, чтобы оно оставалось доступным.",
+            "text":(
+                "⏳ <b>Скоро закончится публикация</b>\\n\\n"
+                + html.escape("\\n".join(details))
+                + "\\n\\nОсталось не больше 2 дней. Продлите объявление, чтобы оно оставалось доступным."
+            ),
             "parse_mode":"HTML",
             "reply_markup":{"inline_keyboard":[[{
                 "text":"Продлить на 10 дней",
