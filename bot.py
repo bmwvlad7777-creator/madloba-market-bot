@@ -8412,7 +8412,7 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
 #detailView .detail-top .section-head h2{font-size:23px;line-height:1.1;letter-spacing:-.45px}
 #detailView .detail-back{min-height:42px;padding:9px 13px;border-radius:14px}
 #detailView #detailContent{overflow:hidden;border:1px solid #dce6f4;border-radius:25px;background:#fff;box-shadow:0 12px 30px rgba(25,55,95,.075)}
-#detailView #detailContent .detail-photo{height:clamp(210px,52vw,340px);min-height:210px;margin:0;border:0;border-radius:24px 24px 0 0;background:linear-gradient(145deg,#eaf2fc,#f7f9fc)}
+#detailView #detailContent .detail-photo{height:clamp(165px,42vw,250px);min-height:165px;margin:0;border:0;border-radius:24px 24px 0 0;background:linear-gradient(145deg,#eaf2fc,#f7f9fc)}
 #detailView #detailContent .detail-photo img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#fff}
 #detailView #detailContent .gallery-btn{width:38px;height:38px;background:rgba(18,31,51,.62);backdrop-filter:blur(8px)}
 #detailView #detailContent .gallery-count{padding:6px 10px;background:rgba(18,31,51,.72);backdrop-filter:blur(8px)}
