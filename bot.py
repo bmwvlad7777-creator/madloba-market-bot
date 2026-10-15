@@ -8538,7 +8538,64 @@ $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
 $('profileBack').onclick=()=>showHome();
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home')showHome();else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
-apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam=new URLSearchParams(window.location.search).get('renew');if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else{load(true)}</script></body></html>'''
+apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam=new URLSearchParams(window.location.search).get('renew');if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else{load(true)}</script>
+<style id="madloba-modern-redesign-v2">
+/* Visual-only redesign v2. Existing markup, JavaScript, API calls and business logic are unchanged. */
+:root{--mm-blue:#1677f2;--mm-ink:#172033;--mm-muted:#77849a;--mm-line:#dce7f5;--mm-surface:#fff;}
+html,body{background:#edf4fd!important;color:var(--mm-ink)!important}
+.wrap{padding-left:18px!important;padding-right:18px!important}
+.top{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;margin:8px 0 12px!important;position:relative!important;z-index:8!important}
+.brand{font-size:clamp(17px,4.5vw,22px)!important;letter-spacing:-.65px!important;line-height:1.05!important;white-space:nowrap!important;min-width:0!important}
+.brand-main{color:#fff!important;text-shadow:0 2px 12px rgba(4,18,40,.42)!important}
+.brand-market{color:#2589ff!important;text-shadow:0 2px 12px rgba(4,18,40,.42)!important}
+.top .city{height:42px!important;min-height:42px!important;border:1px solid rgba(255,255,255,.72)!important;border-radius:24px!important;background:rgba(255,255,255,.96)!important;color:#1768d2!important;box-shadow:0 5px 16px rgba(7,30,67,.12)!important;font-weight:750!important}
+.top>div:last-child{gap:6px!important}
+.hero{min-height:0!important;height:auto!important;padding:8px 0 17px!important;margin:0 -18px 22px!important;border-radius:0 0 30px 30px!important;overflow:visible!important;background-position:center 54%!important;box-shadow:0 15px 34px rgba(19,55,103,.12)!important}
+.hero:before{background:linear-gradient(180deg,rgba(4,18,40,.48) 0%,rgba(4,18,40,.22) 38%,rgba(4,18,40,.08) 70%,rgba(237,244,253,.08) 100%)!important}
+.hero:after{background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.05))!important}
+.hero h1{font-size:clamp(27px,7vw,34px)!important;line-height:1.04!important;letter-spacing:-1.05px!important;margin:30px 18px 8px!important;max-width:600px!important;text-shadow:0 2px 14px rgba(0,0,0,.35)!important}
+.hero p{font-size:15px!important;line-height:1.4!important;margin:0 18px 15px!important;max-width:560px!important;text-shadow:0 2px 10px rgba(0,0,0,.28)!important}
+.hero .search{margin:0 18px 13px!important;border-radius:22px!important;min-height:58px!important;border:1.5px solid rgba(92,157,255,.9)!important;box-shadow:0 8px 24px rgba(15,46,89,.14)!important;background:rgba(255,255,255,.98)!important}
+.hero .search input{font-size:16px!important;min-width:0!important}
+.quick-actions{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:7px!important;margin:0 18px!important;padding:12px!important;border-radius:24px!important;background:rgba(255,255,255,.97)!important;border:1px solid rgba(255,255,255,.95)!important;box-shadow:0 12px 30px rgba(15,46,89,.12)!important}
+.quick-action{min-width:0!important;min-height:64px!important;padding:7px 3px!important;border:1px solid transparent!important;border-radius:16px!important;background:transparent!important;box-shadow:none!important;font-size:10px!important;line-height:1.2!important;color:#26344a!important}
+.quick-action .ico{width:42px!important;height:42px!important;margin-bottom:4px!important}
+.quick-action.active{background:#edf5ff!important;border-color:#dceaff!important;color:var(--mm-blue)!important;box-shadow:none!important}
+.section-head{align-items:center!important;margin-bottom:12px!important}
+.section-head h2{font-size:clamp(22px,5.8vw,28px)!important;letter-spacing:-.8px!important;line-height:1.12!important}
+.section-link{font-weight:800!important;color:var(--mm-blue)!important}
+.best-section{margin-top:0!important;margin-bottom:26px!important}
+.best-row{gap:12px!important}
+.best-card,.card{border:1px solid rgba(216,228,244,.95)!important;border-radius:23px!important;overflow:hidden!important;background:#fff!important;box-shadow:0 8px 24px rgba(20,45,80,.07)!important}
+.best-card{flex:0 0 min(46%,270px)!important;min-width:0!important}
+.best-photo{height:clamp(132px,38vw,178px)!important;background:#f4f7fb!important}
+.best-photo img,.photo img{object-fit:cover!important}
+.best-body{padding:11px 12px 13px!important}
+.best-tag,.tag{display:inline-flex!important;align-items:center!important;max-width:100%!important;border-radius:999px!important;background:#edf5ff!important;color:#176bd7!important;font-size:11px!important;font-weight:800!important;padding:5px 9px!important;margin-bottom:7px!important}
+.best-title,.title{font-size:14px!important;font-weight:750!important;line-height:1.28!important;letter-spacing:-.15px!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;overflow-wrap:anywhere!important;min-height:0!important}
+.best-price,.price{font-size:21px!important;font-weight:900!important;letter-spacing:-.5px!important;line-height:1.15!important;margin-top:9px!important;color:#172033!important}
+.best-loc,.loc{font-size:12px!important;line-height:1.35!important;color:#77849a!important;margin-top:6px!important;overflow-wrap:anywhere!important}
+.fav-btn,.favorite-btn{box-shadow:0 5px 16px rgba(16,35,64,.12)!important}
+.cats{gap:10px!important}
+.cat{border-radius:18px!important;border-color:#e1eaf6!important;box-shadow:0 5px 16px rgba(20,45,80,.045)!important}
+/* Keep the fixed navigation comfortable and visually quiet. */
+.bottom-nav,.nav-bar,.tabbar{backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important}
+@media(max-width:390px){
+ .wrap{padding-left:14px!important;padding-right:14px!important}
+ .top{grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important}
+ .brand{font-size:16px!important;letter-spacing:-.55px!important}
+ .top .city{height:38px!important;min-height:38px!important;font-size:11px!important;padding-left:7px!important;padding-right:7px!important}
+ .hero{margin-left:-14px!important;margin-right:-14px!important}
+ .hero h1{margin-top:24px!important;font-size:27px!important}
+ .quick-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important;margin-left:14px!important;margin-right:14px!important;padding:10px 7px!important;gap:5px!important}
+ .quick-action{font-size:9px!important}
+ .quick-action .ico{width:38px!important;height:38px!important}
+ .best-card{flex-basis:46%!important}
+ .best-photo{height:128px!important}
+}
+</style>
+
+</body></html>'''
 
 
 
@@ -8733,89 +8790,6 @@ def mini_app_admin_page():
 .cat .ico{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
 .cat .ico .mm-category-3d{display:block!important;width:58px!important;height:58px!important;max-width:58px!important;max-height:58px!important;object-fit:contain!important;filter:drop-shadow(0 3px 2px rgba(27,62,106,.12))!important}
 .quick-icon .mm-category-3d{display:block!important;width:48px!important;height:48px!important;max-width:48px!important;max-height:48px!important;object-fit:contain!important;filter:drop-shadow(0 3px 2px rgba(27,62,106,.14))!important}
-
-
-/* MADLOBA MARKET VISUAL REFRESH v1
-   CSS-only overrides. Preserve existing markup, JS, API and business logic. */
-:root{
-  --mm-visual-shadow:0 8px 24px rgba(15,23,42,.055);
-  --mm-visual-line:#e9eef5;
-}
-/* Compact Batumi hero while keeping its existing image and controls. */
-.hero{
-  min-height:0!important;
-  padding:18px 16px 14px!important;
-  margin-bottom:16px!important;
-  border-radius:24px!important;
-  box-shadow:0 12px 28px rgba(15,23,42,.12)!important;
-  background-position:center 54%!important;
-}
-.hero h1{
-  margin-top:34px!important;
-  margin-bottom:7px!important;
-  font-size:clamp(25px,6.4vw,30px)!important;
-  line-height:1.08!important;
-  letter-spacing:-.65px!important;
-  text-wrap:balance;
-}
-.hero p{font-size:14px!important;line-height:1.38!important;margin-bottom:12px!important;}
-.top{margin-bottom:9px!important;}
-.quick-actions{gap:6px!important;margin-top:9px!important;}
-.quick-action{
-  min-height:46px!important;
-  padding:7px 4px!important;
-  border-radius:12px!important;
-  font-size:10px!important;
-  box-shadow:none!important;
-}
-/* Cleaner, more compact category tiles. Existing category click targets remain. */
-.section-head{margin-top:19px!important;margin-bottom:10px!important;}
-.section-head h2{font-size:21px!important;line-height:1.18!important;letter-spacing:-.45px!important;}
-.cats{gap:9px!important;}
-.cat{
-  min-height:98px!important;
-  padding:13px 12px!important;
-  border:1px solid var(--mm-visual-line)!important;
-  border-radius:18px!important;
-  box-shadow:0 5px 16px rgba(15,23,42,.045)!important;
-}
-.cat .ico{width:40px!important;height:40px!important;border-radius:13px!important;}
-.cat b{font-size:14px!important;line-height:1.22!important;}
-.cat small{font-size:11px!important;line-height:1.3!important;}
-/* Balanced listing cards: consistent photo height and quieter surfaces. */
-.card{
-  border-radius:18px!important;
-  border-color:var(--mm-visual-line)!important;
-  box-shadow:var(--mm-visual-shadow)!important;
-}
-.photo{height:174px!important;background-color:#f3f6fa!important;}
-.card .title{
-  font-size:15px!important;
-  line-height:1.3!important;
-  letter-spacing:-.15px!important;
-  display:-webkit-box!important;
-  -webkit-box-orient:vertical!important;
-  -webkit-line-clamp:2!important;
-  overflow:hidden!important;
-  min-height:2.6em;
-}
-.card .price{font-size:20px!important;line-height:1.15!important;margin-top:9px!important;letter-spacing:-.4px!important;}
-.card .loc{font-size:11px!important;line-height:1.35!important;margin-top:5px!important;}
-.fav-btn{box-shadow:0 3px 12px rgba(15,23,42,.12)!important;}
-/* Keep the design comfortable on narrow phones and avoid changing desktop layout. */
-@media(max-width:380px){
-  .hero{padding:15px 13px 12px!important;border-radius:21px!important;}
-  .hero h1{font-size:24px!important;margin-top:28px!important;}
-  .quick-action{font-size:9px!important;min-height:43px!important;}
-  .cat{padding:11px 10px!important;min-height:94px!important;}
-  .photo{height:158px!important;}
-}
-@media(min-width:620px){
-  .hero{padding:22px 22px 17px!important;}
-  .hero h1{margin-top:28px!important;}
-  .photo{height:220px!important;}
-}
-
 </style></head><body><main class="wrap"><div class="head"><h1>MADLOBA MARKET</h1><div class="muted">Административная панель · статистика</div></div><div id="status" class="status">Проверяем доступ…</div><div id="content" hidden><div class="section">Пользователи и объявления</div><div class="grid" id="mainStats"></div><div class="section">Посещения за период</div><div class="grid" id="visitStats"></div><div class="section">Активность за период</div><div class="card"><label for="analyticsPeriod" class="muted">Период статистики</label><select id="analyticsPeriod" style="display:block;width:100%;margin:8px 0 14px;padding:12px;border:1px solid #dce5f0;border-radius:10px;background:white;color:#142033;font-size:15px"><option value="7">Последние 7 дней</option><option value="30">Последние 30 дней</option><option value="90">Последние 90 дней</option></select><div class="muted" style="margin-bottom:12px">Открытия приложения и просмотры объявлений по дням (данные из аналитики)</div><div id="activityChart" role="img" aria-label="График активности за выбранный период"></div><div class="muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px"><span>🔵 Открытия приложения</span><span>🟩 Просмотры объявлений</span></div></div><div class="section">Топ-10 объявлений по просмотрам</div><div id="topListings" class="card">Загружаем рейтинг…</div><div class="section">Будущие платные услуги</div><div class="grid" id="orderStats"></div><div class="muted">Оплата не подключена. Заказы здесь только учитываются, автоматическое списание средств отсутствует.</div><div class="section">Последние пользователи</div><div id="adminUsers" class="card">Загружаем пользователей…</div><div class="section">Последние объявления</div><div id="adminListings" class="card">Загружаем объявления…</div><div id="detailModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:99;padding:18px;overflow:auto"><div style="max-width:680px;margin:6vh auto;background:white;border-radius:18px;padding:18px"><button id="closeDetail" style="float:right;border:0;border-radius:10px;padding:9px 12px;background:#eef3f9;font-weight:700">Закрыть ✕</button><div id="detailContent" style="padding-top:30px;overflow-wrap:anywhere"></div></div></div><button class="refresh" onclick="loadStats()">Обновить статистику</button></div></main><script>const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();async function loadStats(){const status=document.getElementById('status');status.textContent='Загружаем статистику…';const initData=tg?.initData||'';try{const period=document.getElementById('analyticsPeriod')?.value||'7';const r=await fetch('/api/admin/stats?days='+encodeURIComponent(period),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(r.status===401||r.status===403){status.textContent='Доступ закрыт. Открой эту страницу внутри Telegram под аккаунтом администратора.';return}if(!r.ok)throw new Error(d.error||'Ошибка загрузки');status.hidden=true;document.getElementById('content').hidden=false;const metric=(label,value)=>`<div class="metric"><span>${label}</span><b>${Number(value||0).toLocaleString('ru-RU')}</b></div>`;document.getElementById('mainStats').innerHTML=metric('Всего пользователей',d.users_total)+metric('Всего объявлений',d.listings_total)+metric('Активные объявления',d.listings_active)+metric('На модерации',d.listings_pending)+metric('Другие статусы',d.listings_other);document.getElementById('visitStats').innerHTML=metric('Открытия сегодня',d.opens_today)+metric('Открытия за '+(d.period_days||7)+' дней',d.opens_period)+metric('Уникальные за '+(d.period_days||7)+' дней',d.unique_visitors_period)+metric('Просмотры сегодня',d.listing_views_today)+metric('Просмотры за '+(d.period_days||7)+' дней',d.listing_views_period);const chart=document.getElementById('activityChart');const rawDays=Array.isArray(d.activity_by_day)?d.activity_by_day:[];const selectedPeriod=Number(d.period_days||period);const bucketSize=selectedPeriod===90?10:(selectedPeriod===30?5:1);const days=[];for(let i=0;i<rawDays.length;i+=bucketSize){const chunk=rawDays.slice(i,i+bucketSize);if(!chunk.length)continue;days.push({date:chunk[0]?.date||'',endDate:chunk[chunk.length-1]?.date||chunk[0]?.date||'',opens:chunk.reduce((s,x)=>s+Number(x.opens||0),0),views:chunk.reduce((s,x)=>s+Number(x.views||0),0)});}const max=Math.max(1,...days.flatMap(x=>[Number(x.opens||0),Number(x.views||0)]));const dateLabel=(value)=>{if(!value)return '';const dt=new Date(value+'T12:00:00Z');return Number.isNaN(dt.getTime())?'':dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',timeZone:'UTC'});};chart.innerHTML=days.length?`<div style="width:100%;overflow:hidden"><div style="display:grid;grid-template-columns:repeat(${days.length},minmax(0,1fr));gap:${selectedPeriod===7?8:4}px;align-items:end;height:205px;padding:4px 0 0">${days.map((day,i)=>{const a=Number(day.opens||0),v=Number(day.views||0);const ah=a?Math.max(3,Math.round(a/max*112)):0,vh=v?Math.max(3,Math.round(v/max*112)):0;const label=bucketSize===1?dateLabel(day.date):(dateLabel(day.date)+'–'+dateLabel(day.endDate));return `<div style="display:flex;flex-direction:column;justify-content:end;align-items:center;height:100%;min-width:0"><div style="font-size:10px;color:#68788d;margin-bottom:4px;text-align:center;min-height:12px">${a+v||''}</div><div style="height:116px;width:100%;display:flex;align-items:end;justify-content:center;gap:2px"><div title="${label} · Открытия приложения: ${a}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${ah}px;max-height:112px;border-radius:4px 4px 0 0;background:#1478f5"></div><div title="${label} · Просмотры объявлений: ${v}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${vh}px;max-height:112px;border-radius:4px 4px 0 0;background:#16a36a"></div></div><div style="font-size:${selectedPeriod===90?'9px':'10px'};line-height:1.2;color:#68788d;margin-top:7px;text-align:center;overflow-wrap:anywhere;min-height:24px">${label}</div></div>`}).join('')}</div></div>`:'<div class="muted">Пока нет данных за этот период</div>';const topBox=document.getElementById('topListings');const top=Array.isArray(d.top_listings)?d.top_listings:[];topBox.innerHTML=top.length?top.map((x,i)=>`<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>${i+1}. #${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">${Number(x.views||0).toLocaleString('ru-RU')} просмотров · ${esc(x.status||'—')} · ${esc(x.price||'')} ${esc(x.currency||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`).join(''):'<div class="muted">Пока нет просмотров объявлений за выбранный период</div>';topBox.querySelectorAll('[data-admin-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.adminListing,initData)));document.getElementById('orderStats').innerHTML=metric('Всего заказов',d.orders_total)+metric('Ожидают оплаты',d.orders_pending)+metric('Отмечены оплаченными',d.orders_paid);if(!d.analytics_available){const n=document.createElement('div');n.className='status';n.textContent='Таблица статистики пока недоступна. Проверь, что SQL выполнен в том же проекте Supabase.';document.getElementById('content').prepend(n)} await loadAdminLists(initData); }catch(e){status.textContent='Не удалось загрузить данные. Проверь соединение с Supabase и открой панель внутри Telegram.'}}async function loadAdminLists(initData){const headers={'X-Telegram-Init-Data':initData};const usersBox=document.getElementById('adminUsers'),listingsBox=document.getElementById('adminListings');try{const r=await fetch('/api/admin/data?kind=users',{headers});const d=await r.json();if(!r.ok)throw new Error('users');usersBox.innerHTML=(d.items||[]).length?(d.items||[]).map(x=>`<button type="button" data-admin-user="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>Telegram ID: ${esc(x.telegram_id||'—')}</b><div class="muted">Пользователь ID: ${esc(x.id||'—')} · Нажми для подробностей ↗</div></button>`).join(''):'Пользователей пока нет';usersBox.querySelectorAll('[data-admin-user]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('user',b.dataset.adminUser,initData)));}catch(e){usersBox.textContent='Не удалось загрузить пользователей'}try{const r=await fetch('/api/admin/data?kind=listings',{headers});const d=await r.json();if(!r.ok)throw new Error('listings');listingsBox.innerHTML=(d.items||[]).length?(d.items||[]).map(x=>`<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>#${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">Статус: ${esc(x.status||'—')} · Владелец: ${esc(x.telegram_id||'не указан')}</div><div class="muted">${esc(x.price||'Цена не указана')} ${esc(x.currency||'')} · ${esc(x.address||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`).join(''):'Объявлений пока нет';listingsBox.querySelectorAll('[data-admin-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.adminListing,initData)));}catch(e){listingsBox.textContent='Не удалось загрузить объявления'}}async function showAdminDetail(kind,id,initData){const modal=document.getElementById('detailModal'),box=document.getElementById('detailContent');modal.style.display='block';box.textContent='Загружаем подробности…';try{const r=await fetch('/api/admin/data?kind='+encodeURIComponent(kind.slice(0,-1)==='user'?'user':kind)+'&id='+encodeURIComponent(id),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Не удалось загрузить');const x=d.item||{};const labels={created_at:'Дата создания',updated_at:'Последнее обновление',telegram_id:'Telegram ID владельца',category_id:'ID категории',city_id:'ID города',channel_message_id:'ID сообщения в канале',channel_url:'Публикация в Telegram',currency:'Валюта',description:'Описание',phone:'Телефон',price:'Цена',status:'Статус',telegram:'Опубликовано в Telegram',title:'Название объявления',views_count:'Просмотры',address:'Адрес',deal_type:'Тип сделки',subcategory:'Подкатегория',brand:'Бренд',model:'Модель',user_id:'ID пользователя',photos:'Фотографии',whatsapp:'WhatsApp'};const fmt=(k,v)=>{if(['created_at','updated_at','paid_at','scheduled_at'].includes(k)){const dt=new Date(v);return Number.isNaN(dt.getTime())?v:dt.toLocaleString('ru-RU',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Tbilisi'})}if(k==='status')return ({published:'Опубликовано',pending:'На модерации',draft:'Черновик',deleted:'Удалено',rejected:'Отклонено'})[String(v)]||v;if(k==='telegram')return (v===true||v==='true'||!!x.channel_message_id||!!x.channel_url)?'Да':'Нет';if(k==='whatsapp')return (v===true||v==='true')?'Да':'Нет';return v};const rows=Object.entries(x).filter(([k,v])=>v!==null&&v!==''&&typeof v!=='object'&&!['id','user_id'].includes(k)).map(([k,v])=>`<div style="padding:8px 0;border-bottom:1px solid #e7edf5"><div class="muted">${esc(labels[k]||k.replace(/_/g,' '))}</div><div style="font-weight:650;white-space:pre-wrap">${esc(fmt(k,v))}</div></div>`).join('');let html=`<h2 style="margin:0 0 14px">${kind==='user'?'Пользователь':'Объявление'} #${esc(id)}</h2>${rows||'<div class="muted">Подробных данных нет</div>'}`;if(kind==='listing'){const phone=x.phone||'';const channel=x.channel_url||'';html+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">${phone?`<button type="button" id="copyAdminPhone" style="border:0;border-radius:10px;padding:11px 13px;background:#1478f5;color:white;font-weight:700">Скопировать телефон</button>`:''}${channel&&/^https:\/\/(t\.me|telegram\.me)\//i.test(channel)?`<a href="${esc(channel)}" target="_blank" rel="noopener" style="display:inline-block;border-radius:10px;padding:11px 13px;background:#eef3f9;color:#1478f5;text-decoration:none;font-weight:700">Открыть публикацию в Telegram ↗</a>`:''}</div>`;}if(kind==='user'&&(d.listings||[]).length){html+='<h3>Объявления пользователя</h3>'+d.listings.map(y=>`<button type="button" data-user-listing="${esc(y.id)}" style="display:block;text-align:left;width:100%;padding:11px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>#${esc(y.id)} · ${esc(y.title||'Без названия')}</b><div class="muted">${esc(y.status||'—')} · ${esc(y.price||'')} ${esc(y.currency||'')}</div><div class="muted">Нажми, чтобы открыть объявление ↗</div></button>`).join('');setTimeout(()=>box.querySelectorAll('[data-user-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.userListing,initData))),0)}box.innerHTML=html;const copyPhone=document.getElementById('copyAdminPhone');if(copyPhone)copyPhone.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(String(x.phone||''));copyPhone.textContent='Телефон скопирован'}catch(e){copyPhone.textContent=String(x.phone||'Не удалось скопировать')}})}catch(e){box.textContent='Не удалось загрузить подробности. Проверь логи Render.'}}document.getElementById('closeDetail').addEventListener('click',()=>document.getElementById('detailModal').style.display='none');document.getElementById('detailModal').addEventListener('click',e=>{if(e.target.id==='detailModal')e.currentTarget.style.display='none'});function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}document.getElementById('analyticsPeriod')?.addEventListener('change',loadStats);loadStats();</script></body></html>""", mimetype="text/html")
 
 
