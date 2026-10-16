@@ -2,6 +2,7 @@
 
 import os
 import html
+import base64
 import json
 import time
 import threading
@@ -8731,6 +8732,32 @@ $('profileBack').onclick=()=>showHome();
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home')showHome();else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
 apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam=new URLSearchParams(window.location.search).get('renew');if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else{load(true)}</script></body></html>'''
 
+# Move large embedded Mini App images out of the initial HTML response. The image
+# bytes remain in this single-file deployment and are served with long-lived cache
+# headers; visual design and the app's data/API behavior remain unchanged.
+MINI_APP_IMAGE_ASSETS = {}
+def _externalize_large_mini_app_images(match):
+    mime = match.group(1).lower()
+    encoded = match.group(2)
+    if len(encoded) < 100000:
+        return match.group(0)
+    try:
+        image_bytes = base64.b64decode(encoded, validate=True)
+    except (ValueError, TypeError):
+        return match.group(0)
+    digest = hashlib.sha256(image_bytes).hexdigest()[:20]
+    ext = mime.split('/', 1)[-1].replace('jpeg', 'jpg').replace('svg+xml', 'svg')
+    asset_name = f"{digest}.{ext}"
+    MINI_APP_IMAGE_ASSETS[asset_name] = (mime, image_bytes)
+    return f"/mini-app-assets/{asset_name}"
+
+MINI_APP_HTML = re.sub(
+    r'data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)',
+    _externalize_large_mini_app_images,
+    MINI_APP_HTML,
+)
+
+
 
 
 
@@ -9091,6 +9118,18 @@ def mini_app_admin_data():
         return jsonify({"items": items})
 
     return jsonify({"error":"invalid_kind"}), 400
+
+
+@app.get("/mini-app-assets/<asset_name>")
+def mini_app_asset(asset_name):
+    asset = MINI_APP_IMAGE_ASSETS.get(asset_name)
+    if not asset:
+        return jsonify({"error":"asset_not_found"}), 404
+    mime, content = asset
+    response = Response(content, mimetype=mime)
+    response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @app.get("/app")
