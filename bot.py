@@ -10898,9 +10898,9 @@ def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
         result = api("sendMessage", {
             "chat_id":owner_telegram_id,
             "text":(
-                "⏳ <b>Скоро закончится публикация</b>\\n\\n"
-                + html.escape("\\n".join(details))
-                + "\\n\\nОсталось не больше 2 дней. Продлите объявление, чтобы оно оставалось доступным."
+                "⏳ <b>Скоро закончится публикация</b>\n\n"
+                + html.escape("\n".join(details))
+                + "\n\nОсталось не больше 2 дней. Продлите объявление, чтобы оно оставалось доступным."
             ),
             "parse_mode":"HTML",
             "reply_markup":{"inline_keyboard":[[{
