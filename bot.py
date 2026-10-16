@@ -9875,6 +9875,10 @@ def mini_app_perf_log():
 
 @app.get("/api/listings")
 def mini_app_listings():
+    _mm_perf_start = time.perf_counter()
+    _mm_perf_marks = {}
+    def _mm_perf_mark(name):
+        _mm_perf_marks[name] = round((time.perf_counter() - _mm_perf_start) * 1000, 1)
     if not supabase_enabled():
         return jsonify({"items":[],"has_next":False,"total_hint":0})
 
@@ -9890,6 +9894,7 @@ def mini_app_listings():
         page, per_page = 0, 20
 
     city_id = _supabase_city_id(city)
+    _mm_perf_mark("city_lookup")
     if not city_id:
         return jsonify({"items":[],"has_next":False,"total_hint":0})
 
@@ -9933,6 +9938,7 @@ def mini_app_listings():
                 "p_limit": per_page + 1,
             },
         )
+        _mm_perf_mark("cursor_rpc")
         if cursor_rows is None:
             return jsonify({"items": [], "has_next": False, "total_hint": 0, "error": "cursor_search_unavailable"}), 503
         has_next = len(cursor_rows) > per_page
@@ -10608,6 +10614,7 @@ def mini_app_listings():
 
     favorite_ids = set()
     current_user = _mini_app_authenticated_user()
+    _mm_perf_mark("mini_app_auth")
     if current_user and rows:
         current_user_id = _supabase_user_id(current_user.get("id"))
         listing_ids = [str(r.get("id")) for r in rows if r.get("id") is not None]
@@ -10622,8 +10629,10 @@ def mini_app_listings():
                 },
             ) or []
             favorite_ids = {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id","")).isdigit()}
+        _mm_perf_mark("favorites")
 
     items = _attach_catalog_photos(rows)
+    _mm_perf_mark("photos_attach")
     for item in items:
         item["is_favorite"] = int(item.get("id", 0)) in favorite_ids
     for idx, item in enumerate(items):
@@ -10637,6 +10646,8 @@ def mini_app_listings():
         _strip_public_listing_fields(item)
         _strip_listing_contact_fields(item)
 
+    _mm_perf_mark("response_ready")
+    print("MM_PERF listings_stages " + json.dumps(_mm_perf_marks, separators=(",", ":"), sort_keys=True), flush=True)
     return jsonify({
         "items":items,
         "has_next":has_next,
