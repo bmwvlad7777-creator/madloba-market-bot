@@ -17,7 +17,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, Response, jsonify, g
 
 
 # ============================================================
@@ -56,6 +56,19 @@ MAX_PHOTOS = 8
 
 
 app = Flask(__name__)
+
+# Temporary Mini App performance diagnostics. Logs timings only, never user data.
+@app.before_request
+def _mm_perf_start():
+    g._mm_perf_started = time.perf_counter()
+
+@app.after_request
+def _mm_perf_log(response):
+    path = request.path
+    if path in {"/app", "/api/listings", "/api/auth", "/api/perf"}:
+        elapsed_ms = round((time.perf_counter() - getattr(g, "_mm_perf_started", time.perf_counter())) * 1000, 1)
+        app.logger.info("MM_PERF server path=%s status=%s elapsed_ms=%s bytes=%s", path, response.status_code, elapsed_ms, response.calculate_content_length())
+    return response
 
 # Reuse outbound HTTP connections instead of opening a new TCP/TLS connection
 # for every Supabase/Telegram request. Automatic retries are restricted to
@@ -8683,7 +8696,7 @@ function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').fo
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
 async function loadFavorites(){setActiveNav('favorites');showView('favoritesView');$('favoritesList').innerHTML='<div class="empty">'+t('loading')+'</div>';try{const r=await apiFetch('/api/favorites');if(r.status===401){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_telegram')}</b><span>${t('fav_telegram_text')}</span></div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('favoritesList').innerHTML=`<div class="fav-empty"><span class="heart">♡</span><b>${t('fav_empty_title')}</b><span>${t('fav_empty_text')}</span></div>`;return}$('favoritesList').innerHTML=data.items.map(favoriteCard).join('');document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}catch(e){$('favoritesList').innerHTML=`<div class="empty">${t('favorites_fail')}</div>`}}
-async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent=String(requestPage+1);$('pageLabel').setAttribute('aria-label','Страница '+(requestPage+1));$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
+async function load(reset=true){const mmLoadStarted=performance.now();if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const mmApiStarted=performance.now();const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();const mmApiMs=performance.now()-mmApiStarted;if(requestId!==state.loadRequestId)return;const mmRenderStarted=performance.now();if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent=String(requestPage+1);$('pageLabel').setAttribute('aria-label','Страница '+(requestPage+1));$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}if(reset){const mmNav=performance.getEntriesByType('navigation')[0];const mmPayload={nav_response_start_ms:mmNav?mmNav.responseStart:0,dom_content_loaded_ms:mmNav?mmNav.domContentLoadedEventEnd:0,load_called_ms:mmLoadStarted,api_ms:mmApiMs,render_ms:performance.now()-mmRenderStarted,total_ms:performance.now(),items:(data.items||[]).length};fetch('/api/perf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(mmPayload),keepalive:true}).catch(()=>{})}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const renew=st==='published'?`<button class="mine-action primary" data-action="renew">↻ ${t('renew_10_days')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;const expiryLabel=state.lang==='en'?'Expires: ':state.lang==='ka'?'ვადა იწურება: ':'Истекает: ';const expiryDate=x.expires_at?new Date(x.expires_at).toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';const expiry=st==='published'?(expiryDate?`<div class="mine-expiry">📅 ${expiryLabel}${esc(expiryDate)}</div>`:`<div class="mine-expiry missing">📅 ${state.lang==='en'?'Expiry date not set':state.lang==='ka'?'ვადის თარიღი მითითებული არ არის':'Дата окончания не указана'}</div>`):'';return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span>${expiry}</div></div><div class="mine-actions">${open}${edit}${renew}${hide}${republish}${del}</div></div>`}
 async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
@@ -9842,6 +9855,20 @@ def mini_app_auto_options():
     base_models = set(fallback_models.get(make_filter, [])) if make_filter else set()
     models = sorted(base_models | db_models, key=str.casefold)
     return jsonify({"makes": makes, "models": models})
+
+
+@app.post("/api/perf")
+def mini_app_perf_log():
+    # Browser timing telemetry for one diagnostic pass. Do not log query text, IDs, or init data.
+    data = request.get_json(silent=True) or {}
+    allowed = ("nav_response_start_ms", "dom_content_loaded_ms", "load_called_ms", "api_ms", "render_ms", "total_ms", "items")
+    clean = {}
+    for key in allowed:
+        value = data.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            clean[key] = round(max(0, min(float(value), 120000)), 1)
+    app.logger.info("MM_PERF browser %s", json.dumps(clean, separators=(",", ":"), sort_keys=True))
+    return jsonify({"ok": True}), 204
 
 
 @app.get("/api/listings")
