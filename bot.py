@@ -57,6 +57,23 @@ MAX_PHOTOS = 8
 
 app = Flask(__name__)
 
+# Temporary diagnostics: measure server-side duration of first Mini App requests.
+# This logs only route names, status codes, and elapsed milliseconds, not user data.
+@app.before_request
+def _mm_perf_request_start():
+    request.environ["_mm_perf_started_at"] = time.perf_counter()
+
+@app.after_request
+def _mm_perf_request_end(response):
+    started = request.environ.get("_mm_perf_started_at")
+    if started is not None:
+        path = request.path
+        if path in {"/app", "/api/auth", "/api/listings", "/api/popular-listings", "/api/config"}:
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            app.logger.info("MINIAPP_PERF path=%s status=%s duration_ms=%.1f", path, response.status_code, elapsed_ms)
+    return response
+
+
 # Reuse outbound HTTP connections instead of opening a new TCP/TLS connection
 # for every Supabase/Telegram request. Automatic retries are restricted to
 # idempotent methods so publishing or modifying listings is never duplicated.
@@ -9708,6 +9725,7 @@ def mini_app_my_listings():
         item["status"] = row.get("status") or item.get("status") or "published"
         item["category_name"] = item.get("category") or "Объявление"
         item["channel_post_url"] = row.get("channel_url") or item.get("channel_post_url") or ""
+    _attach_listing_view_counts(items)
     return jsonify({"items":items})
 
 
