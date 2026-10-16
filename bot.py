@@ -9708,7 +9708,6 @@ def mini_app_my_listings():
         item["status"] = row.get("status") or item.get("status") or "published"
         item["category_name"] = item.get("category") or "Объявление"
         item["channel_post_url"] = row.get("channel_url") or item.get("channel_post_url") or ""
-    _attach_listing_view_counts(items)
     return jsonify({"items":items})
 
 
