@@ -10734,9 +10734,7 @@ def mini_app_listings():
         _strip_public_listing_fields(item)
         _strip_listing_contact_fields(item)
 
-    # Avoid querying analytics events for every item on the main catalog request.
-    # View counts remain available in the dedicated popular-listings route and
-    # in the user's own listings; catalog rendering must not scan view events.
+    _attach_listing_view_counts(items)
     return jsonify({
         "items":items,
         "has_next":has_next,
