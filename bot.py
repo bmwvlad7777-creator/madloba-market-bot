@@ -67,7 +67,8 @@ def _mm_perf_log(response):
     path = request.path
     if path in {"/app", "/api/listings", "/api/auth", "/api/perf"}:
         elapsed_ms = round((time.perf_counter() - getattr(g, "_mm_perf_started", time.perf_counter())) * 1000, 1)
-        app.logger.info("MM_PERF server path=%s status=%s elapsed_ms=%s bytes=%s", path, response.status_code, elapsed_ms, response.calculate_content_length())
+        # print() is deliberately used here because Render captures stdout reliably.
+        print(f"MM_PERF server path={path} status={response.status_code} elapsed_ms={elapsed_ms} bytes={response.calculate_content_length()}", flush=True)
     return response
 
 # Reuse outbound HTTP connections instead of opening a new TCP/TLS connection
@@ -9867,7 +9868,8 @@ def mini_app_perf_log():
         value = data.get(key)
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             clean[key] = round(max(0, min(float(value), 120000)), 1)
-    app.logger.info("MM_PERF browser %s", json.dumps(clean, separators=(",", ":"), sort_keys=True))
+    # Explicit stdout logging makes the browser payload visible in Render logs.
+    print("MM_PERF browser " + json.dumps(clean, separators=(",", ":"), sort_keys=True), flush=True)
     return jsonify({"ok": True}), 204
 
 
