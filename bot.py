@@ -8487,6 +8487,59 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
  .quick-action .quick-label{font-size:9.5px!important;max-height:18px!important;}
 }
 </style>
+<style id="madloba-category-grid-3col-v1">
+/* Mobile categories: 3 columns, larger icons and labels. Visual-only change. */
+@media (max-width: 619px) {
+  #categoriesBlock .cats {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px 9px !important;
+  }
+  #categoriesBlock .cat {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    height: 112px !important;
+    min-height: 112px !important;
+    max-height: 112px !important;
+    padding: 9px 5px !important;
+    text-align: center !important;
+    border-radius: 20px !important;
+  }
+  #categoriesBlock .cat .ico {
+    flex: 0 0 64px !important;
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px !important;
+    min-height: 64px !important;
+    max-width: 64px !important;
+    max-height: 64px !important;
+    margin: 0 0 6px !important;
+    border-radius: 17px !important;
+  }
+  #categoriesBlock .cat .ico img,
+  #categoriesBlock .cat .ico .mm-category-3d {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+  #categoriesBlock .cat b {
+    display: block !important;
+    width: 100% !important;
+    font-size: 13px !important;
+    line-height: 1.15 !important;
+    font-weight: 850 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    text-align: center !important;
+  }
+  #categoriesBlock .cat small,
+  #categoriesBlock .cat:after { display: none !important; }
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
