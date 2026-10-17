@@ -8540,17 +8540,17 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
   #categoriesBlock .cat:after { display: none !important; }
 }
 </style>
-<style id="madloba-home-categories-3x3-fix-v2">
-/* Correct the visible category grid inside the hero, not the separate lower category list. */
+<style id="madloba-home-categories-3x3-fix-v3">
+/* Keep the 3x3 category layout and current artwork, slightly more compact on mobile. */
 @media (max-width: 619px) {
   .hero .quick-actions {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     grid-auto-flow: row !important;
-    grid-auto-rows: 76px !important;
-    row-gap: 7px !important;
+    grid-auto-rows: 66px !important;
+    row-gap: 5px !important;
     column-gap: 8px !important;
-    padding: 10px 8px 12px !important;
+    padding: 8px 8px 10px !important;
   }
   .hero .quick-actions .quick-action {
     display: flex !important;
@@ -8558,41 +8558,41 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
-    height: 76px !important;
-    min-height: 76px !important;
-    max-height: 76px !important;
-    gap: 4px !important;
-    padding: 2px 3px !important;
+    height: 66px !important;
+    min-height: 66px !important;
+    max-height: 66px !important;
+    gap: 3px !important;
+    padding: 1px 3px !important;
     white-space: normal !important;
   }
   .hero .quick-actions .quick-icon {
-    flex: 0 0 45px !important;
-    width: 45px !important;
-    height: 45px !important;
-    min-width: 45px !important;
-    min-height: 45px !important;
-    max-width: 45px !important;
-    max-height: 45px !important;
+    flex: 0 0 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    max-width: 38px !important;
+    max-height: 38px !important;
   }
   .hero .quick-actions .quick-icon img,
   .hero .quick-actions .quick-icon .mm-category-3d,
   .hero .quick-actions .quick-icon .reference-category-icon {
-    width: 44px !important;
-    height: 44px !important;
-    max-width: 44px !important;
-    max-height: 44px !important;
+    width: 38px !important;
+    height: 38px !important;
+    max-width: 38px !important;
+    max-height: 38px !important;
     object-fit: contain !important;
   }
   .hero .quick-actions .quick-label {
     display: block !important;
     width: 100% !important;
     min-height: 0 !important;
-    max-height: 28px !important;
+    max-height: 25px !important;
     overflow: visible !important;
     text-overflow: clip !important;
     white-space: normal !important;
-    font-size: 11.5px !important;
-    line-height: 1.15 !important;
+    font-size: 10.5px !important;
+    line-height: 1.12 !important;
     font-weight: 800 !important;
     text-align: center !important;
   }
