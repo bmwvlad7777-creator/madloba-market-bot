@@ -8540,6 +8540,64 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
   #categoriesBlock .cat:after { display: none !important; }
 }
 </style>
+<style id="madloba-home-categories-3x3-fix-v2">
+/* Correct the visible category grid inside the hero, not the separate lower category list. */
+@media (max-width: 619px) {
+  .hero .quick-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: 76px !important;
+    row-gap: 7px !important;
+    column-gap: 8px !important;
+    padding: 10px 8px 12px !important;
+  }
+  .hero .quick-actions .quick-action {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 76px !important;
+    min-height: 76px !important;
+    max-height: 76px !important;
+    gap: 4px !important;
+    padding: 2px 3px !important;
+    white-space: normal !important;
+  }
+  .hero .quick-actions .quick-icon {
+    flex: 0 0 45px !important;
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+    min-height: 45px !important;
+    max-width: 45px !important;
+    max-height: 45px !important;
+  }
+  .hero .quick-actions .quick-icon img,
+  .hero .quick-actions .quick-icon .mm-category-3d,
+  .hero .quick-actions .quick-icon .reference-category-icon {
+    width: 44px !important;
+    height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+    object-fit: contain !important;
+  }
+  .hero .quick-actions .quick-label {
+    display: block !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    max-height: 28px !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    font-size: 11.5px !important;
+    line-height: 1.15 !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+  }
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
