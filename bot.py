@@ -8471,6 +8471,22 @@ body::before{height:470px!important;min-height:0!important;max-height:470px!impo
  .quick-action .quick-label{font-size:8.5px!important;max-height:18px!important;}
 }
 </style>
+<style id="madloba-category-size-tune-v1">
+/* Small, isolated mobile polish: make the home category icons and labels easier to scan. */
+@media(max-width:520px){
+ .quick-actions{grid-auto-rows:59px!important;row-gap:3px!important;}
+ .quick-action{height:59px!important;min-height:59px!important;max-height:59px!important;gap:3px!important;}
+ .quick-action .quick-icon{flex-basis:35px!important;width:35px!important;height:35px!important;min-width:35px!important;min-height:35px!important;max-width:35px!important;max-height:35px!important;}
+ .quick-action .quick-icon .reference-category-icon{width:33px!important;height:33px!important;max-width:33px!important;max-height:33px!important;}
+ .quick-action .quick-label{font-size:10px!important;line-height:1.1!important;min-height:18px!important;max-height:18px!important;}
+}
+@media(max-width:390px){
+ .quick-actions{grid-auto-rows:56px!important;row-gap:2px!important;}
+ .quick-action{height:56px!important;min-height:56px!important;max-height:56px!important;}
+ .quick-action .quick-icon{flex-basis:32px!important;width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;max-width:32px!important;max-height:32px!important;}
+ .quick-action .quick-label{font-size:9.5px!important;max-height:18px!important;}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
@@ -8539,7 +8555,7 @@ const $=id=>document.getElementById(id);
 const tgInit=()=>window.Telegram&&window.Telegram.WebApp?window.Telegram.WebApp.initData:'';
 function toast(t){$('toast').textContent=t;$('toast').classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>$('toast').classList.remove('show'),1800)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function money(v,c){const m={usd:'$',gel:'₾',eur:'€',USD:'$',GEL:'₾',EUR:'€'};return esc(v)+' '+(m[c]||esc(c||''))}
+function money(v,c){const m={usd:'$',gel:'₾',eur:'€',USD:'$',GEL:'₾',EUR:'€'};const raw=String(v??'');const amount=/^-?\d+\.0+$/.test(raw)?raw.replace(/\.0+$/,''):raw;return esc(amount)+' '+(m[c]||esc(c||''))}
 function apiFetch(url,options={}){const headers=new Headers(options.headers||{});const init=tgInit();if(init)headers.set('X-Telegram-Init-Data',init);return fetch(url,{...options,headers})}
 function setActiveNav(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));}
 function navTap(button){document.querySelectorAll('.nav').forEach(b=>b.classList.remove('tap'));button.classList.add('tap');setTimeout(()=>button.classList.remove('tap'),180)}
