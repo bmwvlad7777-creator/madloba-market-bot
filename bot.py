@@ -1778,15 +1778,14 @@ def listing_matches(item, key, sub):
 
 
 def listing_title(item):
-    category = item.get("category", "Объявление")
-    subcategory = item.get("subcategory", "")
-    type_name = item.get("type", "")
-    parts = [category]
-    if subcategory:
-        parts.append(subcategory)
-    if type_name:
-        parts.append(type_name)
-    return " · ".join(parts)
+    """Fallback title when the author did not enter a product/listing name.
+
+    Keep taxonomy out of the title: category is already displayed as its own
+    badge in Mini App cards, so adding subcategory/type here duplicates it.
+    Explicit user-provided titles are preserved by the API serializers.
+    """
+    category = str((item or {}).get("category") or "Объявление").strip()
+    return category or "Объявление"
 
 
 def listing_short_text(item):
@@ -8891,6 +8890,57 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 #bestRow .best-card{width:100%!important;min-width:0!important;max-width:100%!important}
 @media(max-width:380px){#list.list,#bestRow.best-row{gap:8px!important;padding-left:2px!important;padding-right:2px!important}#list .card .photo,#bestRow .best-photo{height:105px!important;min-height:105px!important;max-height:105px!important}}
 </style>
+<style id="madloba-listing-cards-compact-v1">
+/* Compact listing cards: remove excessive vertical photo space while keeping
+   the photo on top and all text below. Slightly widen the two-column cards. */
+#list.list, #bestRow.best-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  padding-left: 1px !important;
+  padding-right: 1px !important;
+}
+#list .card, #bestRow .best-card {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  border-radius: 17px !important;
+}
+#list .card .photo, #bestRow .best-photo {
+  height: 104px !important;
+  min-height: 104px !important;
+  max-height: 104px !important;
+}
+#list .card .cardbody, #bestRow .best-body {
+  padding: 8px 9px 9px !important;
+}
+#list .card .price, #bestRow .best-price {
+  margin: 0 0 4px !important;
+  font-size: 17px !important;
+  line-height: 1.1 !important;
+}
+#list .card .listing-name, #bestRow .best-title {
+  margin: 0 0 4px !important;
+  min-height: 0 !important;
+  max-height: 30px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+#list .card .tag, #bestRow .best-tag {
+  margin: 0 0 4px !important;
+  padding: 4px 7px !important;
+}
+#list .card .loc, #bestRow .best-loc {
+  margin: 0 !important;
+}
+@media(max-width:380px) {
+  #list.list, #bestRow.best-row { gap: 7px !important; }
+  #list .card .photo, #bestRow .best-photo {
+    height: 96px !important;
+    min-height: 96px !important;
+    max-height: 96px !important;
+  }
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
@@ -9095,7 +9145,7 @@ function detailSpecs(d,detail=false){return Object.entries(d||{}).filter(([k,v])
 function isFav(x){return !!x.is_favorite}
 function favButton(x,detail=false){const active=isFav(x);const cls=detail?'detail-fav':'fav-btn';return `<button class="${cls}${active?' active':''}" data-fav="${esc(x.id)}" aria-label="${active?t('favorite_remove'):t('favorite_add')}">${active?'♥':'♡'}</button>`}
 function localizedCategory(v){const m={'Недвижимость':'category_realestate','Авто':'category_auto','Техника':'category_tech','Дом и мебель':'category_home','Детское':'category_kids','Работа и услуги':'category_work','Работа':'category_work','Услуги':'category_services','Животные':'category_pets','Отдам':'category_give','Ищу':'category_search'};return m[v]?t(m[v]):(v||t('no_listing'))}
-function card(x){const photo=(x.photos||[])[0];const title=String(x.title||'').trim();return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody">${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${title?`<div class="listing-name">${esc(localizeListingText(title))}</div>`:''}<div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div>${x.address?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}</div></article>`}
+function card(x){const photo=(x.photos||[])[0];const rawTitle=String(x.title||'').trim();const rawCategory=String(x.category_name||x.category||'').trim();const title=rawTitle&&rawTitle!==rawCategory?rawTitle:'';return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody">${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${title?`<div class="listing-name">${esc(localizeListingText(title))}</div>`:''}<div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div>${x.address?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}</div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'smooth',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}showHome()}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div><div class="detail-title">${esc(localizeListingText(x.title||t('no_listing')))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<div class="detail-desc">${esc(localizeListingText(x.description))}</div>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
@@ -9114,7 +9164,7 @@ const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{
 async function toggleFavorite(id,button,x=null){try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}}
 function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if($('bestCityName'))$('bestCityName').textContent='в '+(cityNames[state.city][state.lang]||state.city)}
-function bestCard(x){const photo=(x.photos||[])[0];const title=String(x.title||'').trim();const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const created=x.created_at?new Date(x.created_at):null;const dateLabel=created&&!Number.isNaN(created.getTime())?created.toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'numeric',month:'short'}):'';return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body">${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}${title?`<div class="best-title">${esc(localizeListingText(title))}</div>`:''}<div class="best-tag">${esc(categoryLabel)}</div>${(x.address||dateLabel)?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true" style="display:block!important;width:14px!important;height:14px!important;min-width:14px!important;max-width:14px!important;flex:0 0 14px!important;fill:none!important;stroke:#1478f5!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important;overflow:visible!important"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address||'')}</span>${dateLabel?`<time>${esc(dateLabel)}</time>`:''}</div>`:''}</div></article>`}
+function bestCard(x){const photo=(x.photos||[])[0];const rawTitle=String(x.title||'').trim();const rawCategory=String(x.category_name||x.category||'').trim();const title=rawTitle&&rawTitle!==rawCategory?rawTitle:'';const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const created=x.created_at?new Date(x.created_at):null;const dateLabel=created&&!Number.isNaN(created.getTime())?created.toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'numeric',month:'short'}):'';return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body">${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}${title?`<div class="best-title">${esc(localizeListingText(title))}</div>`:''}<div class="best-tag">${esc(categoryLabel)}</div>${(x.address||dateLabel)?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true" style="display:block!important;width:14px!important;height:14px!important;min-width:14px!important;max-width:14px!important;flex:0 0 14px!important;fill:none!important;stroke:#1478f5!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important;overflow:visible!important"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address||'')}</span>${dateLabel?`<time>${esc(dateLabel)}</time>`:''}</div>`:''}</div></article>`}
 function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.bestId));document.querySelectorAll('#bestRow [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
