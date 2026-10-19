@@ -8623,6 +8623,18 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .top .brand-market{letter-spacing:-0.8px !important;}
 }
 </style>
+<style id="madloba-header-controls-compact-v1">
+/* Reduce language and city controls while preserving the current wordmark. */
+.top{grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important;}
+.top>div:last-child{gap:5px!important;min-width:0!important;}
+.top .city#langSelect{width:62px!important;min-width:62px!important;max-width:62px!important;height:38px!important;padding:4px 5px!important;font-size:12px!important;}
+.top .city#cityBtn,.top .city#citySelect{width:auto!important;min-width:96px!important;max-width:104px!important;height:38px!important;padding:4px 8px!important;font-size:12px!important;}
+.top .brand{min-width:0!important;white-space:nowrap!important;}
+@media(max-width:390px){
+ .top .city#langSelect{width:58px!important;min-width:58px!important;max-width:58px!important;font-size:11px!important;}
+ .top .city#cityBtn,.top .city#citySelect{min-width:90px!important;max-width:98px!important;font-size:11px!important;}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
