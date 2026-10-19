@@ -8762,6 +8762,21 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 .top .city#citySelect{box-sizing:border-box!important;width:90px!important;min-width:90px!important;max-width:90px!important;height:34px!important;padding:0 15px 0 22px!important;border-radius:999px!important;font-size:11px!important;font-weight:800!important;}
 @media(max-width:390px){.top{column-gap:4px!important}.top .city#langSelect{width:55px!important;min-width:55px!important;max-width:55px!important;font-size:10px!important}.top .city#citySelect{width:84px!important;min-width:84px!important;max-width:84px!important;font-size:10px!important;padding-left:20px!important}}
 </style>
+<style id="madloba-premium-compact-listings-v2">
+/* Compact, premium listing cards for both Popular and Fresh sections. */
+#list,.list{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;align-items:start!important}
+.card{min-width:0!important;border-radius:17px!important;box-shadow:0 5px 16px rgba(20,42,72,.075)!important}
+.card .photo{height:104px!important;min-height:104px!important;max-height:104px!important;overflow:hidden!important}
+.card .cardbody{padding:8px 9px 10px!important;min-width:0!important}
+.card .price{font-size:18px!important;line-height:1.08!important;margin:0 0 6px!important;letter-spacing:-.3px!important}
+.card .tag{font-size:10px!important;line-height:1.1!important;padding:4px 7px!important;margin:0 0 5px!important;max-width:100%!important}
+.card .title,.card .desc,.card .meta{display:none!important}
+.card .loc{display:flex!important;flex-direction:row!important;align-items:center!important;gap:5px!important;margin:0!important;font-size:10px!important;line-height:1.2!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important}
+.card .loc svg{display:block!important;position:static!important;flex:0 0 14px!important;width:14px!important;height:14px!important;min-width:14px!important;min-height:14px!important;max-width:14px!important;max-height:14px!important;fill:none!important;stroke:#1478f5!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+.card .loc span{display:block!important;flex:1 1 auto!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.card .fav-btn{top:7px!important;right:7px!important;width:32px!important;height:32px!important;line-height:32px!important;font-size:18px!important}
+@media(max-width:360px){#list,.list{gap:8px!important}.card .photo{height:96px!important;min-height:96px!important;max-height:96px!important}.card .cardbody{padding:7px!important}.card .price{font-size:16px!important}}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
