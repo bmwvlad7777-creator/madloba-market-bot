@@ -8646,15 +8646,16 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 }
 .city#citySelect{
   appearance:none!important;-webkit-appearance:none!important;
-  min-width:112px!important;padding:8px 24px 8px 29px!important;
+  width:124px!important;min-width:124px!important;max-width:124px!important;
+  padding:8px 24px 8px 34px!important;
   background-color:rgba(255,255,255,.97)!important;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%231677f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237b8798' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;
   background-repeat:no-repeat,no-repeat!important;background-position:left 9px center,right 7px center!important;background-size:17px 17px,12px 12px!important;
-  text-align:center!important;
+  text-align:left!important;text-indent:0!important;
 }
 @media(max-width:520px){
-  .city#langSelect{width:78px!important;min-width:78px!important;font-size:13px!important;padding-left:5px!important;padding-right:20px!important;}
-  .city#citySelect{min-width:108px!important;font-size:13px!important;padding-left:27px!important;padding-right:21px!important;background-position:left 8px center,right 6px center!important;}
+  .city#langSelect{width:78px!important;min-width:78px!important;max-width:78px!important;font-size:13px!important;padding-left:5px!important;padding-right:20px!important;}
+  .city#citySelect{width:124px!important;min-width:124px!important;max-width:124px!important;font-size:13px!important;padding-left:34px!important;padding-right:24px!important;background-position:left 9px center,right 7px center!important;text-align:left!important;}
 }
 </style>
 </head>
