@@ -9232,6 +9232,113 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   #categoriesBlock .cat b{font-size:12px!important}
 }
 
+
+/* FINAL FIX 2026-10-20: the real category strip is .hero .quick-actions (not #categoriesBlock).
+   Override the older 3x3/grid rules without touching category buttons, handlers, filters or backend. */
+@media (max-width: 619px) {
+  .hero .quick-actions {
+    display: flex !important;
+    flex-flow: row nowrap !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 9px !important;
+    width: 100% !important;
+    height: 98px !important;
+    min-height: 98px !important;
+    max-height: 98px !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 8px 10px 9px !important;
+    margin: 10px 0 0 !important;
+    border-radius: 20px !important;
+    background: rgba(255,255,255,.97) !important;
+    border: 1px solid rgba(92,157,255,.58) !important;
+    box-shadow: 0 7px 20px rgba(20,111,232,.09) !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+    touch-action: pan-x pan-y !important;
+    scroll-snap-type: x proximity !important;
+  }
+  .hero .quick-actions::-webkit-scrollbar { display:none !important; }
+  .hero .quick-actions .quick-action {
+    display:flex !important;
+    flex: 0 0 78px !important;
+    width:78px !important;
+    min-width:78px !important;
+    max-width:78px !important;
+    height:78px !important;
+    min-height:78px !important;
+    max-height:78px !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:5px !important;
+    padding:2px 3px !important;
+    margin:0 !important;
+    border:1px solid transparent !important;
+    border-radius:14px !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    overflow:hidden !important;
+    scroll-snap-align:start !important;
+    touch-action:pan-x pan-y !important;
+  }
+  .hero .quick-actions .quick-icon {
+    display:flex !important;
+    flex:0 0 46px !important;
+    width:46px !important;
+    height:46px !important;
+    min-width:46px !important;
+    min-height:46px !important;
+    max-width:46px !important;
+    max-height:46px !important;
+    align-items:center !important;
+    justify-content:center !important;
+    margin:0 !important;
+    border-radius:14px !important;
+    overflow:visible !important;
+  }
+  .hero .quick-actions .quick-icon img,
+  .hero .quick-actions .quick-icon .mm-category-3d,
+  .hero .quick-actions .quick-icon .reference-category-icon,
+  .hero .quick-actions .quick-icon svg {
+    width:43px !important;
+    height:43px !important;
+    min-width:43px !important;
+    min-height:43px !important;
+    max-width:43px !important;
+    max-height:43px !important;
+    object-fit:contain !important;
+  }
+  .hero .quick-actions .quick-label {
+    display:-webkit-box !important;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:22px !important;
+    max-height:22px !important;
+    padding:0 !important;
+    margin:0 !important;
+    overflow:hidden !important;
+    white-space:normal !important;
+    overflow-wrap:normal !important;
+    word-break:normal !important;
+    text-overflow:clip !important;
+    -webkit-box-orient:vertical !important;
+    -webkit-line-clamp:2 !important;
+    font-size:10px !important;
+    line-height:1.08 !important;
+    font-weight:850 !important;
+    text-align:center !important;
+  }
+  .hero .quick-actions .quick-action.active {
+    background:#eef6ff !important;
+    border-color:#cfe3ff !important;
+    box-shadow:inset 0 0 0 1px rgba(207,227,255,.5) !important;
+  }
+}
+
 </style>
 </head>
 <body>
