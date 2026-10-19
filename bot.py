@@ -9143,6 +9143,30 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
  #detailView #detailContent .detail-spec-label{font-size:10px!important;}
  #detailView #detailContent .detail-price{font-size:29px!important;}
 }
+/* Focused final polish for listing detail only. */
+#detailView .detail-top{
+  padding-top:48px!important;
+  margin-top:0!important;
+  scroll-margin-top:calc(48px + var(--tg-content-safe-area-inset-top,0px));
+}
+#detailView .detail-top .detail-back{
+  flex:0 0 auto;
+  min-height:46px;
+  padding:10px 14px!important;
+  border-radius:15px!important;
+  box-shadow:0 2px 8px rgba(31,55,88,.04);
+}
+#detailView .detail-top .section-head{min-width:0;}
+#detailView .detail-top .section-head h2{line-height:1.12!important;}
+#detailView #detailContent .detail-spec-value{
+  display:block;
+  min-height:1.2em;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:390px){
+  #detailView .detail-top{padding-top:52px!important;gap:9px!important;}
+  #detailView .detail-top .section-head h2{font-size:24px!important;}
+}
 </style>
 </head>
 <body>
@@ -9344,7 +9368,7 @@ function localizeListingText(value){
  return out;
 }
 function formatSpecValue(k,v){const value=String(v??'').trim();if(!value)return '';const localizedFields=new Set(['condition','warranty','gender','service','requirements']);const formatted=localizedFields.has(k)?localizeListingText(value):value;if(k==='area'&&!/м²|m²|м2|m2/i.test(formatted))return formatted+(state.lang==='en'?' m²':state.lang==='ka'?' მ²':' м²');if(k==='mileage'&&!/км|km/i.test(formatted))return formatted+(state.lang==='en'?' km':state.lang==='ka'?' კმ':' км');return formatted}
-function detailSpecs(d,detail=false){return Object.entries(d||{}).filter(([k,v])=>v!==''&&v!=null).slice(0,6).map(([k,v])=>{const meta=FIELD_LABELS[k]||['•',k];const cls=detail?'detail-spec':'spec';const vc=detail?'detail-spec-value':'spec-value';const lc=detail?'detail-spec-label':'spec-label';const formatted=formatSpecValue(k,v);return `<div class="${cls}"><div class="${vc}">${esc(meta[0])} ${esc(formatted)}</div><div class="${lc}">${esc(t(meta[1]))}</div></div>`}).join('')}
+function detailSpecs(d,detail=false){return Object.entries(d||{}).filter(([k,v])=>v!==''&&v!=null).slice(0,6).map(([k,v])=>{const meta=FIELD_LABELS[k]||['•',k];const cls=detail?'detail-spec':'spec';const vc=detail?'detail-spec-value':'spec-value';const lc=detail?'detail-spec-label':'spec-label';const formatted=formatSpecValue(k,v);const valueText=detail?esc(formatted):`${esc(meta[0])} ${esc(formatted)}`;return `<div class="${cls}"><div class="${vc}">${valueText}</div><div class="${lc}">${esc(t(meta[1]))}</div></div>`}).join('')}
 function isFav(x){return !!x.is_favorite}
 function favButton(x,detail=false){const active=isFav(x);const cls=detail?'detail-fav':'fav-btn';return `<button class="${cls}${active?' active':''}" data-fav="${esc(x.id)}" aria-label="${active?t('favorite_remove'):t('favorite_add')}">${active?'♥':'♡'}</button>`}
 function localizedCategory(v){const m={'Недвижимость':'category_realestate','Авто':'category_auto','Техника':'category_tech','Дом и мебель':'category_home','Детское':'category_kids','Работа и услуги':'category_work','Работа':'category_work','Услуги':'category_services','Животные':'category_pets','Отдам':'category_give','Ищу':'category_search'};return m[v]?t(m[v]):(v||t('no_listing'))}
