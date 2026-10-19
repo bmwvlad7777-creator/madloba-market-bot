@@ -8677,6 +8677,15 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .top .city#citySelect{width:116px!important;min-width:116px!important;max-width:116px!important;padding-left:32px!important;padding-right:22px!important;background-position:left 8px center,right 6px center!important;}
 }
 </style>
+<style id="madloba-header-layout-final-v2">
+/* Keep the brand and selectors in separate, non-overlapping grid columns. */
+.top{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;column-gap:8px!important;width:100%!important;min-width:0!important;}
+.top .brand{display:flex!important;align-items:center!important;gap:3px!important;width:auto!important;max-width:100%!important;min-width:0!important;transform:none!important;transform-origin:left center!important;overflow:visible!important;white-space:nowrap!important;font-size:16px!important;letter-spacing:-.75px!important;line-height:1!important;}
+.top>div:last-child{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;min-width:0!important;}
+.top #langSelect{flex:0 0 70px!important;width:70px!important;min-width:70px!important;max-width:70px!important;height:44px!important;padding:0 19px 0 7px!important;font-size:12px!important;background-position:right 5px center!important;background-size:10px 10px!important;}
+.top #citySelect{flex:0 0 112px!important;width:112px!important;min-width:112px!important;max-width:112px!important;height:44px!important;padding:0 8px!important;font-size:13px!important;}
+@media(max-width:370px){.top{column-gap:5px!important}.top .brand{font-size:14px!important;letter-spacing:-.8px!important;gap:2px!important}.top>div:last-child{gap:4px!important}.top #langSelect{flex-basis:66px!important;width:66px!important;min-width:66px!important;max-width:66px!important}.top #citySelect{flex-basis:104px!important;width:104px!important;min-width:104px!important;max-width:104px!important;font-size:12px!important}}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
