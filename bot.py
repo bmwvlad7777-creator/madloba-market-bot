@@ -9065,6 +9065,51 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   #list .card .cardbody, #bestRow .best-body, #favoritesList .card .cardbody { padding: 7px 8px 8px !important; }
 }
 </style>
+<style id="madloba-card-proportions-v4">
+/* Final subtle tightening: keep the existing two-column layout and all behavior. */
+#list.list, #bestRow.best-row, #favoritesList.list {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+  padding-left: 1px !important;
+  padding-right: 1px !important;
+  align-items: start !important;
+}
+#list .card, #bestRow .best-card, #favoritesList .card {
+  min-width: 0 !important; width: 100% !important; max-width: 100% !important;
+  border-radius: 16px !important;
+}
+#list .card .photo, #bestRow .best-photo, #favoritesList .card .photo {
+  height: 92px !important; min-height: 92px !important; max-height: 92px !important;
+}
+#list .card .cardbody, #bestRow .best-body, #favoritesList .card .cardbody {
+  padding: 7px 8px 8px !important;
+}
+#list .card .price, #bestRow .best-price, #favoritesList .card .price {
+  margin: 0 0 3px !important; font-size: 16.5px !important; line-height: 1.1 !important;
+}
+#list .card .listing-name, #bestRow .best-title, #favoritesList .card .listing-name {
+  -webkit-line-clamp: 2 !important; line-clamp: 2 !important;
+  min-height: 0 !important; max-height: 29px !important;
+  margin: 0 0 4px !important; font-size: 11.5px !important; line-height: 1.2 !important;
+}
+#list .card .tag, #bestRow .best-tag, #favoritesList .card .tag {
+  min-height: 22px !important; margin: 0 0 3px !important; padding: 3px 7px !important;
+}
+#list .card .loc, #bestRow .best-loc, #favoritesList .card .loc {
+  margin: 0 !important; line-height: 13px !important; font-size: 10px !important;
+}
+#list .card .fav-btn, #bestRow .best-card .fav-btn, #favoritesList .card .fav-btn {
+  top: 6px !important; right: 6px !important; width: 31px !important; height: 31px !important;
+  line-height: 29px !important; font-size: 17px !important;
+}
+@media(max-width:380px) {
+  #list.list, #bestRow.best-row, #favoritesList.list { gap: 6px !important; }
+  #list .card .photo, #bestRow .best-photo, #favoritesList .card .photo {
+    height: 88px !important; min-height: 88px !important; max-height: 88px !important;
+  }
+  #list .card .cardbody, #bestRow .best-body, #favoritesList .card .cardbody { padding: 6px 7px 7px !important; }
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
