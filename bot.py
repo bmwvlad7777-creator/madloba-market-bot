@@ -9167,6 +9167,71 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   #detailView .detail-top{padding-top:52px!important;gap:9px!important;}
   #detailView .detail-top .section-head h2{font-size:24px!important;}
 }
+
+/* Madloba Market: compact, swipeable category rail. Keep all existing category buttons and handlers. */
+#categoriesBlock .cats{
+  display:flex!important;
+  flex-flow:row nowrap!important;
+  gap:12px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:3px 2px 12px!important;
+  margin:0 -2px!important;
+  scroll-snap-type:x mandatory!important;
+  scroll-padding-inline:2px!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:none!important;
+}
+#categoriesBlock .cats::-webkit-scrollbar{display:none!important}
+#categoriesBlock .cat{
+  flex:0 0 112px!important;
+  width:112px!important;
+  min-width:112px!important;
+  height:112px!important;
+  min-height:112px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  padding:10px 7px!important;
+  border-radius:20px!important;
+  text-align:center!important;
+  scroll-snap-align:start!important;
+}
+#categoriesBlock .cat:before{display:none!important}
+#categoriesBlock .cat:after{content:none!important;display:none!important}
+#categoriesBlock .cat .ico{
+  flex:0 0 48px!important;
+  width:48px!important;height:48px!important;
+  margin:0!important;border-radius:15px!important;
+  font-size:25px!important;
+}
+#categoriesBlock .cat b{
+  width:100%!important;
+  padding:0!important;
+  align-self:center!important;
+  font-size:12px!important;
+  line-height:1.15!important;
+  letter-spacing:-.15px!important;
+  font-weight:850!important;
+  text-align:center!important;
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  overflow:hidden!important;
+  overflow-wrap:anywhere!important;
+}
+#categoriesBlock .cat small{display:none!important}
+#categoriesBlock .cat:active{transform:scale(.97)!important}
+@media(max-width:520px){
+  #categoriesBlock .section-head{margin-top:19px!important;margin-bottom:10px!important}
+  #categoriesBlock .cats{gap:10px!important;padding-bottom:10px!important}
+  #categoriesBlock .cat{flex-basis:112px!important;width:112px!important;min-width:112px!important;height:108px!important;min-height:108px!important;padding:9px 6px!important;border-radius:19px!important}
+  #categoriesBlock .cat .ico{width:46px!important;height:46px!important;flex-basis:46px!important;font-size:24px!important}
+  #categoriesBlock .cat b{font-size:12px!important}
+}
+
 </style>
 </head>
 <body>
