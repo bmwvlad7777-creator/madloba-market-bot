@@ -8599,6 +8599,23 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   }
 }
 </style>
+<style id="madloba-brand-wordmark-v2">
+/* Wordmark-only polish: larger, more distinctive lettering; no layout or app logic changes. */
+.top .brand{
+  font-family: "Arial Rounded MT Bold", "Trebuchet MS", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 27px !important;
+  font-weight: 1000 !important;
+  letter-spacing: -1.15px !important;
+  line-height: .98 !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+.top .brand-main{font-weight: 1000 !important;}
+.top .brand-market{font-weight: 1000 !important; letter-spacing: -1.25px !important;}
+@media(max-width:390px){
+  .top .brand{font-size:25px !important;letter-spacing:-1.1px !important;}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
