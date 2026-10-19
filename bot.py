@@ -8744,13 +8744,13 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 .top .brand-main,.top .brand-market{display:block!important;font-weight:950!important;white-space:nowrap!important;}
 .top .brand-main{color:#fff!important;}
 .top .brand-market{color:#1682ff!important;letter-spacing:-.65px!important;}
-.top .brand::after{content:"ПОКУПАЙ. ПРОДАВАЙ.\A НАХОДИ РЯДОМ.";white-space:pre-line;display:block;margin-top:10px;font-size:clamp(13px,3.7vw,17px);font-weight:750;line-height:1.28;letter-spacing:-.25px;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.22);}
+.top .brand::after{content:"ПОКУПАЙ. ПРОДАВАЙ.\A НАХОДИ РЯДОМ.";white-space:pre;display:block;margin-top:8px;font-size:clamp(10px,2.9vw,13px);font-weight:750;line-height:1.3;letter-spacing:-.2px;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.22);}
 .top>div:last-child{display:flex!important;align-items:flex-start!important;justify-content:flex-end!important;gap:5px!important;min-width:0!important;flex-shrink:0!important;}
 .top #langSelect{flex:0 0 58px!important;width:58px!important;min-width:58px!important;max-width:58px!important;height:34px!important;padding:0 14px 0 4px!important;font-size:11px!important;background-position:right 4px center!important;background-size:9px 9px!important;}
 .top #citySelect{flex:0 0 94px!important;width:94px!important;min-width:94px!important;max-width:94px!important;height:34px!important;padding:0 14px 0 23px!important;font-size:11px!important;background-position:left 5px center,right 4px center!important;background-size:13px 13px,9px 9px!important;}
 .hero h1,.hero p{display:none!important;}
 .hero{padding-top:8px!important;margin-top:0!important;}
-@media(max-width:390px){.top{column-gap:4px!important}.top .brand{font-size:clamp(21px,5.8vw,25px)!important;letter-spacing:-.9px!important}.top .brand::after{font-size:13px;margin-top:8px}.top #langSelect{flex-basis:55px!important;width:55px!important;min-width:55px!important;max-width:55px!important}.top #citySelect{flex-basis:88px!important;width:88px!important;min-width:88px!important;max-width:88px!important;padding-left:21px!important;font-size:10px!important}}
+@media(max-width:390px){.top{column-gap:4px!important}.top .brand{font-size:clamp(21px,5.8vw,25px)!important;letter-spacing:-.9px!important}.top .brand::after{font-size:clamp(10px,2.9vw,12px)!important;margin-top:8px;white-space:pre!important}.top #langSelect{flex-basis:55px!important;width:55px!important;min-width:55px!important;max-width:55px!important}.top #citySelect{flex-basis:88px!important;width:88px!important;min-width:88px!important;max-width:88px!important;padding-left:21px!important;font-size:10px!important}}
 </style>
 </head>
 <body>
