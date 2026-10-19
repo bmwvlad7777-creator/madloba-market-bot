@@ -8599,21 +8599,28 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   }
 }
 </style>
-<style id="madloba-brand-wordmark-v2">
-/* Wordmark-only polish: larger, more distinctive lettering; no layout or app logic changes. */
+<style id="madloba-brand-wordmark-v3">
+/* Compact, balanced wordmark: clearer lettering without dominating the header. */
 .top .brand{
-  font-family: "Arial Rounded MT Bold", "Trebuchet MS", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 27px !important;
-  font-weight: 1000 !important;
-  letter-spacing: -1.15px !important;
-  line-height: .98 !important;
-  text-transform: uppercase !important;
-  white-space: nowrap !important;
+  display:flex !important;
+  align-items:baseline !important;
+  gap:4px !important;
+  font-family: "Manrope", "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size:23px !important;
+  font-weight:900 !important;
+  letter-spacing:-0.85px !important;
+  line-height:1 !important;
+  text-transform:uppercase !important;
+  white-space:nowrap !important;
+  transform:none !important;
+  width:auto !important;
+  overflow:visible !important;
 }
-.top .brand-main{font-weight: 1000 !important;}
-.top .brand-market{font-weight: 1000 !important; letter-spacing: -1.25px !important;}
-@media(max-width:390px){
-  .top .brand{font-size:25px !important;letter-spacing:-1.1px !important;}
+.top .brand-main{font-weight:900 !important;}
+.top .brand-market{font-weight:900 !important;letter-spacing:-0.9px !important;}
+@media(max-width:420px){
+  .top .brand{font-size:20px !important;letter-spacing:-0.75px !important;gap:3px !important;}
+  .top .brand-market{letter-spacing:-0.8px !important;}
 }
 </style>
 </head>
