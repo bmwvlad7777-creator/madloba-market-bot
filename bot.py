@@ -7904,7 +7904,7 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 /* Home layout redesign only. Keep the existing embedded Batumi photo and all listing/filter logic. */
 .hero{
   background-size:cover!important;
-  background-position:center center!important;
+  background-position:center 100%!important;
   background-repeat:no-repeat!important;
   border-radius:30px!important;
   overflow:hidden!important;
