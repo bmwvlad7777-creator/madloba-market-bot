@@ -8744,7 +8744,7 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 .top .brand-main,.top .brand-market{display:block!important;font-weight:950!important;white-space:nowrap!important;}
 .top .brand-main{color:#fff!important;}
 .top .brand-market{color:#1682ff!important;letter-spacing:-.65px!important;}
-.top .brand::after{content:"Покупай. Продавай.\A Находи рядом.";white-space:pre-line;display:block;margin-top:10px;font-size:clamp(13px,3.7vw,17px);font-weight:750;line-height:1.28;letter-spacing:-.25px;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.22);}
+.top .brand::after{content:"ПОКУПАЙ. ПРОДАВАЙ.\A НАХОДИ РЯДОМ.";white-space:pre-line;display:block;margin-top:10px;font-size:clamp(13px,3.7vw,17px);font-weight:750;line-height:1.28;letter-spacing:-.25px;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.22);}
 .top>div:last-child{display:flex!important;align-items:flex-start!important;justify-content:flex-end!important;gap:5px!important;min-width:0!important;flex-shrink:0!important;}
 .top #langSelect{flex:0 0 58px!important;width:58px!important;min-width:58px!important;max-width:58px!important;height:34px!important;padding:0 14px 0 4px!important;font-size:11px!important;background-position:right 4px center!important;background-size:9px 9px!important;}
 .top #citySelect{flex:0 0 94px!important;width:94px!important;min-width:94px!important;max-width:94px!important;height:34px!important;padding:0 14px 0 23px!important;font-size:11px!important;background-position:left 5px center,right 4px center!important;background-size:13px 13px,9px 9px!important;}
