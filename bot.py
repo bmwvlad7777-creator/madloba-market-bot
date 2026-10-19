@@ -8657,6 +8657,25 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .city#langSelect{width:78px!important;min-width:78px!important;max-width:78px!important;font-size:13px!important;padding-left:5px!important;padding-right:20px!important;}
   .city#citySelect{width:124px!important;min-width:124px!important;max-width:124px!important;font-size:13px!important;padding-left:34px!important;padding-right:24px!important;background-position:left 9px center,right 7px center!important;text-align:left!important;}
 }
+/* Final iOS fix: the compact header rules have higher specificity than the base
+   selector rules above. Reserve real space for both icons so they cannot sit
+   on top of the selected text. */
+.top .city#langSelect{
+  width:78px!important;min-width:78px!important;max-width:78px!important;
+  padding:6px 22px 6px 5px!important;
+  background-position:right 7px center!important;
+  text-align:center!important;
+}
+.top .city#citySelect{
+  width:124px!important;min-width:124px!important;max-width:124px!important;
+  padding:6px 24px 6px 34px!important;
+  background-position:left 9px center,right 7px center!important;
+  text-align:left!important;text-indent:0!important;
+}
+@media(max-width:390px){
+  .top .city#langSelect{width:72px!important;min-width:72px!important;max-width:72px!important;}
+  .top .city#citySelect{width:116px!important;min-width:116px!important;max-width:116px!important;padding-left:32px!important;padding-right:22px!important;background-position:left 8px center,right 6px center!important;}
+}
 </style>
 </head>
 <body>
