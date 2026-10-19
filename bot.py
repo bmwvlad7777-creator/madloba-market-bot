@@ -8634,10 +8634,32 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
  .top .city#langSelect{width:58px!important;min-width:58px!important;max-width:58px!important;font-size:11px!important;}
  .top .city#cityBtn,.top .city#citySelect{min-width:90px!important;max-width:98px!important;font-size:11px!important;}
 }
+/* HEADER SELECTOR POLISH: clear language chevron and modern location-pin icon */
+.city#langSelect{
+  appearance:none!important;-webkit-appearance:none!important;
+  width:78px!important;min-width:78px!important;
+  padding:8px 22px 8px 7px!important;
+  background-color:rgba(255,255,255,.97)!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237b8798' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;background-position:right 7px center!important;background-size:12px 12px!important;
+  gap:0!important;text-align:center!important;
+}
+.city#citySelect{
+  appearance:none!important;-webkit-appearance:none!important;
+  min-width:112px!important;padding:8px 24px 8px 29px!important;
+  background-color:rgba(255,255,255,.97)!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%231677f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237b8798' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat,no-repeat!important;background-position:left 9px center,right 7px center!important;background-size:17px 17px,12px 12px!important;
+  text-align:center!important;
+}
+@media(max-width:520px){
+  .city#langSelect{width:78px!important;min-width:78px!important;font-size:13px!important;padding-left:5px!important;padding-right:20px!important;}
+  .city#citySelect{min-width:108px!important;font-size:13px!important;padding-left:27px!important;padding-right:21px!important;background-position:left 8px center,right 6px center!important;}
+}
 </style>
 </head>
 <body>
-<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">📍 Batumi</option><option value="tbilisi">📍 Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
+<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Объявления рядом с вами</h1><p data-i18n="hero_subtitle">Покупайте, продавайте и находите нужное прямо в Telegram.</p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
 <button class="quick-action" data-cat="realestate"><span class="quick-icon" data-icon="realestate"></span><span class="quick-label" data-i18n="category_realestate">Недвижимость</span></button>
 <button class="quick-action" data-cat="auto"><span class="quick-icon" data-icon="auto"></span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
 <button class="quick-action" data-cat="tech"><span class="quick-icon" data-icon="tech"></span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
