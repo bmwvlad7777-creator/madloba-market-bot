@@ -8744,13 +8744,23 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 .top .brand-main,.top .brand-market{display:block!important;font-weight:950!important;white-space:nowrap!important;}
 .top .brand-main{color:#fff!important;}
 .top .brand-market{color:#1682ff!important;letter-spacing:-.65px!important;}
-.top .brand::after{content:"ПОКУПАЙ. ПРОДАВАЙ.\A НАХОДИ РЯДОМ.";white-space:pre;display:block;margin-top:8px;font-size:clamp(10px,2.9vw,13px);font-weight:750;line-height:1.3;letter-spacing:-.2px;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.22);}
+.top .brand::after{content:var(--brand-tagline, "ПОКУПАЙ. ПРОДАВАЙ.\A НАХОДИ РЯДОМ.");white-space:pre;display:block;margin-top:7px;font-size:clamp(10px,2.9vw,13px);font-weight:750;line-height:1.3;letter-spacing:-.2px;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.22);}
 .top>div:last-child{display:flex!important;align-items:flex-start!important;justify-content:flex-end!important;gap:5px!important;min-width:0!important;flex-shrink:0!important;}
 .top #langSelect{flex:0 0 58px!important;width:58px!important;min-width:58px!important;max-width:58px!important;height:34px!important;padding:0 14px 0 4px!important;font-size:11px!important;background-position:right 4px center!important;background-size:9px 9px!important;}
 .top #citySelect{flex:0 0 94px!important;width:94px!important;min-width:94px!important;max-width:94px!important;height:34px!important;padding:0 14px 0 23px!important;font-size:11px!important;background-position:left 5px center,right 4px center!important;background-size:13px 13px,9px 9px!important;}
 .hero h1,.hero p{display:none!important;}
 .hero{padding-top:8px!important;margin-top:0!important;}
 @media(max-width:390px){.top{column-gap:4px!important}.top .brand{font-size:clamp(21px,5.8vw,25px)!important;letter-spacing:-.9px!important}.top .brand::after{font-size:clamp(10px,2.9vw,12px)!important;margin-top:8px;white-space:pre!important}.top #langSelect{flex-basis:55px!important;width:55px!important;min-width:55px!important;max-width:55px!important}.top #citySelect{flex-basis:88px!important;width:88px!important;min-width:88px!important;max-width:88px!important;padding-left:21px!important;font-size:10px!important}}
+</style>
+<style id="madloba-localized-tagline-and-selector-finish-v1">
+/* The tagline follows the selected language; controls stay secondary to the wordmark. */
+.top{grid-template-columns:minmax(0,1fr) auto!important;align-items:start!important;column-gap:7px!important;}
+.top .brand{min-width:0!important;}
+.top .brand::after{max-width:100%;}
+.top>div:last-child{gap:5px!important;align-items:flex-start!important;}
+.top .city#langSelect{box-sizing:border-box!important;width:58px!important;min-width:58px!important;max-width:58px!important;height:34px!important;padding:0 16px 0 5px!important;border-radius:999px!important;font-size:11px!important;font-weight:800!important;}
+.top .city#citySelect{box-sizing:border-box!important;width:90px!important;min-width:90px!important;max-width:90px!important;height:34px!important;padding:0 15px 0 22px!important;border-radius:999px!important;font-size:11px!important;font-weight:800!important;}
+@media(max-width:390px){.top{column-gap:4px!important}.top .city#langSelect{width:55px!important;min-width:55px!important;max-width:55px!important;font-size:10px!important}.top .city#citySelect{width:84px!important;min-width:84px!important;max-width:84px!important;font-size:10px!important;padding-left:20px!important}}
 </style>
 </head>
 <body>
@@ -8797,7 +8807,7 @@ ka:{hero_title:'იყიდე. გაყიდე.<br><span>იპოვე �
 };
 const state={city:localStorage.getItem('mm_city')||'batumi',lang:localStorage.getItem('mm_lang')||'ru',page:0,cursorIds:[null],q:'',category:'',loading:false,sort:'new',filters:{deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''}};
 function t(k){return (I18N[state.lang]&&I18N[state.lang][k])||I18N.ru[k]||k}
-function applyLang(){document.documentElement.lang=state.lang;document.querySelectorAll('[data-i18n]').forEach(el=>el.innerHTML=t(el.dataset.i18n));document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>el.placeholder=t(el.dataset.i18nPlaceholder));$('langSelect').value=state.lang;$('citySelect').value=state.city;Array.from($('citySelect').options).forEach(opt=>{const cityKey=opt.value;opt.textContent=(cityNames[cityKey][state.lang]||cityNames[cityKey].en)});updateBestCityLabel();renderCats();renderQuickIcons();bindPopular();bindHomeRedesign();updateFilterVisibility()}
+function applyLang(){document.documentElement.lang=state.lang;const brand=document.querySelector(".top .brand");if(brand){const slogan=(I18N[state.lang]&&I18N[state.lang].hero_title)||I18N.ru.hero_title;const lines=slogan.replace(/<br\s*\/?\s*>/gi,"\n").replace(/<[^>]*>/g,"").toUpperCase().split("\n");brand.style.setProperty("--brand-tagline",'"'+lines.join("\\A ")+'"')}document.querySelectorAll('[data-i18n]').forEach(el=>el.innerHTML=t(el.dataset.i18n));document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>el.placeholder=t(el.dataset.i18nPlaceholder));$('langSelect').value=state.lang;$('citySelect').value=state.city;Array.from($('citySelect').options).forEach(opt=>{const cityKey=opt.value;opt.textContent=(cityNames[cityKey][state.lang]||cityNames[cityKey].en)});updateBestCityLabel();renderCats();renderQuickIcons();bindPopular();bindHomeRedesign();updateFilterVisibility()}
 
 const iconSvg=(body)=>`<svg class="mm-category-svg" viewBox="0 0 64 64" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
 const ICONS={
