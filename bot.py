@@ -8941,6 +8941,70 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   }
 }
 </style>
+
+<style id="madloba-premium-card-refinement-v2">
+/* Unified modern listing cards across Popular, fresh listings, search and favorites. */
+#list.list, #bestRow.best-row {
+  display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important; padding:0 2px 4px!important; align-items:stretch!important;
+}
+#list .card, #bestRow .best-card {
+  position:relative!important; min-width:0!important; width:100%!important; max-width:100%!important;
+  overflow:hidden!important; border:1px solid #e4ebf5!important; border-radius:18px!important;
+  background:#fff!important; box-shadow:0 6px 18px rgba(30,55,90,.075)!important;
+  transition:transform .16s ease, box-shadow .16s ease!important;
+}
+#list .card:active, #bestRow .best-card:active {transform:scale(.99)!important;box-shadow:0 3px 10px rgba(30,55,90,.08)!important}
+#list .card .photo, #bestRow .best-photo {
+  display:flex!important; align-items:center!important; justify-content:center!important;
+  width:100%!important; height:116px!important; min-height:116px!important; max-height:116px!important;
+  margin:0!important; overflow:hidden!important; background:#f7f9fc!important;
+}
+#list .card .photo img, #bestRow .best-photo img {width:100%!important;height:100%!important;display:block!important;object-fit:cover!important;object-position:center!important}
+#list .card .cardbody, #bestRow .best-body {
+  display:flex!important; flex-direction:column!important; align-items:flex-start!important;
+  min-width:0!important; overflow:hidden!important; padding:10px 10px 11px!important; gap:0!important;
+}
+#list .card .price, #bestRow .best-price {
+  display:block!important; margin:0 0 5px!important; color:#111827!important;
+  font-size:18px!important; font-weight:900!important; line-height:1.12!important; letter-spacing:-.35px!important;
+  white-space:nowrap!important; overflow:hidden!important; text-overflow:ellipsis!important;
+}
+#list .card .listing-name, #bestRow .best-title {
+  display:-webkit-box!important; -webkit-box-orient:vertical!important; -webkit-line-clamp:2!important; line-clamp:2!important;
+  width:100%!important; min-height:0!important; max-height:31px!important; overflow:hidden!important;
+  margin:0 0 6px!important; color:#202b3d!important; font-size:12px!important; font-weight:750!important;
+  line-height:1.28!important; letter-spacing:-.12px!important; overflow-wrap:anywhere!important; word-break:normal!important;
+}
+#list .card .tag, #bestRow .best-tag {
+  display:inline-flex!important; align-items:center!important; max-width:100%!important; min-height:23px!important;
+  margin:0 0 6px!important; padding:4px 8px!important; border:0!important; border-radius:999px!important;
+  background:#edf5ff!important; color:#1675e8!important; font-size:10px!important; font-weight:800!important;
+  line-height:1.15!important; white-space:nowrap!important; overflow:hidden!important; text-overflow:ellipsis!important;
+}
+#list .card .loc, #bestRow .best-loc {
+  display:flex!important; align-items:center!important; gap:5px!important; width:100%!important; min-width:0!important;
+  margin:0!important; color:#718096!important; font-size:10px!important; line-height:14px!important;
+  white-space:nowrap!important; overflow:hidden!important; text-overflow:ellipsis!important;
+}
+#list .card .loc svg, #bestRow .best-loc svg {
+  display:block!important; flex:0 0 14px!important; width:14px!important; height:14px!important; min-width:14px!important;
+  fill:none!important; stroke:#2786f5!important; stroke-width:2!important; stroke-linecap:round!important; stroke-linejoin:round!important;
+}
+#list .card .loc span, #bestRow .best-loc span {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+#list .card .fav-btn, #bestRow .best-card .fav-btn {
+  top:8px!important; right:8px!important; width:34px!important; height:34px!important;
+  border:1px solid rgba(226,232,240,.95)!important; background:rgba(255,255,255,.96)!important;
+  box-shadow:0 4px 12px rgba(15,23,42,.13)!important; font-size:19px!important; line-height:32px!important;
+}
+@media(max-width:380px){
+ #list.list, #bestRow.best-row{gap:8px!important;padding-left:1px!important;padding-right:1px!important}
+ #list .card .photo, #bestRow .best-photo{height:104px!important;min-height:104px!important;max-height:104px!important}
+ #list .card .cardbody, #bestRow .best-body{padding:8px 8px 9px!important}
+ #list .card .price, #bestRow .best-price{font-size:17px!important}
+ #list .card .listing-name, #bestRow .best-title{font-size:11.5px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
@@ -9145,13 +9209,11 @@ function detailSpecs(d,detail=false){return Object.entries(d||{}).filter(([k,v])
 function isFav(x){return !!x.is_favorite}
 function favButton(x,detail=false){const active=isFav(x);const cls=detail?'detail-fav':'fav-btn';return `<button class="${cls}${active?' active':''}" data-fav="${esc(x.id)}" aria-label="${active?t('favorite_remove'):t('favorite_add')}">${active?'♥':'♡'}</button>`}
 function localizedCategory(v){const m={'Недвижимость':'category_realestate','Авто':'category_auto','Техника':'category_tech','Дом и мебель':'category_home','Детское':'category_kids','Работа и услуги':'category_work','Работа':'category_work','Услуги':'category_services','Животные':'category_pets','Отдам':'category_give','Ищу':'category_search'};return m[v]?t(m[v]):(v||t('no_listing'))}
-// Hide auto-generated taxonomy titles (category + subcategory + deal type), but preserve real names entered by sellers.
+// Hide auto-generated taxonomy titles for every category, while preserving seller-written product names.
 function cardDisplayTitle(rawTitle,rawCategory){
  const raw=String(rawTitle||'').trim();if(!raw)return '';
- const norm=v=>String(v||'').normalize('NFKC').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu,'').replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim().toLocaleLowerCase();
+ const norm=v=>String(v||'').normalize('NFKC').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu,'').replace(/[\u200B-\u200D\uFEFF]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim().toLocaleLowerCase();
  const category=norm(rawCategory);
- // Taxonomy labels across ALL Madloba Market categories. These are already
- // represented by the category badge and must never be repeated as a title.
  const taxonomy=new Set([
   'недвижимость','авто','техника','дом и мебель','детское','работа и услуги','работа','услуги','животные','отдам','ищу',
   'квартиры','дома','комнаты','коммерция','коммерческая недвижимость','земля','гаражи и парковки','гаражи',
@@ -9164,8 +9226,15 @@ function cardDisplayTitle(rawTitle,rawCategory){
   'собаки','кошки','другие животные','товары и аксессуары','пристройство питомцев','потерянные и найденные','уход и услуги',
   'сдам','сниму','продам','куплю','предлагаю','предлагаю услугу','ищу специалиста','отдам бесплатно','обмен','продажа','аренда','покупка'
  ]);
- const parts=raw.split(/\s*[·•|\u2022]\s*/).map(x=>x.trim()).filter(Boolean);
+ // Taxonomy-generated titles use separators. Remove each taxonomy-only segment, regardless of category.
+ const parts=raw.split(/\s*(?:[·•|\u2022]|\s[—–-]\s)\s*/u).map(x=>x.trim()).filter(Boolean);
  const meaningful=parts.filter(part=>{const n=norm(part);return n&&n!==category&&!taxonomy.has(n)});
+ // Some legacy rows have no separators between emoji-labelled taxonomy fragments. In that case,
+ // only suppress the title when its normalized full text consists entirely of taxonomy words.
+ if(meaningful.length===parts.length && parts.length===1){
+   const n=norm(raw);
+   if(taxonomy.has(n)||(!n))return '';
+ }
  return meaningful.join(' · ');
 }
 function card(x){const photo=(x.photos||[])[0];const rawTitle=String(x.title||'').trim();const rawCategory=String(x.category_name||x.category||'').trim();const title=cardDisplayTitle(rawTitle,rawCategory);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody">${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${title?`<div class="listing-name">${esc(localizeListingText(title))}</div>`:''}<div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div>${x.address?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}</div></article>`}
