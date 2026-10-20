@@ -9548,23 +9548,37 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 .mm-support-cancel{background:#eef3f9;color:#526176}.mm-support-send{background:#1478f5;color:#fff;box-shadow:0 7px 18px rgba(20,111,232,.20)}.mm-support-send:disabled{opacity:.65}
 @media(min-width:620px){.mm-support-overlay{align-items:center}.mm-support-fab{right:max(18px,calc((100vw - 760px)/2 + 18px));}}
 
-/* Swipe hint sits on the light surface below the category rail; visual-only, no interaction changes. */
+/* Category swipe affordance: remove the separate hint row and show subtle arrows at the strip edges. */
+.wrap > .mm-category-swipe-hint { display:none!important; }
 @media (max-width: 619px) {
-  .wrap > .mm-category-swipe-hint {
-    position:relative!important; z-index:2!important;
-    display:flex!important; align-items:center!important; justify-content:center!important; gap:7px!important;
-    width:calc(100% - 24px)!important; box-sizing:border-box!important;
-    min-height:30px!important; margin:-7px auto 13px!important; padding:6px 9px!important;
-    border-radius:11px!important; background:#edf3fb!important; border:1px solid #e3ebf7!important;
-    color:#7a879b!important; font-size:10px!important; line-height:1.25!important; font-weight:650!important;
-    letter-spacing:0!important; text-align:center!important; text-shadow:none!important;
+  .hero .quick-actions::before,
+  .hero .quick-actions::after {
+    position:sticky!important;
+    z-index:8!important;
+    top:0!important;
+    bottom:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    flex:0 0 20px!important;
+    width:20px!important;
+    min-width:20px!important;
+    height:78px!important;
+    margin-top:1px!important;
+    border-radius:999px!important;
+    color:#1677ed!important;
+    background:rgba(255,255,255,.94)!important;
+    border:1px solid rgba(92,157,255,.24)!important;
+    box-shadow:0 2px 8px rgba(20,111,232,.10)!important;
+    font-size:23px!important;
+    line-height:1!important;
+    font-weight:800!important;
     pointer-events:none!important;
+    text-shadow:none!important;
   }
-  .wrap > .mm-category-swipe-hint .mm-swipe-arrow {
-    flex:0 0 auto!important; color:#2478ec!important; font-size:16px!important; line-height:1!important; font-weight:850!important;
-  }
+  .hero .quick-actions::before { content:"‹"!important; left:0!important; margin-right:-14px!important; }
+  .hero .quick-actions::after { content:"›"!important; right:0!important; margin-left:-14px!important; }
 }
-@media (min-width:620px) { .wrap > .mm-category-swipe-hint { display:none!important; } }
 
 </style>
 </head>
@@ -9601,7 +9615,7 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 <div class="filter-field" id="genericPetAgeWrap" style="display:none;grid-column:1/-1"><label>Возраст питомца</label><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px"><div><label for="genericFilterPetAgeMin" style="font-size:12px;color:var(--muted)">От</label><input id="genericFilterPetAgeMin" type="number" min="0" max="20" step="1" inputmode="numeric" placeholder="0"></div><div><label for="genericFilterPetAgeMax" style="font-size:12px;color:var(--muted)">До</label><input id="genericFilterPetAgeMax" type="number" min="0" max="20" step="1" inputmode="numeric" placeholder="20"></div></div><select id="genericFilterPetAgeUnit" aria-label="Единица возраста" style="margin-top:8px"><option value="years">Возраст в годах (0–20)</option><option value="months">Возраст в месяцах (0–11)</option></select><small style="display:block;color:var(--muted);margin-top:5px">Можно заполнить только одно поле. Если оба пустые — любой возраст.</small></div>
 <div class="filter-field" id="genericPetBreedWrap" style="display:none"><label>Порода</label><input id="genericFilterPetBreed" placeholder="Например: лабрадор"></div>
 <div class="filter-field" id="genericPetGenderWrap" style="display:none"><label>Пол</label><select id="genericFilterPetGender"><option value="">Все</option><option value="male">Самец</option><option value="female">Самка</option></select></div>
-</div><div class="filter-actions"><button class="filter-reset" id="filterReset" type="button" data-i18n="reset">Сбросить</button><button class="filter-apply" id="filterApply" type="button" data-i18n="apply">Применить</button></div></div></div></div><div class="mm-category-swipe-hint" aria-hidden="true"><span class="mm-swipe-arrow">‹</span><span data-i18n="swipe_categories">Листайте, чтобы увидеть все категории</span><span class="mm-swipe-arrow">›</span></div><button class="back" id="backBtn" data-i18n="all_categories">← Все категории</button><section id="homeView"><section class="best-section" id="bestSection"><div class="section-head"><h2 data-i18n="popular_listings">Популярные</h2></div><div class="best-row" id="bestRow"></div></section><div id="categoriesBlock"><div class="section-head"><h2 data-i18n="all_categories_section">Все категории</h2><button class="section-link" id="categoriesToggle" type="button" data-i18n="collapse_categories">Свернуть ↑</button></div><div class="cats" id="cats"></div></div><div class="results-head"><div class="section-head"><h2 id="resultsTitle" data-i18n="fresh_listings">Свежие объявления</h2><small id="resultsCount"></small></div><select id="sortSelect" class="sort-select" aria-label="Sort"><option value="new" data-i18n="sort_new">🆕 Сначала новые</option><option value="price_asc" data-i18n="sort_price_asc">💰 Цена: дешевле</option><option value="price_desc" data-i18n="sort_price_desc">💰 Цена: дороже</option></select></div><div class="list" id="list"></div><div class="more" id="pager" style="display:none"><button id="prevBtn" type="button">← Назад</button><span id="pageLabel">Страница 1</span><button id="nextBtn" type="button">Вперёд →</button></div></section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section></div>
+</div><div class="filter-actions"><button class="filter-reset" id="filterReset" type="button" data-i18n="reset">Сбросить</button><button class="filter-apply" id="filterApply" type="button" data-i18n="apply">Применить</button></div></div></div></div><button class="back" id="backBtn" data-i18n="all_categories">← Все категории</button><section id="homeView"><section class="best-section" id="bestSection"><div class="section-head"><h2 data-i18n="popular_listings">Популярные</h2></div><div class="best-row" id="bestRow"></div></section><div id="categoriesBlock"><div class="section-head"><h2 data-i18n="all_categories_section">Все категории</h2><button class="section-link" id="categoriesToggle" type="button" data-i18n="collapse_categories">Свернуть ↑</button></div><div class="cats" id="cats"></div></div><div class="results-head"><div class="section-head"><h2 id="resultsTitle" data-i18n="fresh_listings">Свежие объявления</h2><small id="resultsCount"></small></div><select id="sortSelect" class="sort-select" aria-label="Sort"><option value="new" data-i18n="sort_new">🆕 Сначала новые</option><option value="price_asc" data-i18n="sort_price_asc">💰 Цена: дешевле</option><option value="price_desc" data-i18n="sort_price_desc">💰 Цена: дороже</option></select></div><div class="list" id="list"></div><div class="more" id="pager" style="display:none"><button id="prevBtn" type="button">← Назад</button><span id="pageLabel">Страница 1</span><button id="nextBtn" type="button">Вперёд →</button></div></section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section></div>
 <button class="mm-support-fab" id="mmSupportOpen" type="button" aria-label="Поддержка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0v5a2 2 0 0 1-2 2h-2v-6h4M4 13h4v6H6a2 2 0 0 1-2-2z"/><path d="M9 20h3"/></svg><span data-i18n="support_button">Поддержка</span></button>
 <div class="mm-support-overlay" id="mmSupportOverlay" role="dialog" aria-modal="true" aria-labelledby="mmSupportTitle">
  <form class="mm-support-sheet" id="mmSupportForm">
