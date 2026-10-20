@@ -4935,14 +4935,96 @@ def _handle_update_core(
             if len(reply_text) > 3500:
                 send(chat_id, "Ответ слишком длинный. Максимум 3500 символов, сократи сообщение и отправь снова.")
                 return
-            outgoing = "💬 <b>Ответ поддержки Madloba Market</b>\n\n" + html.escape(reply_text)
-            delivery = api("sendMessage", {"chat_id": target_user_id, "text": outgoing, "parse_mode": "HTML", "disable_web_page_preview": True})
+            outgoing = (
+                "💬 <b>Ответ поддержки Madloba Market</b>\n\n"
+                + html.escape(reply_text)
+                + "\n\n<i>Чтобы продолжить диалог, ответьте на это сообщение.</i>"
+            )
+            delivery = api("sendMessage", {
+                "chat_id": target_user_id,
+                "text": outgoing,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+                "reply_markup": {
+                    "force_reply": True,
+                    "input_field_placeholder": "Ваш ответ поддержке…",
+                    "selective": True,
+                },
+            })
             if isinstance(delivery, dict) and delivery.get("ok"):
                 support_reply_sessions.pop(chat_id, None)
                 send(chat_id, "✅ Ответ отправлен пользователю.")
             else:
                 print("MADLOBA SUPPORT REPLY DELIVERY ERROR:", target_user_id, str(delivery)[:300])
                 send(chat_id, "❌ Не удалось отправить ответ. Возможно, пользователь не запускал бота или заблокировал его. Сессия ответа сохранена, попробуй ещё раз или напиши /cancel.")
+            return
+
+        # ====================================================
+        # ОТВЕТ ПОЛЬЗОВАТЕЛЯ В УЖЕ НАЧАТОМ ДИАЛОГЕ ПОДДЕРЖКИ
+        # Обрабатываем только явный reply на сообщение поддержки, чтобы не
+        # перехватывать обычные сообщения и сценарии создания объявлений.
+        # ====================================================
+        is_support_admin_message = (
+            str(chat_id) in ADMIN_TELEGRAM_IDS or str(chat_id) == str(ADMIN_CHAT_ID)
+        )
+        replied_message = message.get("reply_to_message") or {}
+        replied_text = str(replied_message.get("text") or replied_message.get("caption") or "")
+        replied_from = replied_message.get("from") or {}
+        is_support_reply = (
+            not is_support_admin_message
+            and bool(replied_from.get("is_bot"))
+            and bool(replied_text)
+            and replied_text.startswith("💬 Ответ поддержки Madloba Market")
+        )
+        if is_support_reply:
+            reply_text = str(text or "").strip()
+            if not reply_text:
+                send(chat_id, "Пожалуйста, отправьте текстовое сообщение в ответ на сообщение поддержки.")
+                return
+            if len(reply_text) > 3500:
+                send(chat_id, "Сообщение слишком длинное. Максимум 3500 символов, сократите его и отправьте снова.")
+                return
+
+            sender = message.get("from") or {}
+            user_id = str(sender.get("id") or chat_id)
+            full_name = " ".join(
+                str(sender.get(key) or "").strip() for key in ("first_name", "last_name")
+            ).strip() or "Telegram пользователь"
+            username = str(sender.get("username") or "").strip()
+            admin_ids = set(ADMIN_TELEGRAM_IDS)
+            if str(ADMIN_CHAT_ID).strip().isdigit():
+                admin_ids.add(str(ADMIN_CHAT_ID).strip())
+
+            notification_text = (
+                "↩️ <b>Ответ пользователя в поддержке MADLOBA MARKET</b>\n\n"
+                f"<b>Пользователь:</b> {html.escape(full_name)}"
+                + (f" (@{html.escape(username)})" if username else "") + "\n"
+                f"<b>Telegram ID:</b> <code>{html.escape(user_id)}</code>\n\n"
+                f"<b>Сообщение:</b>\n{html.escape(reply_text)}"
+            )
+            delivered = 0
+            for admin_id in admin_ids:
+                result = api("sendMessage", {
+                    "chat_id": admin_id,
+                    "text": notification_text,
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": True,
+                    "reply_markup": {
+                        "inline_keyboard": [[{
+                            "text": "💬 Ответить",
+                            "callback_data": f"support_reply_{user_id}",
+                        }]]
+                    },
+                })
+                if isinstance(result, dict) and result.get("ok"):
+                    delivered += 1
+                else:
+                    print("MADLOBA SUPPORT USER REPLY DELIVERY ERROR:", admin_id, str(result)[:300])
+
+            if delivered:
+                send(chat_id, "✅ Ваш ответ передан команде Madloba Market. Мы ответим здесь же в Telegram.")
+            else:
+                send(chat_id, "❌ Не удалось передать сообщение поддержке. Попробуйте ещё раз позже.")
             return
 
         # ====================================================
