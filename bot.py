@@ -9548,38 +9548,35 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 .mm-support-cancel{background:#eef3f9;color:#526176}.mm-support-send{background:#1478f5;color:#fff;box-shadow:0 7px 18px rgba(20,111,232,.20)}.mm-support-send:disabled{opacity:.65}
 @media(min-width:620px){.mm-support-overlay{align-items:center}.mm-support-fab{right:max(18px,calc((100vw - 760px)/2 + 18px));}}
 
-/* Category swipe affordance: remove the separate hint row and show subtle arrows at the strip edges. */
+/* Minimal swipe cue: simple non-clickable chevrons inside the category strip. */
 .wrap > .mm-category-swipe-hint { display:none!important; }
 @media (max-width: 619px) {
   .hero .quick-actions::before,
   .hero .quick-actions::after {
-    position:sticky!important;
-    z-index:8!important;
-    top:0!important;
-    bottom:0!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    flex:0 0 20px!important;
-    width:20px!important;
-    min-width:20px!important;
-    height:78px!important;
-    margin-top:1px!important;
-    border-radius:999px!important;
+    position:absolute!important;
+    top:50%!important;
+    z-index:9!important;
+    display:block!important;
+    width:auto!important;
+    min-width:0!important;
+    height:auto!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
     color:#1677ed!important;
-    background:rgba(255,255,255,.94)!important;
-    border:1px solid rgba(92,157,255,.24)!important;
-    box-shadow:0 2px 8px rgba(20,111,232,.10)!important;
-    font-size:23px!important;
+    font-size:19px!important;
     line-height:1!important;
     font-weight:800!important;
     pointer-events:none!important;
-    text-shadow:none!important;
+    text-shadow:0 1px 3px rgba(255,255,255,.95)!important;
+    transform:translateY(-50%)!important;
   }
-  .hero .quick-actions::before { content:"‹"!important; left:0!important; margin-right:-14px!important; }
-  .hero .quick-actions::after { content:"›"!important; right:0!important; margin-left:-14px!important; }
+  .hero .quick-actions::before { content:"‹"!important; left:3px!important; }
+  .hero .quick-actions::after { content:"›"!important; right:3px!important; }
 }
-
 </style>
 </head>
 <body>
