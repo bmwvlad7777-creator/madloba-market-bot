@@ -9373,8 +9373,9 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 }
 
 /* MADLOBA MARKET support entry: compact floating action above the fixed bottom navigation. */
-.mm-support-fab{position:fixed;right:15px;bottom:calc(91px + env(safe-area-inset-bottom));z-index:24;display:flex;align-items:center;gap:9px;min-height:48px;padding:0 16px 0 13px;border-radius:999px;background:linear-gradient(135deg,#1677f8,#0864d8);color:#fff;font-size:13px;font-weight:850;box-shadow:0 8px 22px rgba(20,111,232,.30),inset 0 1px 0 rgba(255,255,255,.24);border:1px solid rgba(255,255,255,.72);}
-.mm-support-fab svg{width:21px;height:21px;flex:0 0 21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mm-support-fab{position:fixed;right:14px;bottom:calc(108px + env(safe-area-inset-bottom));z-index:24;display:flex;align-items:center;justify-content:center;gap:0;width:48px;height:48px;min-width:48px;min-height:48px;padding:0;border-radius:50%;background:linear-gradient(135deg,#1677f8,#0864d8);color:#fff;font-size:0;font-weight:850;box-shadow:0 6px 16px rgba(20,111,232,.24),inset 0 1px 0 rgba(255,255,255,.24);border:1px solid rgba(255,255,255,.78);}
+.mm-support-fab span{display:none!important}
+.mm-support-fab svg{display:block;width:22px;height:22px;flex:0 0 22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .mm-support-fab:active{transform:scale(.97)}
 .mm-support-overlay{position:fixed;inset:0;z-index:80;display:none;align-items:flex-end;justify-content:center;padding:14px 12px calc(14px + env(safe-area-inset-bottom));background:rgba(15,23,42,.48);backdrop-filter:blur(5px)}
 .mm-support-overlay.show{display:flex}
