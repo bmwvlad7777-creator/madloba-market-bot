@@ -9548,39 +9548,36 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 .mm-support-cancel{background:#eef3f9;color:#526176}.mm-support-send{background:#1478f5;color:#fff;box-shadow:0 7px 18px rgba(20,111,232,.20)}.mm-support-send:disabled{opacity:.65}
 @media(min-width:620px){.mm-support-overlay{align-items:center}.mm-support-fab{right:max(18px,calc((100vw - 760px)/2 + 18px));}}
 
-/* Minimal swipe cue: simple non-clickable chevrons inside the category strip. */
+/* Persistent swipe cue: arrows belong to the strip container, not the scrolling categories. */
 .wrap > .mm-category-swipe-hint { display:none!important; }
+.quick-actions-shell{position:relative!important;width:100%!important;min-width:0!important;}
 @media (max-width: 619px) {
-  .hero .quick-actions::before,
-  .hero .quick-actions::after {
+  .quick-actions-shell::before,
+  .quick-actions-shell::after {
+    content:""!important;
     position:absolute!important;
     top:50%!important;
-    z-index:9!important;
+    z-index:12!important;
     display:block!important;
-    width:auto!important;
-    min-width:0!important;
-    height:auto!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-    border-radius:0!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    color:#1677ed!important;
-    font-size:19px!important;
-    line-height:1!important;
-    font-weight:800!important;
+    width:0!important;height:0!important;
+    margin:0!important;padding:0!important;
+    border-top:5px solid transparent!important;
+    border-bottom:5px solid transparent!important;
+    background:transparent!important;box-shadow:none!important;
     pointer-events:none!important;
-    text-shadow:0 1px 3px rgba(255,255,255,.95)!important;
     transform:translateY(-50%)!important;
   }
-  .hero .quick-actions::before { content:"‹"!important; left:3px!important; }
-  .hero .quick-actions::after { content:"›"!important; right:3px!important; }
+  .quick-actions-shell::before{left:5px!important;border-right:6px solid #1677ed!important;}
+  .quick-actions-shell::after{right:5px!important;border-left:6px solid #1677ed!important;}
+  .quick-actions-shell .quick-actions{
+    padding-left:20px!important;padding-right:20px!important;
+    scroll-padding-left:20px!important;scroll-padding-right:20px!important;
+  }
 }
 </style>
 </head>
 <body>
-<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions" aria-label="Категории">
+<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><div class="quick-actions" aria-label="Категории">
 <button class="quick-action" data-cat="realestate"><span class="quick-icon" data-icon="realestate"></span><span class="quick-label" data-i18n="category_realestate">Недвижимость</span></button>
 <button class="quick-action" data-cat="auto"><span class="quick-icon" data-icon="auto"></span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
 <button class="quick-action" data-cat="tech"><span class="quick-icon" data-icon="tech"></span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
@@ -9591,7 +9588,7 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 <button class="quick-action" data-cat="pets"><span class="quick-icon" data-icon="pets"></span><span class="quick-label" data-i18n="category_pets">Животные</span></button>
 <button class="quick-action" data-cat="give"><span class="quick-icon" data-icon="give"></span><span class="quick-label" data-i18n="category_give">Отдам</span></button>
 
-</div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button"><span class="filter-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="17" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/></svg></span><span data-i18n="filters">Фильтры</span><span id="filterActive"></span><span class="filter-chevron" aria-hidden="true">›</span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><select id="filterDistrict"><option value="" data-i18n="all">Все районы</option><option value="old_batumi">Старый Батуми</option><option value="new_boulevard">Новый Бульвар</option><option value="khimshiashvili">Химшиашвили</option><option value="bagrationi">Багратиони</option><option value="angisa">Ангиса</option><option value="airport">Аэропорт</option><option value="gonio">Гонио</option><option value="kvariati">Квариати</option><option value="makhinjauri">Махинджаури</option></select></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
+</div></div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button"><span class="filter-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="17" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/></svg></span><span data-i18n="filters">Фильтры</span><span id="filterActive"></span><span class="filter-chevron" aria-hidden="true">›</span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><select id="filterDistrict"><option value="" data-i18n="all">Все районы</option><option value="old_batumi">Старый Батуми</option><option value="new_boulevard">Новый Бульвар</option><option value="khimshiashvili">Химшиашвили</option><option value="bagrationi">Багратиони</option><option value="angisa">Ангиса</option><option value="airport">Аэропорт</option><option value="gonio">Гонио</option><option value="kvariati">Квариати</option><option value="makhinjauri">Махинджаури</option></select></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
 <div class="filter-field" style="grid-column:1/-1"><label data-i18n="deal">Сделка</label><select id="autoFilterDeal"><option value="" data-i18n="all">Все</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div>
 <div class="filter-field"><label data-i18n="auto_make">Марка</label><select id="autoFilterMake"><option value="" data-i18n="auto_select_make">Выберите марку</option></select></div>
 <div class="filter-field"><label data-i18n="auto_model">Модель</label><select id="autoFilterModel" disabled><option value="" data-i18n="auto_select_model">Сначала выберите марку</option></select></div>
