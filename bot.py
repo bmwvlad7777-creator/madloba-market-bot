@@ -89,6 +89,10 @@ moderation_requests = {}
 # Сессии редактирования модератора сохраняются в Supabase.
 moderator_sessions = {}
 
+# Pending two-way support replies: admin chat -> target Telegram user.
+# Persisted in mm_bot_runtime_state so a Render restart does not lose the target.
+support_reply_sessions = {}
+
 # Не отправлять повторно служебное сообщение с reply-клавиатурой администратора
 # в рамках одного запуска; факт установки также сохраняется в Supabase.
 ADMIN_REPLY_KEYBOARD_INSTALLED = set()
@@ -336,7 +340,7 @@ def _runtime_request_id(callback_data):
 
 def _load_runtime_for_update(update):
     """Restore only records related to this Telegram update, not the whole table."""
-    loaded = {"states": set(), "moderation": set(), "sessions": set()}
+    loaded = {"states": set(), "moderation": set(), "sessions": set(), "support_replies": set()}
     chat_id = None
     callback_from_id = None
     callback_data = ""
@@ -353,6 +357,8 @@ def _load_runtime_for_update(update):
         _load_runtime_record("user", chat_id, states, chat_id, loaded["states"])
         if str(chat_id) == str(ADMIN_CHAT_ID):
             _load_runtime_record("moderator", chat_id, moderator_sessions, chat_id, loaded["sessions"])
+        if str(chat_id) in ADMIN_TELEGRAM_IDS or str(chat_id) == str(ADMIN_CHAT_ID):
+            _load_runtime_record("support_reply", chat_id, support_reply_sessions, chat_id, loaded["support_replies"])
 
     # Admin callbacks can refer to a moderation request belonging to another user.
     request_id = _runtime_request_id(callback_data)
@@ -421,6 +427,16 @@ def _save_runtime_after_update(loaded, chat_id, callback_from_id, request_id):
             except ValueError:
                 target_key = raw_id
         _sync_runtime_record("moderator", raw_id, moderator_sessions, target_key, loaded["sessions"])
+
+    for key in loaded["support_replies"]:
+        raw_id = key.split(":", 1)[1]
+        target_key = next((k for k in support_reply_sessions if str(k) == raw_id), None)
+        if target_key is None:
+            try:
+                target_key = int(raw_id)
+            except ValueError:
+                target_key = raw_id
+        _sync_runtime_record("support_reply", raw_id, support_reply_sessions, target_key, loaded["support_replies"])
 
     if next_moderation_id != loaded.get("counter_before", next_moderation_id):
         if not runtime_state_save("meta:next_moderation_id", {"value": next_moderation_id}):
@@ -4898,6 +4914,38 @@ def _handle_update_core(
 
 
         # ====================================================
+        # ОТВЕТ АДМИНИСТРАТОРА НА ОБРАЩЕНИЕ В ПОДДЕРЖКУ
+        # ====================================================
+        support_session = support_reply_sessions.get(chat_id)
+        is_support_admin = str(chat_id) in ADMIN_TELEGRAM_IDS or str(chat_id) == str(ADMIN_CHAT_ID)
+        if support_session and is_support_admin:
+            if text.strip() in {"/cancel", "Отмена ответа", "❌ Отмена ответа"}:
+                support_reply_sessions.pop(chat_id, None)
+                send(chat_id, "Ответ отменён. Чтобы ответить на обращение, нажми «Ответить» под нужным сообщением.")
+                return
+            if not text.strip():
+                send(chat_id, "Отправь текстовый ответ или напиши /cancel для отмены.")
+                return
+            target_user_id = str(support_session.get("user_id") or "")
+            if not target_user_id.isdigit():
+                support_reply_sessions.pop(chat_id, None)
+                send(chat_id, "Не удалось определить пользователя. Открой обращение и нажми «Ответить» ещё раз.")
+                return
+            reply_text = text.strip()
+            if len(reply_text) > 3500:
+                send(chat_id, "Ответ слишком длинный. Максимум 3500 символов, сократи сообщение и отправь снова.")
+                return
+            outgoing = "💬 <b>Ответ поддержки Madloba Market</b>\n\n" + html.escape(reply_text)
+            delivery = api("sendMessage", {"chat_id": target_user_id, "text": outgoing, "parse_mode": "HTML", "disable_web_page_preview": True})
+            if isinstance(delivery, dict) and delivery.get("ok"):
+                support_reply_sessions.pop(chat_id, None)
+                send(chat_id, "✅ Ответ отправлен пользователю.")
+            else:
+                print("MADLOBA SUPPORT REPLY DELIVERY ERROR:", target_user_id, str(delivery)[:300])
+                send(chat_id, "❌ Не удалось отправить ответ. Возможно, пользователь не запускал бота или заблокировал его. Сессия ответа сохранена, попробуй ещё раз или напиши /cancel.")
+            return
+
+        # ====================================================
         # ПОСТОЯННАЯ КНОПКА АДМИНИСТРАТОРА
         # ====================================================
 
@@ -5191,6 +5239,31 @@ def _handle_update_core(
     # ========================================================
     # ВЫБОР СТАНДАРТИЗИРОВАННЫХ ХАРАКТЕРИСТИК ЖИВОТНЫХ
     # ========================================================
+
+    # ========================================================
+    # ДВУСТОРОННЯЯ ПОДДЕРЖКА: АДМИН НАЖИМАЕТ «ОТВЕТИТЬ»
+    # ========================================================
+    if data == "support_reply_cancel":
+        if str(callback_from_id) not in ADMIN_TELEGRAM_IDS and str(callback_from_id) != str(ADMIN_CHAT_ID):
+            answer(callback["id"], "Недостаточно прав.", True)
+            return
+        support_reply_sessions.pop(chat_id, None)
+        answer(callback["id"], "Ответ отменён.")
+        send(chat_id, "Ответ отменён.")
+        return
+
+    if data.startswith("support_reply_"):
+        if str(callback_from_id) not in ADMIN_TELEGRAM_IDS and str(callback_from_id) != str(ADMIN_CHAT_ID):
+            answer(callback["id"], "Недостаточно прав.", True)
+            return
+        target_user_id = data[len("support_reply_"): ]
+        if not target_user_id.isdigit():
+            answer(callback["id"], "Некорректный ID пользователя.", True)
+            return
+        support_reply_sessions[chat_id] = {"user_id": target_user_id, "started_at": int(time.time())}
+        answer(callback["id"], "Напиши ответ следующим сообщением.")
+        send(chat_id, "✍️ Напиши ответ пользователю следующим сообщением.\n\nДля отмены отправь /cancel.", [[{"text": "❌ Отмена ответа", "callback_data": "support_reply_cancel"}]])
+        return
 
     if data.startswith("petpick_"):
         if chat_id not in states or not isinstance(states[chat_id].get("data"), dict):
@@ -10194,7 +10267,10 @@ def mini_app_support():
     )
     delivered = 0
     for admin_id in admin_ids:
-        result = api("sendMessage", {"chat_id": admin_id, "text": header, "parse_mode": "HTML", "disable_web_page_preview": True})
+        notification = {"chat_id": admin_id, "text": header, "parse_mode": "HTML", "disable_web_page_preview": True}
+        if user_id.isdigit():
+            notification["reply_markup"] = {"inline_keyboard": [[{"text": "💬 Ответить", "callback_data": f"support_reply_{user_id}"}]]}
+        result = api("sendMessage", notification)
         if isinstance(result, dict) and result.get("ok"):
             delivered += 1
         else:
