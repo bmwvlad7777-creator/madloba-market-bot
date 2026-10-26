@@ -11915,7 +11915,7 @@ def mini_app_listings():
 # ============================================================
 
 LISTING_LIFETIME_DAYS = 10
-LISTING_REMINDER_DAYS_BEFORE_EXPIRY = 2
+LISTING_REMINDER_DAYS_BEFORE_EXPIRY = 3
 LISTING_PURGE_GRACE_DAYS = 2
 LISTING_LIFECYCLE_INTERVAL_SECONDS = 15 * 60
 
@@ -11994,6 +11994,11 @@ def _listing_owner_telegram_id(user_id):
 
 
 def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
+    """Send one grouped reminder per owner and publication cycle.
+
+    reminder_sent_at is atomically claimed per listing before sending. If Telegram
+    rejects the grouped message, claims are released so the next lifecycle pass retries.
+    """
     rows = supabase_request(
         "GET", "listings",
         params={
@@ -12002,50 +12007,90 @@ def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
             "expires_at":f"gt.{now_iso}",
             "and":f"(expires_at.lte.{reminder_cutoff_iso},reminder_sent_at.is.null)",
             "order":"expires_at.asc",
-            "limit":"100",
+            "limit":"500",
         },
     )
     if rows is None:
         return 0
-    sent_count = 0
+
+    # Resolve owners first, then group due listings so users receive one message,
+    # even when several listings are nearing expiry at the same time.
+    grouped = {}
     for row in rows:
         listing_id = row.get("id")
-        if not listing_id:
+        user_id = row.get("user_id")
+        if not listing_id or not user_id:
             continue
-        # Atomic claim prevents duplicate reminders if more than one web worker is running.
-        claimed = supabase_request(
-            "PATCH", "listings",
-            params={
-                "id":f"eq.{listing_id}",
-                "status":"eq.published",
-                "expires_at":f"gt.{now_iso}",
-                "reminder_sent_at":"is.null",
-            },
-            payload={"reminder_sent_at":now_iso},
-        )
-        if not claimed:
-            continue
-        owner_telegram_id = _listing_owner_telegram_id(row.get("user_id"))
+        owner_telegram_id = _listing_owner_telegram_id(user_id)
         if not owner_telegram_id:
-            # Don't permanently consume the reminder if the owner link is missing.
-            supabase_request("PATCH", "listings", params={"id":f"eq.{listing_id}", "reminder_sent_at":f"eq.{now_iso}"}, payload={"reminder_sent_at":None})
             continue
-        title = str(row.get("title") or "Ваше объявление")
-        app_url = MINI_APP_URL + ("&" if "?" in MINI_APP_URL else "?") + "renew=" + urllib.parse.quote(str(listing_id))
+        grouped.setdefault(str(owner_telegram_id), []).append(row)
+
+    sent_count = 0
+    for owner_telegram_id, owner_rows in grouped.items():
+        claimed_rows = []
+        for row in owner_rows:
+            listing_id = row.get("id")
+            claimed = supabase_request(
+                "PATCH", "listings",
+                params={
+                    "id":f"eq.{listing_id}",
+                    "status":"eq.published",
+                    "expires_at":f"gt.{now_iso}",
+                    "reminder_sent_at":"is.null",
+                },
+                payload={"reminder_sent_at":now_iso},
+            )
+            if claimed:
+                claimed_rows.append(row)
+        if not claimed_rows:
+            continue
+
+        # Keep the message compact while still making every due listing discoverable.
+        lines = []
+        for row in claimed_rows[:10]:
+            title = html.escape(str(row.get("title") or "Ваше объявление"))
+            lines.append(f"• {title}")
+        if len(claimed_rows) > 10:
+            lines.append(f"И ещё {len(claimed_rows) - 10} объявлений.")
+        app_url = MINI_APP_URL + ("&" if "?" in MINI_APP_URL else "?") + "tab=my"
+        text_value = (
+            "⏳ <b>Скоро заканчивается срок публикации</b>\n\n"
+            + "\n".join(lines)
+            + "\n\nДо окончания публикации осталось не больше 3 дней. "
+              "Продлите нужные объявления во вкладке «Мои объявления»."
+        )
         result = api("sendMessage", {
             "chat_id":owner_telegram_id,
-            "text":f"⏳ <b>Объявление скоро закончится</b>\n\n{html.escape(title)}\n\nДо окончания публикации осталось не больше 2 дней. Продлите объявление ещё на 10 дней, чтобы оно оставалось доступным.",
+            "text":text_value,
             "parse_mode":"HTML",
+            "disable_web_page_preview":True,
             "reply_markup":{"inline_keyboard":[[{
-                "text":"Продлить на 10 дней",
+                "text":"📋 Мои объявления",
                 "web_app":{"url":app_url},
             }]]},
         })
         if isinstance(result, dict) and result.get("ok"):
             sent_count += 1
+            print("LISTING LIFECYCLE: grouped reminder sent", {
+                "owner":owner_telegram_id,
+                "listing_count":len(claimed_rows),
+                "listing_ids":[row.get("id") for row in claimed_rows],
+            })
         else:
-            # Allow a later retry if Telegram could not deliver the reminder.
-            supabase_request("PATCH", "listings", params={"id":f"eq.{listing_id}", "reminder_sent_at":f"eq.{now_iso}"}, payload={"reminder_sent_at":None})
+            description = result.get("description", "unknown error") if isinstance(result, dict) else "no response"
+            print("LISTING LIFECYCLE: grouped reminder failed", {
+                "owner":owner_telegram_id,
+                "listing_count":len(claimed_rows),
+                "error":str(description)[:200],
+            })
+            # Release only claims made by this attempt; next pass can retry.
+            for row in claimed_rows:
+                supabase_request(
+                    "PATCH", "listings",
+                    params={"id":f"eq.{row.get('id')}", "reminder_sent_at":f"eq.{now_iso}"},
+                    payload={"reminder_sent_at":None},
+                )
     return sent_count
 
 
@@ -12131,8 +12176,7 @@ def run_listing_lifecycle_once():
         result["reminded"] = _remind_listings_due_soon(now_iso, reminder_cutoff_iso)
         result["archived"] = _archive_expired_listings(now_iso)
         result["deleted"] = _purge_expired_listings(purge_cutoff_iso)
-        if any(result.values()):
-            print("LISTING LIFECYCLE:", result)
+        print("LISTING LIFECYCLE PASS:", result)
     except Exception as error:
         print("LISTING LIFECYCLE ERROR:", repr(error))
     return result
