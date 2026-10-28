@@ -8462,6 +8462,19 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 }
 </style>
 
+<style id="madloba-photo-viewer-swipe-v1">
+#detailView #detailContent .detail-photo{touch-action:pan-y;cursor:zoom-in;}
+#detailView #detailContent .detail-photo img{object-fit:contain!important;object-position:center!important;}
+#mmPhotoViewer{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.96);display:none;align-items:center;justify-content:center;padding:48px 10px calc(42px + env(safe-area-inset-bottom));box-sizing:border-box;touch-action:pan-y;}
+#mmPhotoViewer.show{display:flex;}
+#mmPhotoViewerImg{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none;}
+#mmPhotoViewer .mm-pv-close{position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:31px;line-height:1;}
+#mmPhotoViewer .mm-pv-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:52px;border-radius:16px;background:rgba(255,255,255,.18);color:#fff;font-size:32px;z-index:2;}
+#mmPhotoViewer .mm-pv-prev{left:8px;}#mmPhotoViewer .mm-pv-next{right:8px;}
+#mmPhotoViewer .mm-pv-count{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:700;}
+@media(min-width:600px){#mmPhotoViewer{padding-left:64px;padding-right:64px;}#mmPhotoViewer .mm-pv-prev{left:16px;}#mmPhotoViewer .mm-pv-next{right:16px;}}
+</style>
+
 <style id="madloba-listing-detail-photo-and-bottom-safe-v1">
 /* Mobile-only polish: reduce oversized photo and keep contact actions clear of the fixed nav. */
 #detailView #detailContent .detail-photo{
@@ -9834,7 +9847,16 @@ $('detailContent').querySelectorAll('[data-contact-call]').forEach(btn=>btn.addE
  sheet.querySelector('[data-phone-copy-sheet]').addEventListener('click',async()=>{try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(n);else{const ta=document.createElement('textarea');ta.value=n;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}sheet.querySelector('[data-phone-copy-sheet]').textContent='✓ Номер скопирован';}catch(_){sheet.querySelector('[data-phone-copy-sheet]').textContent=n;}});
 }));
 $('detailContent').querySelectorAll('[data-copy-phone]').forEach(b=>b.addEventListener('click',async function(e){e.stopPropagation();const n=String(this.dataset.copyPhone||'');try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(n);this.textContent='✓ Номер скопирован';return;}}catch(_){}try{const area=document.createElement('textarea');area.value=n;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand('copy');area.remove();this.textContent=ok?'✓ Номер скопирован':n;}catch(_){this.textContent=n;}}));
-const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{e.stopPropagation();toggleFavorite(x.id,fav,x)};if(photos.length>1){let idx=0;const img='detailImg';const update=()=>{$(img).src='/media/'+encodeURIComponent(x.id)+'/'+idx;$('photoCount').textContent=(idx+1)+'/'+photos.length};$('prevPhoto').onclick=e=>{e.stopPropagation();idx=(idx-1+photos.length)%photos.length;update()};$('nextPhoto').onclick=e=>{e.stopPropagation();idx=(idx+1)%photos.length;update()}}}
+const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{e.stopPropagation();toggleFavorite(x.id,fav,x)};
+if(photos.length){
+ let idx=0;const photoUrl=i=>'/media/'+encodeURIComponent(x.id)+'/'+i;
+ const update=()=>{const mainImg=$('detailImg');if(mainImg)mainImg.src=photoUrl(idx);const count=$('photoCount');if(count)count.textContent=(idx+1)+'/'+photos.length;const modalImg=document.getElementById('mmPhotoViewerImg');if(modalImg)modalImg.src=photoUrl(idx);const modalCount=document.getElementById('mmPhotoViewerCount');if(modalCount)modalCount.textContent=(idx+1)+'/'+photos.length;};
+ const step=delta=>{idx=(idx+delta+photos.length)%photos.length;update()};
+ const openViewer=()=>{let modal=document.getElementById('mmPhotoViewer');if(!modal){modal=document.createElement('div');modal.id='mmPhotoViewer';modal.innerHTML='<button type="button" class="mm-pv-close" aria-label="Закрыть фото">×</button><button type="button" class="mm-pv-arrow mm-pv-prev" aria-label="Предыдущее фото">‹</button><img id="mmPhotoViewerImg" alt="Фото объявления"><button type="button" class="mm-pv-arrow mm-pv-next" aria-label="Следующее фото">›</button><span id="mmPhotoViewerCount" class="mm-pv-count"></span>';document.body.appendChild(modal);modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.mm-pv-close'))modal.classList.remove('show')});modal.querySelector('.mm-pv-prev').addEventListener('click',e=>{e.stopPropagation();step(-1)});modal.querySelector('.mm-pv-next').addEventListener('click',e=>{e.stopPropagation();step(1)});let sx=0,sy=0;modal.addEventListener('touchstart',e=>{if(e.touches.length===1){sx=e.touches[0].clientX;sy=e.touches[0].clientY}},{passive:true});modal.addEventListener('touchend',e=>{if(!sx)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.25)step(dx<0?1:-1);sx=0;sy=0},{passive:true});}modal.classList.add('show');update();};
+ const mainImg=$('detailImg');if(mainImg){mainImg.style.cursor='zoom-in';mainImg.setAttribute('role','button');mainImg.setAttribute('aria-label','Открыть фотографию на весь экран');mainImg.onclick=e=>{e.stopPropagation();openViewer()};}
+ const frame=$('detailPhoto');if(frame){let sx=0,sy=0;frame.addEventListener('touchstart',e=>{if(e.touches.length===1){sx=e.touches[0].clientX;sy=e.touches[0].clientY}},{passive:true});frame.addEventListener('touchend',e=>{if(!sx)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.25)step(dx<0?1:-1);sx=0;sy=0},{passive:true});}
+ if(photos.length>1){const prev=$('prevPhoto'),next=$('nextPhoto');if(prev)prev.onclick=e=>{e.stopPropagation();step(-1)};if(next)next.onclick=e=>{e.stopPropagation();step(1)};}
+} }
 async function toggleFavorite(id,button,x=null){try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}}
 function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if($('bestCityName'))$('bestCityName').textContent='в '+(cityNames[state.city][state.lang]||state.city)}
