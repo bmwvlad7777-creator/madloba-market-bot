@@ -8468,7 +8468,7 @@ html,body{width:100%!important;max-width:100%!important;overflow-x:clip!importan
 #mmPhotoViewer{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.96);display:none;align-items:center;justify-content:center;padding:48px 10px calc(42px + env(safe-area-inset-bottom));box-sizing:border-box;touch-action:pan-y;}
 #mmPhotoViewer.show{display:flex;}
 #mmPhotoViewerImg{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none;}
-#mmPhotoViewer .mm-pv-close{position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:31px;line-height:1;}
+#mmPhotoViewer .mm-pv-close{position:absolute;top:calc(68px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:31px;line-height:1;}
 #mmPhotoViewer .mm-pv-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:52px;border-radius:16px;background:rgba(255,255,255,.18);color:#fff;font-size:32px;z-index:2;}
 #mmPhotoViewer .mm-pv-prev{left:8px;}#mmPhotoViewer .mm-pv-next{right:8px;}
 #mmPhotoViewer .mm-pv-count{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:700;}
