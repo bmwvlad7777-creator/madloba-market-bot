@@ -6505,7 +6505,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b73f6">
 <title>Madloba Market</title>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
@@ -10627,7 +10627,10 @@ def mini_app_unpublish_listing(listing_id):
     status = str(row.get("status") or "").lower()
     if status != "published":
         return jsonify({"ok":True})
-    _delete_listing_channel_messages(row)
+    # Do not mark the listing archived if Telegram cleanup failed. The owner can
+    # retry; already-deleted messages are treated as complete by the helper.
+    if not _delete_listing_channel_messages(row):
+        return jsonify({"error":"channel_cleanup_failed"}), 502
     updated = supabase_request(
         "PATCH",
         "listings",
@@ -10807,7 +10810,10 @@ def mini_app_delete_listing(listing_id):
         return jsonify({"error":"invalid_init_data"}), 401
     if not row:
         return jsonify({"error":"not_found"}), 404
-    _delete_listing_channel_messages(row)
+    # Keep the database row and photos until Telegram posts are confirmed deleted.
+    # This preserves message IDs so a failed cleanup can be retried safely.
+    if not _delete_listing_channel_messages(row):
+        return jsonify({"error":"channel_cleanup_failed"}), 502
     photos_deleted = supabase_request(
         "DELETE",
         "listing_photos",
@@ -11175,7 +11181,17 @@ def mini_app_listings():
     # not currently include the phone column in its text haystack.
     generic_filter_categories = {"tech", "home", "kids", "work", "services", "pets", "give", "search"}
     generic_text_search = category in generic_filter_categories and bool(q)
-    cursor_mode_active = cursor_requested and not cursor_has_advanced_filters and not generic_text_search
+    # The cursor RPC searches text fields but does not include the phone column.
+    # Route phone-like queries through the regular candidate path, which selects
+    # `phone` and normalizes its digits before matching.
+    query_phone_digits = re.sub(r"\\D", "", q)
+    phone_like_search = len(query_phone_digits) >= 6
+    cursor_mode_active = (
+        cursor_requested
+        and not cursor_has_advanced_filters
+        and not generic_text_search
+        and not phone_like_search
+    )
 
     if cursor_mode_active:
         raw_cursor_id = str(request.args.get("cursor_id", "")).strip()
@@ -11207,7 +11223,7 @@ def mini_app_listings():
 
     if not cursor_mode_active:
         params = {
-            "select":"id,title,description,price,currency,price_usd,address,metadata,channel_url,created_at,category_id,city_id,status",
+            "select":"id,title,description,price,currency,price_usd,address,metadata,phone,channel_url,created_at,category_id,city_id,status",
             "status":"eq.published",
             "expires_at": f"gt.{_utc_now_iso()}",
             "city_id":f"eq.{city_id}",
