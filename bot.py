@@ -10544,9 +10544,8 @@ def mini_app_update_listing(listing_id):
     metadata["price"] = raw_price
     metadata.pop("_telegram_id", None)
 
-    # Владелец уже проверен выше в _mini_app_owned_row().
-    # Поэтому при самом UPDATE не дублируем фильтр user_id: это
-    # делает запрос устойчивее к типам/ограничениям PostgREST.
+    # Повторно ограничиваем UPDATE владельцем на уровне БД.
+    # Это защита от гонок между проверкой владения и изменением записи.
     update_payload = {
         "description": description,
         "price": price,
@@ -10559,7 +10558,7 @@ def mini_app_update_listing(listing_id):
     updated = supabase_request(
         "PATCH",
         "listings",
-        params={"id":f"eq.{listing_id}"},
+        params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
         payload=update_payload,
     )
 
@@ -10572,7 +10571,7 @@ def mini_app_update_listing(listing_id):
         updated = supabase_request(
             "PATCH",
             "listings",
-            params={"id":f"eq.{listing_id}"},
+            params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
             payload=core_payload,
         )
 
@@ -10590,7 +10589,7 @@ def mini_app_update_listing(listing_id):
         metadata_result = supabase_request(
             "PATCH",
             "listings",
-            params={"id":f"eq.{listing_id}"},
+            params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
             payload={"metadata": metadata},
         )
         if metadata_result is None:
