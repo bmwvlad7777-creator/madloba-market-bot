@@ -12262,7 +12262,24 @@ def mini_app_media(listing_id, index):
     if not photo_ref:return "Not found",404
     try:
         if photo_ref.startswith("http://") or photo_ref.startswith("https://"):
-            upstream=requests.get(photo_ref,timeout=15)
+            # Treat photo_url as untrusted data: only fetch HTTPS URLs from the
+            # configured Supabase host. This prevents the media proxy from being
+            # used to request localhost, cloud metadata, or arbitrary internal URLs.
+            photo_url = urllib.parse.urlparse(photo_ref)
+            supabase_host = urllib.parse.urlparse(SUPABASE_URL).hostname
+            if (
+                photo_url.scheme != "https"
+                or not photo_url.hostname
+                or not supabase_host
+                or photo_url.hostname.lower() != supabase_host.lower()
+                or photo_url.username is not None
+                or photo_url.password is not None
+                or photo_url.port not in (None, 443)
+            ):
+                return "Not found", 404
+            upstream=requests.get(photo_ref,timeout=15,allow_redirects=False)
+            if 300 <= upstream.status_code < 400:
+                return "Not found",404
         else:
             file_info=api("getFile",{"file_id":photo_ref});result=file_info.get("result") if isinstance(file_info,dict) else None;file_path=result.get("file_path") if isinstance(result,dict) else None
             if not file_path:return "Not found",404
