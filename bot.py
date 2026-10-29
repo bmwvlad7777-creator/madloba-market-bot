@@ -11456,8 +11456,18 @@ def mini_app_listings():
     except ValueError:
         page, per_page = 0, 20
 
+    # City lookup and Telegram identity lookup are independent. Run the city
+    # lookup in the read executor while validating the current Telegram user.
+    # This overlaps network waits without changing listing or favorite semantics.
     _perf_phase_started = time.perf_counter()
-    city_id = _supabase_city_id(city)
+    city_future = LISTING_READ_EXECUTOR.submit(_supabase_city_id, city)
+    _perf_auth_started = time.perf_counter()
+    current_user = _mini_app_authenticated_user()
+    print(f"PERF listings_phase=telegram_auth ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} valid={int(bool(current_user))}")
+    _perf_user_started = time.perf_counter()
+    current_user_id = _supabase_user_id(current_user.get("id")) if current_user else None
+    print(f"PERF listings_phase=user_id_lookup ms={(time.perf_counter() - _perf_user_started) * 1000:.1f} found={int(bool(current_user_id))}")
+    city_id = city_future.result()
     print(f"PERF listings_phase=city_lookup ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f}")
     if not city_id:
         return jsonify({"items":[],"has_next":False,"total_hint":0})
@@ -12195,14 +12205,6 @@ def mini_app_listings():
     ) if rows else None
 
     favorite_ids = set()
-    _perf_auth_started = time.perf_counter()
-    current_user = _mini_app_authenticated_user()
-    print(f"PERF listings_phase=telegram_auth ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} valid={int(bool(current_user))}")
-    _perf_user_started = time.perf_counter()
-    current_user_id = None
-    if current_user and rows:
-        current_user_id = _supabase_user_id(current_user.get("id"))
-    print(f"PERF listings_phase=user_id_lookup ms={(time.perf_counter() - _perf_user_started) * 1000:.1f} found={int(bool(current_user_id))}")
     _perf_fav_started = time.perf_counter()
     if current_user_id and rows:
         listing_ids = [str(r.get("id")) for r in rows if r.get("id") is not None]
@@ -12218,7 +12220,7 @@ def mini_app_listings():
             ) or []
             favorite_ids = {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id", "")).isdigit()}
     print(f"PERF listings_phase=favorites_query ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} count={len(favorite_ids)}")
-    print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} rows={len(rows)}")
+    print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} rows={len(rows)}")
     _perf_phase_started = time.perf_counter()
     photo_rows = photo_future.result() if photo_future is not None else []
     photos_by_listing = {}
