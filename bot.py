@@ -12204,25 +12204,33 @@ def mini_app_listings():
         _supabase_photo_rows, [row.get("id") for row in rows]
     ) if rows else None
 
-    favorite_ids = set()
+    # Favorite lookup is independent from photo lookup. Run both at once so
+    # their network latency overlaps, while still waiting for both before the
+    # response is assembled (favorite flags remain accurate).
     _perf_fav_started = time.perf_counter()
-    if current_user_id and rows:
+    def _load_favorite_ids():
+        if not current_user_id or not rows:
+            return set()
         listing_ids = [str(r.get("id")) for r in rows if r.get("id") is not None]
-        if listing_ids:
-            fav_rows = supabase_request(
-                "GET",
-                "favorites",
-                params={
-                    "select":"listing_id",
-                    "user_id":f"eq.{current_user_id}",
-                    "listing_id":f"in.({','.join(listing_ids)})",
-                },
-            ) or []
-            favorite_ids = {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id", "")).isdigit()}
-    print(f"PERF listings_phase=favorites_query ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} count={len(favorite_ids)}")
-    print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} rows={len(rows)}")
+        if not listing_ids:
+            return set()
+        fav_rows = supabase_request(
+            "GET",
+            "favorites",
+            params={
+                "select":"listing_id",
+                "user_id":f"eq.{current_user_id}",
+                "listing_id":f"in.({','.join(listing_ids)})",
+            },
+        ) or []
+        return {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id", "")).isdigit()}
+
+    favorite_future = LISTING_READ_EXECUTOR.submit(_load_favorite_ids) if current_user_id and rows else None
     _perf_phase_started = time.perf_counter()
     photo_rows = photo_future.result() if photo_future is not None else []
+    favorite_ids = favorite_future.result() if favorite_future is not None else set()
+    print(f"PERF listings_phase=favorites_query ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} count={len(favorite_ids)}")
+    print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} rows={len(rows)}")
     photos_by_listing = {}
     for photo in photo_rows:
         listing_id = photo.get("listing_id")
