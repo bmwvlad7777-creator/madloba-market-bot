@@ -161,6 +161,10 @@ def supabase_request(method, path, params=None, payload=None):
     if method.upper() in {"POST", "PATCH", "DELETE"}:
         headers["Prefer"] = "return=representation"
 
+    # Diagnostic-only timing for the cursor RPC. This logs timings and response
+    # metadata only; it does not alter the request, payload, result, or error path.
+    _is_cursor_rpc = method.upper() == "POST" and path.lstrip("/") == "rpc/mm_search_cursor_listings"
+    _rpc_started = time.perf_counter() if _is_cursor_rpc else None
     try:
         response = HTTP_SESSION.request(
             method.upper(),
@@ -170,9 +174,20 @@ def supabase_request(method, path, params=None, payload=None):
             json=payload,
             timeout=(5, 20),
         )
+        _rpc_request_ms = (time.perf_counter() - _rpc_started) * 1000 if _is_cursor_rpc else None
         if not response.ok:
             global LAST_SUPABASE_ERROR
             LAST_SUPABASE_ERROR = f"HTTP {response.status_code}: {response.text[:700]}"
+            if _is_cursor_rpc:
+                print(
+                    "PERF supabase_rpc_transport"
+                    f" request_total_ms={_rpc_request_ms:.1f}"
+                    f" response_elapsed_ms={response.elapsed.total_seconds() * 1000:.1f}"
+                    f" status={response.status_code}"
+                    f" bytes={len(response.content)}"
+                    f" upstream_ms={response.headers.get('x-kong-upstream-latency', 'na')}"
+                    f" gateway_ms={response.headers.get('x-kong-proxy-latency', 'na')}"
+                )
             print(
                 "SUPABASE ERROR:",
                 response.status_code,
@@ -181,10 +196,29 @@ def supabase_request(method, path, params=None, payload=None):
             return None
 
         if not response.text:
+            if _is_cursor_rpc:
+                print(f"PERF supabase_rpc_transport request_total_ms={_rpc_request_ms:.1f} status={response.status_code} bytes=0 json_parse_ms=0.0")
             return []
 
-        return response.json()
+        _json_started = time.perf_counter() if _is_cursor_rpc else None
+        result = response.json()
+        if _is_cursor_rpc:
+            _json_parse_ms = (time.perf_counter() - _json_started) * 1000
+            print(
+                "PERF supabase_rpc_transport"
+                f" request_total_ms={_rpc_request_ms:.1f}"
+                f" response_elapsed_ms={response.elapsed.total_seconds() * 1000:.1f}"
+                f" json_parse_ms={_json_parse_ms:.1f}"
+                f" status={response.status_code}"
+                f" bytes={len(response.content)}"
+                f" upstream_ms={response.headers.get('x-kong-upstream-latency', 'na')}"
+                f" gateway_ms={response.headers.get('x-kong-proxy-latency', 'na')}"
+            )
+        return result
     except Exception as error:
+        if _is_cursor_rpc:
+            _rpc_elapsed_ms = (time.perf_counter() - _rpc_started) * 1000
+            print(f"PERF supabase_rpc_transport exception_total_ms={_rpc_elapsed_ms:.1f} error_type={type(error).__name__}")
         LAST_SUPABASE_ERROR = f"REQUEST ERROR: {repr(error)}"
         print("SUPABASE REQUEST ERROR:", repr(error))
         return None
