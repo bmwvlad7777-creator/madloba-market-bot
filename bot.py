@@ -12515,10 +12515,42 @@ def mini_app_listing_detail(listing_id):
 @app.get("/media/<int:listing_id>/<int:index>")
 def mini_app_media(listing_id, index):
     if index < 0 or index >= MAX_PHOTOS:return "Not found",404
-    published=supabase_request("GET","listings",params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","expires_at":f"gt.{_utc_now_iso()}","limit":"1"})
-    if not published:return "Not found",404
-    rows=supabase_request("GET","listing_photos",params={"select":"photo_url,sort_order","listing_id":f"eq.{listing_id}","order":"sort_order.asc"})
-    if rows is None or index >= len(rows):return "Not found",404
+
+    # Fetch publication/expiry state and the ordered photo list in one
+    # PostgREST request. The previous implementation made two database
+    # round trips for every card photo, adding latency when a page has 20 cards.
+    joined = supabase_request(
+        "GET", "listings",
+        params={
+            "select": "id,listing_photos(photo_url,sort_order)",
+            "id": f"eq.{listing_id}",
+            "status": "eq.published",
+            "expires_at": f"gt.{_utc_now_iso()}",
+            "limit": "1",
+        },
+    )
+    if joined is not None:
+        if not joined:
+            return "Not found", 404
+        rows = joined[0].get("listing_photos") or []
+        rows = sorted(rows, key=lambda row: row.get("sort_order") or 0)
+    else:
+        # Compatibility fallback if the project's PostgREST relationship
+        # metadata does not support embedding listing_photos in this query.
+        published = supabase_request(
+            "GET", "listings",
+            params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","expires_at":f"gt.{_utc_now_iso()}","limit":"1"},
+        )
+        if not published:
+            return "Not found", 404
+        rows = supabase_request(
+            "GET", "listing_photos",
+            params={"select":"photo_url,sort_order","listing_id":f"eq.{listing_id}","order":"sort_order.asc"},
+        )
+        if rows is None:
+            return "Not found", 404
+
+    if index >= len(rows):return "Not found",404
     photo_ref=str(rows[index].get("photo_url") or "")
     if not photo_ref:return "Not found",404
     try:
