@@ -11420,7 +11420,9 @@ def mini_app_listings():
     except ValueError:
         page, per_page = 0, 20
 
+    _perf_phase_started = time.perf_counter()
     city_id = _supabase_city_id(city)
+    print(f"PERF listings_phase=city_lookup ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f}")
     if not city_id:
         return jsonify({"items":[],"has_next":False,"total_hint":0})
 
@@ -11462,6 +11464,7 @@ def mini_app_listings():
                 cursor_id = None
         except (TypeError, ValueError):
             cursor_id = None
+        _perf_phase_started = time.perf_counter()
         cursor_rows = supabase_request(
             "POST",
             "rpc/mm_search_cursor_listings",
@@ -11474,6 +11477,7 @@ def mini_app_listings():
                 "p_limit": per_page + 1,
             },
         )
+        print(f"PERF listings_phase=cursor_rpc ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f} rows={len(cursor_rows) if isinstance(cursor_rows, list) else -1}")
         if cursor_rows is None:
             return jsonify({"items": [], "has_next": False, "total_hint": 0, "error": "cursor_search_unavailable"}), 503
         has_next = len(cursor_rows) > per_page
@@ -12147,6 +12151,7 @@ def mini_app_listings():
             has_next = len(rows) > per_page
             rows = rows[:per_page]
 
+    _perf_phase_started = time.perf_counter()
     favorite_ids = set()
     current_user = _mini_app_authenticated_user()
     if current_user and rows:
@@ -12164,7 +12169,10 @@ def mini_app_listings():
             ) or []
             favorite_ids = {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id","")).isdigit()}
 
+    print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f} rows={len(rows)}")
+    _perf_phase_started = time.perf_counter()
     items = _attach_catalog_photos(rows)
+    print(f"PERF listings_phase=attach_photos ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f} rows={len(rows)}")
     for item in items:
         item["is_favorite"] = int(item.get("id", 0)) in favorite_ids
     for idx, item in enumerate(items):
