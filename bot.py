@@ -5,6 +5,7 @@ import html
 import json
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 import hmac
 import hashlib
@@ -78,6 +79,10 @@ _HTTP_ADAPTER = HTTPAdapter(
     pool_block=False,
 )
 HTTP_SESSION.mount("https://", _HTTP_ADAPTER)
+
+# Small shared pool lets independent Mini App reads overlap without creating
+# a new thread pool for every request.
+LISTING_READ_EXECUTOR = ThreadPoolExecutor(max_workers=8)
 HTTP_SESSION.mount("http://", _HTTP_ADAPTER)
 
 # Состояния пользователей кэшируются в памяти и сохраняются в Supabase.
@@ -12182,6 +12187,13 @@ def mini_app_listings():
             has_next = len(rows) > per_page
             rows = rows[:per_page]
 
+    # Photos and favorite state are independent Supabase reads. Start the photo
+    # query now so it can run while Telegram authentication/favorites are checked.
+    _perf_photo_started = time.perf_counter()
+    photo_future = LISTING_READ_EXECUTOR.submit(
+        _supabase_photo_rows, [row.get("id") for row in rows]
+    ) if rows else None
+
     favorite_ids = set()
     _perf_auth_started = time.perf_counter()
     current_user = _mini_app_authenticated_user()
@@ -12208,7 +12220,18 @@ def mini_app_listings():
     print(f"PERF listings_phase=favorites_query ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} count={len(favorite_ids)}")
     print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} rows={len(rows)}")
     _perf_phase_started = time.perf_counter()
-    items = _attach_catalog_photos(rows)
+    photo_rows = photo_future.result() if photo_future is not None else []
+    photos_by_listing = {}
+    for photo in photo_rows:
+        listing_id = photo.get("listing_id")
+        photo_url = photo.get("photo_url")
+        if listing_id and photo_url:
+            photos_by_listing.setdefault(listing_id, []).append(photo_url)
+    items = []
+    for row in rows:
+        item = _row_to_listing(row)
+        item["photos"] = photos_by_listing.get(row.get("id"), [])
+        items.append(item)
     print(f"PERF listings_phase=attach_photos ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f} rows={len(rows)}")
     for item in items:
         item["is_favorite"] = int(item.get("id", 0)) in favorite_ids
