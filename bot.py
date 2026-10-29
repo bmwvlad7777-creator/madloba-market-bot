@@ -3441,7 +3441,13 @@ def moderation_keyboard(
     return [
         [
             {
-                "text": f"📷 ФОТОГРАФИИ ({photo_count}) · ПРОСМОТР / УДАЛЕНИЕ",
+                "text": "👁 ПОДРОБНОСТИ",
+                "callback_data": f"mod_more_{request_id}"
+            }
+        ],
+        [
+            {
+                "text": f"📷 ФОТО ({photo_count}) · ПРОСМОТР / УДАЛЕНИЕ",
                 "callback_data": f"mod_photos_{request_id}"
             }
         ],
@@ -3484,6 +3490,51 @@ def moderation_photos_keyboard(request_id, photos):
     return keyboard
 
 
+def moderation_anchor(item):
+    """Return the current reusable moderation card identifiers."""
+    if not isinstance(item, dict):
+        return None, None
+    return (item.get("queue_chat_id") or item.get("message_chat_id"),
+            item.get("queue_message_id") or item.get("message_id"))
+
+
+def edit_moderation_anchor(admin_chat_id, request_id, text, keyboard=None):
+    """Edit the same moderation card instead of adding another chat message."""
+    item = moderation_requests.get(request_id)
+    if not item:
+        return None
+    target_chat_id, target_message_id = moderation_anchor(item)
+    if target_chat_id and target_message_id:
+        result = edit_moderation_message(target_chat_id, target_message_id, text, keyboard)
+        if isinstance(result, dict) and result.get("ok"):
+            item["queue_chat_id"] = target_chat_id
+            item["queue_message_id"] = target_message_id
+            runtime_state_save(_runtime_key("moderation", request_id), item)
+            return result
+    result = send(admin_chat_id, text, keyboard)
+    if isinstance(result, dict) and result.get("ok"):
+        message = result.get("result") or {}
+        if message.get("message_id"):
+            item["queue_chat_id"] = admin_chat_id
+            item["queue_message_id"] = message["message_id"]
+            runtime_state_save(_runtime_key("moderation", request_id), item)
+    return result
+
+
+def cleanup_moderation_photo_preview(item):
+    """Delete previous photo preview messages to keep the admin chat tidy."""
+    if not isinstance(item, dict):
+        return
+    chat_id = item.get("photo_preview_chat_id") or item.get("queue_chat_id") or ADMIN_CHAT_ID
+    message_ids = item.pop("photo_preview_message_ids", []) or []
+    item.pop("photo_preview_chat_id", None)
+    for message_id in message_ids:
+        try:
+            api("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
+        except Exception as error:
+            print("MODERATION PHOTO PREVIEW CLEANUP ERROR:", repr(error))
+
+
 def show_moderation_photos(admin_chat_id, request_id):
     if not moderator_is_allowed(admin_chat_id):
         return
@@ -3491,36 +3542,52 @@ def show_moderation_photos(admin_chat_id, request_id):
     if not item or item.get("status", "pending") != "pending":
         send(admin_chat_id, "⚠️ Заявка уже обработана или недоступна.")
         return
+
+    cleanup_moderation_photo_preview(item)
     listing_data = item.get("data") if isinstance(item.get("data"), dict) else {}
     photos = list(listing_data.get("photos") or [])
     if not photos:
-        send(admin_chat_id, f"<b>📷 ФОТОГРАФИИ ЗАЯВКИ #{request_id}</b>\n\nВ объявлении фотографий нет.", [[{
-            "text": "⬅️ К объявлению", "callback_data": f"mod_back_{request_id}"
-        }]])
+        edit_moderation_anchor(
+            admin_chat_id, request_id,
+            f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\\nФотографий нет.",
+            [[{"text": "⬅️ К объявлению", "callback_data": f"mod_back_{request_id}"}]],
+        )
         return
 
-    # Send actual photo media to the moderator, not just the photo count.
     if len(photos) == 1:
         result = api("sendPhoto", {
-            "chat_id": admin_chat_id,
-            "photo": photos[0],
-            "caption": f"Фото 1/1 · Заявка #{request_id}"
+            "chat_id": admin_chat_id, "photo": photos[0],
+            "caption": f"Фото 1/1 · Заявка #{request_id}",
         })
+        media_messages = []
+        if isinstance(result, dict) and result.get("ok"):
+            message = result.get("result") or {}
+            if message.get("message_id"):
+                media_messages.append(message["message_id"])
     else:
         media = [{"type": "photo", "media": photo} for photo in photos[:MAX_PHOTOS]]
         result = api("sendMediaGroup", {"chat_id": admin_chat_id, "media": media})
+        media_messages = []
+        if isinstance(result, dict) and result.get("ok"):
+            media_messages = [
+                message["message_id"] for message in (result.get("result") or [])
+                if isinstance(message, dict) and message.get("message_id")
+            ]
 
     if not isinstance(result, dict) or not result.get("ok"):
         print("MODERATION PHOTO PREVIEW ERROR:", request_id, str(result)[:500])
-        send(admin_chat_id, "⚠️ Не удалось загрузить фотографии. Проверьте, что они доступны в Telegram.")
+        photo_text = f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\\n⚠️ Не удалось загрузить фотографии."
+    else:
+        item["photo_preview_chat_id"] = admin_chat_id
+        item["photo_preview_message_ids"] = media_messages
+        photo_text = (
+            f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\\n"
+            f"Фотографий: <b>{len(photos)}</b> · выберите фото для удаления."
+        )
 
-    send(
-        admin_chat_id,
-        f"<b>📷 ФОТОГРАФИИ ЗАЯВКИ #{request_id}</b>\n\n"
-        f"Всего фотографий: <b>{len(photos)}</b>. Нажмите кнопку под списком, чтобы удалить неподходящее фото.\n"
-        "Удаление применяется только к этой заявке, до публикации.",
-        moderation_photos_keyboard(request_id, photos)
-    )
+    runtime_state_save(_runtime_key("moderation", request_id), item)
+    edit_moderation_anchor(admin_chat_id, request_id, photo_text,
+                           moderation_photos_keyboard(request_id, photos))
 
 
 def moderation_edit_menu(request_id):
@@ -4147,38 +4214,70 @@ def moderation_control_text(request_id):
     item = moderation_requests.get(request_id)
     if not item:
         return None
-    user_chat_id = item["user_chat_id"]
+    user_chat_id = item.get("user_chat_id", "")
     data = item.get("data")
     if not isinstance(data, dict):
-        # Compatibility with requests created before snapshot support.
         if user_chat_id not in states:
             return None
         data = states[user_chat_id].get("data", {})
         item["data"] = json.loads(json.dumps(data, ensure_ascii=False))
+
+    category = esc(data.get("category") or data.get("category_key") or "Объявление")
+    listing_type = esc(data.get("type") or "")
+    title = esc(make_title(data) or data.get("title") or "Без заголовка")
+    price = price_text(data) or "Цена не указана"
+    district = esc(data.get("district") or "Локация не указана")
+    photos_count = len(data.get("photos") or [])
+
+    details = []
+    for key, label in category_fields(data):
+        value = (data.get("details") or {}).get(key)
+        if value:
+            details.append(f"{esc(label)}: <b>{esc(display_detail_value(key, value))}</b>")
+        if len(details) >= 3:
+            break
+    details_line = " · ".join(details)
+
+    lines = [
+        f"<b>🛡 ЗАЯВКА #{request_id} · ОЖИДАЕТ</b>",
+        f"{category}" + (f" · {listing_type}" if listing_type else ""),
+        f"<b>{title}</b>",
+        f"💰 {price}",
+        f"📍 {district}",
+    ]
+    if details_line:
+        lines.append(details_line)
+    lines.extend([
+        f"📷 Фотографий: <b>{photos_count}</b>",
+        f"👤 Автор: <code>{esc(user_chat_id)}</code>",
+    ])
+    return "\n".join(lines)
+
+
+def moderation_full_details_text(request_id):
+    item = moderation_requests.get(request_id)
+    if not item or not isinstance(item.get("data"), dict):
+        return None
     return (
-        "<b>🛡 ОБЪЯВЛЕНИЕ НА МОДЕРАЦИИ</b>\n\n"
-        f"👤 ID автора: <code>{user_chat_id}</code>\n"
-        f"🔢 Заявка: <code>#{request_id}</code>\n\n"
-        f"{build_listing(data)}\n\n"
-        f"📷 Фотографий: <b>{len(data.get('photos') or [])}</b>\n\n"
-        "Выберите действие:"
+        f"<b>👁 ПОДРОБНОСТИ · ЗАЯВКА #{request_id}</b>\n\n"
+        f"{build_listing(item['data'])}"
     )
 
 
 def show_moderation_editor(admin_chat_id, request_id):
     if not moderator_is_allowed(admin_chat_id):
         return
-    # Hydrate legacy request snapshots from persisted user state if possible.
     moderation_control_text(request_id)
     item = moderation_requests.get(request_id)
     if not item or item.get("status", "pending") != "pending" or not isinstance(item.get("data"), dict):
         send(admin_chat_id, "⚠️ Заявка уже обработана или недоступна.")
         return
+    cleanup_moderation_photo_preview(item)
     moderator_sessions[admin_chat_id] = {"request_id": request_id, "step": "menu"}
-    send(
-        admin_chat_id,
-        "<b>✏️ РЕДАКТИРОВАНИЕ ОБЪЯВЛЕНИЯ</b>\n\nВыберите, что нужно исправить:",
-        moderation_edit_menu(request_id)
+    edit_moderation_anchor(
+        admin_chat_id, request_id,
+        f"<b>✏️ РЕДАКТИРОВАНИЕ · ЗАЯВКА #{request_id}</b>\\nВыберите поле:",
+        moderation_edit_menu(request_id),
     )
 
 
@@ -4298,7 +4397,6 @@ def process_moderator_text(admin_chat_id, text):
 
     moderator_sessions.pop(admin_chat_id, None)
     runtime_state_save(_runtime_key("moderation", request_id), item)
-    send(admin_chat_id, "✅ <b>Изменение сохранено.</b>\n\nПроверьте объявление ещё раз.")
     show_updated_moderation(admin_chat_id, request_id)
     return True
 
@@ -5519,6 +5617,26 @@ def _handle_update_core(
             send(callback_from_id, "Заявка загружена, но данные объявления недоступны.")
         return
 
+    if data.startswith("mod_more_"):
+        try:
+            request_id = int(data[len("mod_more_"):])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер заявки.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        text = moderation_full_details_text(request_id)
+        if not text:
+            answer(callback["id"], "Заявка уже обработана или недоступна.", True)
+            return
+        answer(callback["id"])
+        edit_moderation_anchor(
+            callback_from_id, request_id, text,
+            [[{"text": "⬅️ К заявке", "callback_data": f"mod_back_{request_id}"}]],
+        )
+        return
+
     if data.startswith("mod_photos_"):
         try:
             request_id = int(data[len("mod_photos_"):])
@@ -5562,7 +5680,6 @@ def _handle_update_core(
         saved = runtime_state_save(_runtime_key("moderation", request_id), item)
         answer(callback["id"], "Фото удалено." if saved else "Фото удалено в текущей сессии; сохранение в базе не подтверждено.", not saved)
         show_moderation_photos(callback_from_id, request_id)
-        show_updated_moderation(callback_from_id, request_id)
         return
 
     if data.startswith("mod_queue_return_"):
@@ -5601,10 +5718,11 @@ def _handle_update_core(
             answer(callback["id"], "⛔ У вас нет прав администратора.", True)
             return
         moderator_sessions.pop(callback_from_id, None)
+        item = moderation_requests.get(request_id)
+        if item:
+            cleanup_moderation_photo_preview(item)
         answer(callback["id"])
-        text = moderation_control_text(request_id)
-        if text:
-            send(callback_from_id, text, moderation_keyboard(request_id))
+        show_updated_moderation(callback_from_id, request_id)
         return
 
 
@@ -5636,7 +5754,11 @@ def _handle_update_core(
             return
         moderator_sessions[callback_from_id] = {"request_id": request_id, "step": field}
         answer(callback["id"])
-        send(callback_from_id, prompts[field])
+        edit_moderation_anchor(
+            callback_from_id, request_id,
+            prompts[field] + "\n\nОтправьте новое значение сообщением.",
+            [[{"text": "⬅️ К объявлению", "callback_data": f"mod_back_{request_id}"}]],
+        )
         return
 
 
@@ -5655,9 +5777,9 @@ def _handle_update_core(
             return
         moderator_sessions[callback_from_id] = {"request_id": request_id, "step": "details_menu"}
         answer(callback["id"])
-        send(
-            callback_from_id,
-            "<b>📋 Характеристики</b>\n\nЧто изменить?",
+        edit_moderation_anchor(
+            callback_from_id, request_id,
+            f"<b>📋 ХАРАКТЕРИСТИКИ · ЗАЯВКА #{request_id}</b>\\nВыберите поле:",
             moderation_detail_menu(request_id, item["data"])
         )
         return
@@ -5688,7 +5810,12 @@ def _handle_update_core(
             return
         moderator_sessions[callback_from_id] = {"request_id": request_id, "step": f"detail_{index}"}
         answer(callback["id"])
-        send(callback_from_id, f"<b>{esc(fields[index][1])}</b>\n\nВведите новое значение.")
+        edit_moderation_anchor(
+            callback_from_id, request_id,
+            f"<b>{esc(fields[index][1])}</b>\\nВведите новое значение сообщением.",
+            [[{"text": "⬅️ Назад", "callback_data": f"mod_details_{request_id}"}],
+             [{"text": "❌ К заявке", "callback_data": f"mod_back_{request_id}"}]],
+        )
         return
 
 
