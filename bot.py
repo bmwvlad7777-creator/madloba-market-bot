@@ -11405,6 +11405,7 @@ def mini_app_auto_options():
 
 @app.get("/api/listings")
 def mini_app_listings():
+    _perf_started = time.perf_counter()
     if not supabase_enabled():
         return jsonify({"items":[],"has_next":False,"total_hint":0})
 
@@ -12177,13 +12178,17 @@ def mini_app_listings():
         _strip_public_listing_fields(item)
         _strip_listing_contact_fields(item)
 
-    return jsonify({
+    _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+    print(f"PERF listings_api ms={_perf_elapsed_ms:.1f} items={len(items)} city={city} category={category or 'all'} cursor={int(cursor_mode_active)}")
+    response = jsonify({
         "items":items,
         "has_next":has_next,
         "total_hint":per_page * (page + 1) + (1 if has_next else 0),
         "cursor_mode": cursor_mode_active,
         "next_cursor_id": next_cursor_id,
     })
+    response.headers["Server-Timing"] = f"app;dur={_perf_elapsed_ms:.1f}"
+    return response
 
 
 # ============================================================
@@ -12514,6 +12519,7 @@ def mini_app_listing_detail(listing_id):
 
 @app.get("/media/<int:listing_id>/<int:index>")
 def mini_app_media(listing_id, index):
+    _perf_started = time.perf_counter()
     if index < 0 or index >= MAX_PHOTOS:return "Not found",404
 
     # Fetch publication/expiry state and the ordered photo list in one
@@ -12578,7 +12584,9 @@ def mini_app_media(listing_id, index):
             if not file_path:return "Not found",404
             upstream=requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=20)
         if not upstream.ok:return "Not found",404
-        return Response(upstream.content,content_type=upstream.headers.get("Content-Type","image/jpeg"),headers={"Cache-Control":"public, max-age=86400","X-Content-Type-Options":"nosniff"})
+        _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+        print(f"PERF media ms={_perf_elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(upstream.content)}")
+        return Response(upstream.content,content_type=upstream.headers.get("Content-Type","image/jpeg"),headers={"Cache-Control":"public, max-age=86400","X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"})
     except Exception as error:
         print("MEDIA ERROR:",repr(error));return "Media unavailable",503
 
