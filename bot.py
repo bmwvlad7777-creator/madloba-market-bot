@@ -582,7 +582,20 @@ def _price_number(value):
         return None
 
 
+# City IDs are stable reference data. Cache only successful lookups so a
+# temporary Supabase failure never gets cached as a missing city.
+_SUPABASE_CITY_ID_CACHE = {}
+_SUPABASE_USER_ID_CACHE = {}
+_SUPABASE_ID_CACHE_LOCK = threading.Lock()
+
+
 def _supabase_city_id(slug_value):
+    slug_value = str(slug_value or "").strip().lower()
+    with _SUPABASE_ID_CACHE_LOCK:
+        cached_id = _SUPABASE_CITY_ID_CACHE.get(slug_value)
+    if cached_id is not None:
+        return cached_id
+
     rows = supabase_request(
         "GET",
         "cities",
@@ -592,7 +605,11 @@ def _supabase_city_id(slug_value):
             "limit": "1",
         },
     )
-    return rows[0]["id"] if rows else None
+    city_id = rows[0]["id"] if rows else None
+    if city_id is not None:
+        with _SUPABASE_ID_CACHE_LOCK:
+            _SUPABASE_CITY_ID_CACHE[slug_value] = city_id
+    return city_id
 
 
 def _supabase_category_id(category_key):
@@ -633,6 +650,10 @@ def _supabase_user_id(telegram_id):
         return None
 
     telegram_id = int(telegram_id)
+    with _SUPABASE_ID_CACHE_LOCK:
+        cached_id = _SUPABASE_USER_ID_CACHE.get(telegram_id)
+    if cached_id is not None:
+        return cached_id
 
     existing = supabase_request(
         "GET",
@@ -644,7 +665,10 @@ def _supabase_user_id(telegram_id):
         },
     )
     if existing:
-        return existing[0]["id"]
+        user_id = existing[0]["id"]
+        with _SUPABASE_ID_CACHE_LOCK:
+            _SUPABASE_USER_ID_CACHE[telegram_id] = user_id
+        return user_id
 
     created = supabase_request(
         "POST",
@@ -652,7 +676,10 @@ def _supabase_user_id(telegram_id):
         payload={"telegram_id": telegram_id},
     )
     if created:
-        return created[0]["id"]
+        user_id = created[0]["id"]
+        with _SUPABASE_ID_CACHE_LOCK:
+            _SUPABASE_USER_ID_CACHE[telegram_id] = user_id
+        return user_id
 
     # Race condition / повторная попытка.
     existing = supabase_request(
@@ -664,7 +691,11 @@ def _supabase_user_id(telegram_id):
             "limit": "1",
         },
     )
-    return existing[0]["id"] if existing else None
+    user_id = existing[0]["id"] if existing else None
+    if user_id is not None:
+        with _SUPABASE_ID_CACHE_LOCK:
+            _SUPABASE_USER_ID_CACHE[telegram_id] = user_id
+    return user_id
 
 
 def _strip_public_listing_fields(item):
