@@ -3434,8 +3434,17 @@ def preview_keyboard():
 def moderation_keyboard(
     request_id
 ):
+    item = moderation_requests.get(request_id) or {}
+    listing_data = item.get("data") if isinstance(item.get("data"), dict) else {}
+    photo_count = len(listing_data.get("photos") or [])
 
     return [
+        [
+            {
+                "text": f"📷 ФОТОГРАФИИ ({photo_count}) · ПРОСМОТР / УДАЛЕНИЕ",
+                "callback_data": f"mod_photos_{request_id}"
+            }
+        ],
         [
             {
                 "text": "✏️ РЕДАКТИРОВАТЬ",
@@ -3455,6 +3464,63 @@ def moderation_keyboard(
             }
         ]
     ]
+
+
+def moderation_photos_keyboard(request_id, photos):
+    keyboard = []
+    for index in range(len(photos)):
+        keyboard.append([{
+            "text": f"🗑 Удалить фото {index + 1}",
+            "callback_data": f"mod_photo_delete_{request_id}_{index}"
+        }])
+    keyboard.append([{
+        "text": "🔄 Обновить фотографии",
+        "callback_data": f"mod_photos_{request_id}"
+    }])
+    keyboard.append([{
+        "text": "⬅️ К объявлению",
+        "callback_data": f"mod_back_{request_id}"
+    }])
+    return keyboard
+
+
+def show_moderation_photos(admin_chat_id, request_id):
+    if not moderator_is_allowed(admin_chat_id):
+        return
+    item = moderation_requests.get(request_id)
+    if not item or item.get("status", "pending") != "pending":
+        send(admin_chat_id, "⚠️ Заявка уже обработана или недоступна.")
+        return
+    listing_data = item.get("data") if isinstance(item.get("data"), dict) else {}
+    photos = list(listing_data.get("photos") or [])
+    if not photos:
+        send(admin_chat_id, f"<b>📷 ФОТОГРАФИИ ЗАЯВКИ #{request_id}</b>\n\nВ объявлении фотографий нет.", [[{
+            "text": "⬅️ К объявлению", "callback_data": f"mod_back_{request_id}"
+        }]])
+        return
+
+    # Send actual photo media to the moderator, not just the photo count.
+    if len(photos) == 1:
+        result = api("sendPhoto", {
+            "chat_id": admin_chat_id,
+            "photo": photos[0],
+            "caption": f"Фото 1/1 · Заявка #{request_id}"
+        })
+    else:
+        media = [{"type": "photo", "media": photo} for photo in photos[:MAX_PHOTOS]]
+        result = api("sendMediaGroup", {"chat_id": admin_chat_id, "media": media})
+
+    if not isinstance(result, dict) or not result.get("ok"):
+        print("MODERATION PHOTO PREVIEW ERROR:", request_id, str(result)[:500])
+        send(admin_chat_id, "⚠️ Не удалось загрузить фотографии. Проверьте, что они доступны в Telegram.")
+
+    send(
+        admin_chat_id,
+        f"<b>📷 ФОТОГРАФИИ ЗАЯВКИ #{request_id}</b>\n\n"
+        f"Всего фотографий: <b>{len(photos)}</b>. Нажмите кнопку под списком, чтобы удалить неподходящее фото.\n"
+        "Удаление применяется только к этой заявке, до публикации.",
+        moderation_photos_keyboard(request_id, photos)
+    )
 
 
 def moderation_edit_menu(request_id):
@@ -5451,6 +5517,52 @@ def _handle_update_core(
             edit_moderation_message(callback_from_id, item.get("queue_message_id"), text, keyboard)
         else:
             send(callback_from_id, "Заявка загружена, но данные объявления недоступны.")
+        return
+
+    if data.startswith("mod_photos_"):
+        try:
+            request_id = int(data[len("mod_photos_"):])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер заявки.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        answer(callback["id"])
+        show_moderation_photos(callback_from_id, request_id)
+        return
+
+    if data.startswith("mod_photo_delete_"):
+        parts = data.split("_")
+        if len(parts) != 5:
+            answer(callback["id"], "Некорректная команда.", True)
+            return
+        try:
+            request_id = int(parts[3])
+            photo_index = int(parts[4])
+        except ValueError:
+            answer(callback["id"], "Некорректный номер фотографии.", True)
+            return
+        if not moderator_is_allowed(callback_from_id):
+            answer(callback["id"], "⛔ У вас нет прав администратора.", True)
+            return
+        item = moderation_requests.get(request_id)
+        if not item or item.get("status", "pending") != "pending":
+            answer(callback["id"], "Заявка уже обработана или недоступна.", True)
+            return
+        listing_data = item.get("data") if isinstance(item.get("data"), dict) else {}
+        photos = list(listing_data.get("photos") or [])
+        if photo_index < 0 or photo_index >= len(photos):
+            answer(callback["id"], "Эта фотография уже удалена или недоступна.", True)
+            return
+        photos.pop(photo_index)
+        listing_data["photos"] = photos
+        item["data"] = listing_data
+        moderation_requests[request_id] = item
+        saved = runtime_state_save(_runtime_key("moderation", request_id), item)
+        answer(callback["id"], "Фото удалено." if saved else "Фото удалено в текущей сессии; сохранение в базе не подтверждено.", not saved)
+        show_moderation_photos(callback_from_id, request_id)
+        show_updated_moderation(callback_from_id, request_id)
         return
 
     if data.startswith("mod_queue_return_"):
