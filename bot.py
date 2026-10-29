@@ -12151,13 +12151,19 @@ def mini_app_listings():
             has_next = len(rows) > per_page
             rows = rows[:per_page]
 
-    _perf_phase_started = time.perf_counter()
     favorite_ids = set()
+    _perf_auth_started = time.perf_counter()
     current_user = _mini_app_authenticated_user()
+    print(f"PERF listings_phase=telegram_auth ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} valid={int(bool(current_user))}")
+    _perf_user_started = time.perf_counter()
+    current_user_id = None
     if current_user and rows:
         current_user_id = _supabase_user_id(current_user.get("id"))
+    print(f"PERF listings_phase=user_id_lookup ms={(time.perf_counter() - _perf_user_started) * 1000:.1f} found={int(bool(current_user_id))}")
+    _perf_fav_started = time.perf_counter()
+    if current_user_id and rows:
         listing_ids = [str(r.get("id")) for r in rows if r.get("id") is not None]
-        if current_user_id and listing_ids:
+        if listing_ids:
             fav_rows = supabase_request(
                 "GET",
                 "favorites",
@@ -12167,9 +12173,9 @@ def mini_app_listings():
                     "listing_id":f"in.({','.join(listing_ids)})",
                 },
             ) or []
-            favorite_ids = {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id","")).isdigit()}
-
-    print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f} rows={len(rows)}")
+            favorite_ids = {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id", "")).isdigit()}
+    print(f"PERF listings_phase=favorites_query ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} count={len(favorite_ids)}")
+    print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} rows={len(rows)}")
     _perf_phase_started = time.perf_counter()
     items = _attach_catalog_photos(rows)
     print(f"PERF listings_phase=attach_photos ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f} rows={len(rows)}")
