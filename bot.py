@@ -10036,6 +10036,64 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   #list .card .photo{flex-basis:105px!important;height:105px!important;min-height:105px!important;max-height:105px!important}
 }
 </style>
+
+<style id="madloba-empty-state-and-city-label-fix">
+/* Empty states: centered, compact, and without a large white card. */
+#bestRow .best-empty,
+#list > .empty {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  margin:0 auto !important;
+  padding:24px 18px !important;
+  text-align:center !important;
+  white-space:normal !important;
+  line-height:1.45 !important;
+  color:#7b8798 !important;
+  background:transparent !important;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+#bestRow .best-empty {
+  min-height:112px !important;
+  max-width:100% !important;
+}
+#list > .empty {
+  min-height:150px !important;
+  max-width:100% !important;
+}
+/* The location icon and the listing's own city stay on one clear line. */
+#list .card .loc,
+#favoritesList .card .loc,
+#bestRow .best-card .best-loc {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:6px !important;
+  height:auto !important;
+  min-height:18px !important;
+  max-height:none !important;
+  overflow:visible !important;
+  white-space:nowrap !important;
+  line-height:18px !important;
+  font-size:12px !important;
+  color:#718096 !important;
+}
+#list .card .loc span,
+#favoritesList .card .loc span,
+#bestRow .best-card .best-loc > span {
+  display:inline-block !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  color:#718096 !important;
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><div class="quick-actions" aria-label="Категории">
@@ -10280,7 +10338,40 @@ function cardDisplayTitle(rawTitle,rawCategory){
  }
  return meaningful.join(' · ');
 }
-function cardLocation(x){/* Show only the city selected for this listing; the full address is reserved for the detail view. */const raw=(x&&(x.city_name||x.city||x.city_slug))||'';const city=String(raw).trim().toLowerCase();if(!city)return '';if(cityNames[city])return cityNames[city][state.lang]||cityNames[city].en;const words=city.replace(/[_-]+/g,' ').split(/\s+/).filter(Boolean);return words.map(word=>word.charAt(0).toLocaleUpperCase()+word.slice(1)).join(' ')}
+function cardLocation(x){
+  // On cards show only the city entered for this listing; never show the full address here.
+  if(!x||typeof x!=='object')return '';
+  const candidates=[
+    x.city_name,x.city,x.city_slug,x.city_key,x.location_city,
+    x.details&&x.details.city,x.details&&x.details.city_name,
+    x.fields&&x.fields.city,x.fields&&x.fields.city_name
+  ];
+  let raw=candidates.find(v=>v!==undefined&&v!==null&&String(v).trim()!=='');
+  if(raw===undefined)return '';
+  // Some API versions return a nested city object.
+  if(typeof raw==='object')raw=raw.name||raw.title||raw.slug||raw.value||'';
+  let city=String(raw).trim();
+  if(!city)return '';
+  const key=city.toLocaleLowerCase().replace(/[\s_-]+/g,'');
+  const known={
+    batumi:{ru:'Батуми',en:'Batumi',ka:'ბათუმი'},
+    tbilisi:{ru:'Тбилиси',en:'Tbilisi',ka:'თბილისი'},
+    kutaisi:{ru:'Кутаиси',en:'Kutaisi',ka:'ქუთაისი'},
+    rustavi:{ru:'Рустави',en:'Rustavi',ka:'რუსთავი'},
+    zugdidi:{ru:'Зугдиди',en:'Zugdidi',ka:'ზუგდიდი'},
+    gori:{ru:'Гори',en:'Gori',ka:'გორი'},
+    poti:{ru:'Поти',en:'Poti',ka:'ფოთი'},
+    kobuleti:{ru:'Кобулети',en:'Kobuleti',ka:'ქობულეთი'},
+    senaki:{ru:'Сенаки',en:'Senaki',ka:'სენაკი'},
+    ozurgeti:{ru:'Озургети',en:'Ozurgeti',ka:'ოზურგეთი'},
+    telavi:{ru:'Телави',en:'Telavi',ka:'თელავი'},
+    akhaltsikhe:{ru:'Ахалцихе',en:'Akhaltsikhe',ka:'ახალციხე'}
+  };
+  if(known[key])return known[key][state.lang]||known[key].en;
+  if(cityNames[key])return cityNames[key][state.lang]||cityNames[key].en;
+  // Preserve user-provided city names, only tidy separators/capitalization.
+  return city.replace(/[_-]+/g,' ').replace(/\s+/g,' ').replace(/(^|\s)\p{L}/gu,m=>m.toLocaleUpperCase());
+}
 function cardText(x){const category=String(x.category_name||x.category||'');const rawTitle=cardDisplayTitle(x.title||x.name||'',category);const description=String(x.description||'').trim();const title=rawTitle||description;const subtitle=rawTitle&&description&&rawTitle.toLocaleLowerCase()!==description.toLocaleLowerCase()?description:'';return {title,subtitle,location:cardLocation(x)}}
 function card(x){const photo=(x.photos||[])[0];const text=cardText(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody">${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${text.title?`<div class="listing-name">${esc(localizeListingText(text.title))}</div>`:''}${text.subtitle?`<div class="listing-subtitle">${esc(localizeListingText(text.subtitle))}</div>`:''}<div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div>${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:''}</div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
