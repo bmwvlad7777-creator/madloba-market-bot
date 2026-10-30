@@ -9622,29 +9622,59 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
  #detailView #detailContent .detail-spec-label{font-size:10px!important;}
  #detailView #detailContent .detail-price{font-size:29px!important;}
 }
-/* Focused final polish for listing detail only. */
+/* Focused final polish for listing detail only: compact back button, truly centered heading. */
 #detailView .detail-top{
-  padding-top:48px!important;
-  margin-top:0!important;
+  position:relative!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+  min-height:104px!important;
+  padding-top:57px!important;
+  margin:0 0 14px!important;
+  box-sizing:border-box!important;
   scroll-margin-top:calc(48px + var(--tg-content-safe-area-inset-top,0px));
 }
 #detailView .detail-top .detail-back{
-  flex:0 0 auto;
-  min-height:46px;
-  padding:10px 14px!important;
-  border-radius:15px!important;
-  box-shadow:0 2px 8px rgba(31,55,88,.04);
+  position:relative!important;
+  z-index:1!important;
+  flex:0 0 auto!important;
+  min-height:38px!important;
+  padding:7px 10px!important;
+  margin-top:5px!important;
+  border-radius:13px!important;
+  font-size:14px!important;
+  line-height:1.2!important;
+  box-shadow:0 2px 8px rgba(31,55,88,.04)!important;
+  white-space:nowrap!important;
 }
-#detailView .detail-top .section-head{min-width:0;}
-#detailView .detail-top .section-head h2{line-height:1.12!important;}
+#detailView .detail-top .section-head{
+  position:absolute!important;
+  left:50%!important;
+  top:57px!important;
+  transform:translateX(-50%)!important;
+  display:block!important;
+  width:max-content!important;
+  max-width:calc(100% - 145px)!important;
+  min-width:0!important;
+  margin:0!important;
+  text-align:center!important;
+}
+#detailView .detail-top .section-head h2{
+  margin:0!important;
+  line-height:1.12!important;
+  font-size:clamp(22px,5.2vw,28px)!important;
+  white-space:nowrap!important;
+}
 #detailView #detailContent .detail-spec-value{
   display:block;
   min-height:1.2em;
   font-variant-numeric:tabular-nums;
 }
 @media(max-width:390px){
-  #detailView .detail-top{padding-top:52px!important;gap:9px!important;}
-  #detailView .detail-top .section-head h2{font-size:24px!important;}
+  #detailView .detail-top{min-height:102px!important;padding-top:57px!important;}
+  #detailView .detail-top .detail-back{min-height:36px!important;padding:7px 9px!important;font-size:13px!important;}
+  #detailView .detail-top .section-head{top:57px!important;max-width:calc(100% - 132px)!important;}
+  #detailView .detail-top .section-head h2{font-size:23px!important;}
 }
 
 /* Madloba Market: compact, swipeable category rail. Keep all existing category buttons and handlers. */
