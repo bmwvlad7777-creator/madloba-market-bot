@@ -738,8 +738,8 @@ def _supabase_user_id(telegram_id):
 
 
 def _strip_public_listing_fields(item):
-    """Remove internal lifecycle and Telegram message identifiers from public listing responses."""
-    for key in ("status", "published_at", "expires_at", "reminder_sent_at", "channel_message_id"):
+    """Remove private lifecycle fields while retaining the public publication timestamp for cards."""
+    for key in ("status", "expires_at", "reminder_sent_at", "channel_message_id"):
         item.pop(key, None)
     item.pop("legacy_id", None)
     return item
@@ -761,6 +761,9 @@ def _row_to_listing(row):
     # Internal migration identifier is stored for compatibility, but is not part of the public API.
     item.pop("legacy_id", None)
     item["id"] = row.get("id", item.get("id"))
+    # The normalized database title is the canonical generated product/property name.
+    # Keep it available to catalog cards even when older metadata has no separate title.
+    item["title"] = row.get("title") or item.get("title") or ""
     item["status"] = row.get("status", "published")
     item["published_at"] = row.get("published_at")
     item["expires_at"] = row.get("expires_at")
@@ -10120,6 +10123,29 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   white-space:normal !important;
 }
 #bestRow > .best-empty br { display:block !important; }
+
+<style id="madloba-unified-listing-cards-v3">
+/* One consistent card system for Popular and Fresh listings. */
+#bestRow.best-row,#list.list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;overflow:visible!important;padding:0 2px 5px!important;align-items:stretch!important}
+#bestRow .best-card,#list .card{position:relative!important;display:flex!important;flex-direction:column!important;min-width:0!important;width:100%!important;max-width:100%!important;overflow:hidden!important;border:1px solid #e6edf6!important;border-radius:18px!important;background:#fff!important;box-shadow:0 5px 16px rgba(24,48,80,.07)!important}
+#bestRow .best-photo,#list .card .photo{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:112px!important;min-height:112px!important;max-height:112px!important;overflow:hidden!important;margin:0!important;background:#f2f5fa!important;border-radius:0!important}
+#bestRow .best-photo img,#list .card .photo img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important}
+#bestRow .best-body,#list .card .cardbody{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0!important;min-width:0!important;padding:9px 10px 10px!important;overflow:hidden!important}
+#bestRow .card-kickers,#list .card-kickers{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:5px!important;width:100%!important;min-width:0!important;margin:0 0 6px!important}
+#bestRow .deal-badge,#list .deal-badge{display:inline-flex!important;align-items:center!important;justify-content:center!important;max-width:100%!important;min-height:22px!important;padding:4px 8px!important;border-radius:999px!important;color:#fff!important;font-size:9px!important;font-weight:900!important;line-height:1!important;letter-spacing:.2px!important;white-space:nowrap!important}
+.deal-sell{background:#ef5360!important}.deal-buy{background:#287be8!important}.deal-rent{background:#20ad68!important}.deal-seek{background:#e6a51a!important;color:#172033!important}.deal-give{background:#8b5cf6!important}.deal-offer{background:#7652d5!important}
+#bestRow .best-tag,#list .card .tag{display:inline-flex!important;align-items:center!important;min-height:22px!important;max-width:100%!important;margin:0!important;padding:4px 8px!important;border:0!important;border-radius:999px!important;background:#edf5ff!important;color:#176fc9!important;font-size:9px!important;font-weight:800!important;line-height:1.1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#bestRow .best-price,#list .card .price{display:block!important;margin:0 0 4px!important;color:#111827!important;font-size:18px!important;font-weight:950!important;line-height:1.12!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#bestRow .best-title,#list .card .listing-name{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2!important;width:100%!important;min-height:0!important;max-height:34px!important;margin:0 0 4px!important;overflow:hidden!important;color:#172033!important;font-size:13px!important;font-weight:850!important;line-height:1.25!important;overflow-wrap:anywhere!important}
+#bestRow .best-subtitle,#list .card .listing-subtitle{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2!important;min-height:0!important;max-height:32px!important;width:100%!important;margin:0 0 7px!important;overflow:hidden!important;color:#68758a!important;font-size:11px!important;font-weight:500!important;line-height:1.35!important;overflow-wrap:anywhere!important}
+#bestRow .card-meta,#list .card-meta{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:5px!important;width:100%!important;min-width:0!important;margin-top:auto!important;padding-top:3px!important}
+#bestRow .best-loc,#list .card .loc{display:flex!important;align-items:center!important;gap:4px!important;flex:1 1 auto!important;min-width:0!important;width:auto!important;height:16px!important;min-height:16px!important;max-height:16px!important;margin:0!important;padding:0!important;overflow:hidden!important;color:#718096!important;font-size:10px!important;line-height:16px!important;white-space:nowrap!important}
+#bestRow .best-loc svg,#list .card .loc svg{display:block!important;flex:0 0 13px!important;width:13px!important;height:13px!important;min-width:13px!important;fill:none!important;stroke:#2786f5!important;stroke-width:2!important}
+#bestRow .best-loc span,#list .card .loc span{display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+#bestRow .card-time,#list .card-time{display:inline-flex!important;align-items:center!important;flex:0 0 auto!important;max-width:48%!important;margin:0!important;padding:0!important;color:#8994a5!important;font-size:9px!important;font-weight:600!important;line-height:16px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#bestRow .best-card .fav-btn,#list .card .fav-btn{top:8px!important;right:8px!important;width:32px!important;height:32px!important}
+@media(max-width:390px){#bestRow.best-row,#list.list{gap:8px!important}#bestRow .best-photo,#list .card .photo{height:100px!important;min-height:100px!important;max-height:100px!important}#bestRow .best-body,#list .card .cardbody{padding:8px 8px 9px!important}}
+</style>
 </style>
 </head>
 <body>
@@ -10399,10 +10425,37 @@ function cardLocation(x){
   // Preserve user-provided city names, only tidy separators/capitalization.
   return city.replace(/[_-]+/g,' ').replace(/\s+/g,' ').replace(/(^|\s)\p{L}/gu,m=>m.toLocaleUpperCase());
 }
+function cardDealLabel(x){
+ const raw=String(x?.type_key||x?.deal_type||x?.listing_type||x?.type||'').trim();
+ const normalized=raw.toLowerCase().replace(/[🔑🔎🏡💰🚗🎁💼]/gu,'').trim();
+ const aliases={sell:['sell','продам','продажа'],buy:['buy','куплю','покупка'],rent:['rent','сдам','аренда'],seek:['seek','сниму','ищу'],give:['give','отдам','отдам бесплатно'],offer:['offer','предлагаю','предлагаю услугу']};
+ for(const [key,values] of Object.entries(aliases)) if(values.includes(normalized)){
+   const labels={sell:{ru:'ПРОДАЮ',en:'FOR SALE',ka:'იყიდება'},buy:{ru:'КУПЛЮ',en:'WANTED',ka:'ვიყიდი'},rent:{ru:'СДАЮ',en:'FOR RENT',ka:'ქირავდება'},seek:{ru:'СНИМУ',en:'WANTED TO RENT',ka:'ვიქირავებ'},give:{ru:'ОТДАМ',en:'GIVE AWAY',ka:'გაჩუქებთ'},offer:{ru:'ПРЕДЛАГАЮ',en:'OFFER',ka:'გთავაზობთ'}};
+   return {key,label:labels[key][state.lang]||labels[key].en};
+ }
+ return null;
+}
+function cardTimeLabel(x){
+ const raw=x?.published_at||x?.created_at; if(!raw)return '';
+ const d=new Date(raw); if(Number.isNaN(d.getTime()))return '';
+ const mins=Math.max(0,Math.floor((Date.now()-d.getTime())/60000));
+ if(state.lang==='en'){
+   if(mins<1)return 'just now'; if(mins<60)return `${mins}m ago`;
+   const h=Math.floor(mins/60);if(h<24)return `${h}h ago`;
+   const days=Math.floor(h/24);if(days<7)return `${days}d ago`;
+ }else if(state.lang==='ka'){
+   if(mins<1)return 'ახლახან'; if(mins<60)return `${mins} წთ წინ`;
+   const h=Math.floor(mins/60);if(h<24)return `${h} სთ წინ`;
+   const days=Math.floor(h/24);if(days<7)return `${days} დღე წინ`;
+ }else{
+   if(mins<1)return 'только что'; if(mins<60)return `${mins} мин. назад`;
+   const h=Math.floor(mins/60);if(h<24)return `${h} ч. назад`;
+   const days=Math.floor(h/24);if(days<7)return `${days} дн. назад`;
+ }
+ return d.toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'numeric',month:'short'});
+}
 function cardText(x){const category=String(x.category_name||x.category||'');const rawTitle=cardDisplayTitle(x.title||x.name||'',category);const description=String(x.description||'').trim();const title=rawTitle||description;const subtitle=rawTitle&&description&&rawTitle.toLocaleLowerCase()!==description.toLocaleLowerCase()?description:'';return {title,subtitle,location:cardLocation(x)}}
-function cardDealLabel(x){const d=x.details&&typeof x.details==='object'?x.details:{};const m=x.metadata&&typeof x.metadata==='object'?x.metadata:{};const raw=String(x.deal_type||x.deal||x.operation||d.deal_type||d.deal||m.deal_type||m.deal||m.operation||'').trim().toLocaleLowerCase();if(!raw)return '';const labels={'sell':'ПРОДАЮ','sale':'ПРОДАЮ','продам':'ПРОДАЮ','продаю':'ПРОДАЮ','buy':'КУПЛЮ','куплю':'КУПЛЮ','ищу':'ИЩУ','looking_for':'ИЩУ','rent_out':'СДАЮ','сдам':'СДАЮ','сдаю':'СДАЮ','rent':'СНИМУ','сниму':'СНИМУ','аренда':'АРЕНДА','exchange':'ОБМЕН','обмен':'ОБМЕН','service':'ПРЕДЛАГАЮ','предлагаю':'ПРЕДЛАГАЮ'};return labels[raw]||String(raw).toLocaleUpperCase()}
-function cardTimeLabel(value){if(!value)return '';const dt=new Date(value);if(Number.isNaN(dt.getTime()))return '';const minutes=Math.max(0,Math.floor((Date.now()-dt.getTime())/60000));if(minutes<1)return 'Только что';if(minutes<60)return `${minutes} мин. назад`;const hours=Math.floor(minutes/60);if(hours<24)return `${hours} ч. назад`;const days=Math.floor(hours/24);if(days<7)return `${days} дн. назад`;return dt.toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':'ru-RU',{day:'numeric',month:'short'})}
-function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const time=cardTimeLabel(x.created_at||x.published_at);const photoCount=(x.photos||[]).length;return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photoCount>1?`<span class="card-photo-count" aria-label="${photoCount} фото">▧ ${photoCount}</span>`:''}</div><div class="cardbody">${deal?`<div class="card-meta-row"><span class="deal-pill">${esc(deal)}</span><span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>`:`<div class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</div>`}${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${text.title?`<div class="listing-name">${esc(localizeListingText(text.title))}</div>`:''}${text.subtitle?`<div class="listing-subtitle">${esc(localizeListingText(text.subtitle))}</div>`:''}<div class="loc-row">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:''}${time?`<time class="card-published-time">◷ ${esc(time)}</time>`:''}</div></div></article>`}
+function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${text.title?`<div class="listing-name">${esc(localizeListingText(text.title))}</div>`:''}${text.subtitle?`<div class="listing-subtitle">${esc(localizeListingText(text.subtitle))}</div>`:''}<div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'smooth',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}showHome()}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div style="min-width:0;flex:1"><div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
@@ -10430,7 +10483,7 @@ if(photos.length){
 async function toggleFavorite(id,button,x=null){try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}}
 function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if($('bestCityName'))$('bestCityName').textContent=state.city==='all'?(state.lang==='en'?'in all cities':state.lang==='ka'?'ყველა ქალაქში':'во всех городах'):'в '+(cityNames[state.city][state.lang]||state.city)}
-function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const time=cardTimeLabel(x.created_at||x.published_at);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="best-meta-row">${deal?`<span class="best-deal-pill">${esc(deal)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}<div class="best-title">${esc(localizeListingText(text.title||'Название не указано'))}</div>${text.subtitle?`<div class="best-subtitle">${esc(localizeListingText(text.subtitle))}</div>`:''}<div class="best-loc">${text.location?`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span>`:''}${time?`<time>◷ ${esc(time)}</time>`:''}</div></div></article>`}
+function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}${text.title?`<div class="best-title">${esc(localizeListingText(text.title))}</div>`:''}${text.subtitle?`<div class="best-subtitle">${esc(localizeListingText(text.subtitle))}</div>`:''}<div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.bestId));document.querySelectorAll('#bestRow [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
@@ -10830,48 +10883,6 @@ body::before{height:390px!important;min-height:0!important;max-height:none!impor
 }
 #list .card .loc, #bestRow .best-loc {display:flex!important;align-items:center!important;min-height:14px!important;}
 #list .card .loc span, #bestRow .best-loc span {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
-/* Madloba Market listing-card visual upgrade: action, category, photo count and publication time. */
-#list .card .cardbody{display:flex!important;flex-direction:column!important;gap:0!important;}
-#list .card .card-meta-row{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;margin:0 0 6px!important;min-width:0!important;}
-#list .card .deal-pill{display:inline-flex!important;align-items:center!important;justify-content:center!important;max-width:100%!important;padding:5px 9px!important;border-radius:999px!important;background:#e8f1ff!important;color:#1768d2!important;font-size:10px!important;font-weight:850!important;line-height:1.1!important;letter-spacing:.15px!important;white-space:nowrap!important;}
-#list .card .tag{display:inline-flex!important;align-items:center!important;width:max-content!important;max-width:100%!important;margin:0 0 6px!important;padding:5px 9px!important;border-radius:999px!important;background:#edf4ff!important;color:#1768d2!important;font-size:10px!important;font-weight:750!important;line-height:1.1!important;}
-#list .card .card-meta-row .tag{margin:0!important;}
-#list .card .price{order:2!important;margin:0 0 4px!important;font-size:18px!important;line-height:1.12!important;font-weight:950!important;letter-spacing:-.35px!important;}
-#list .card .listing-name{order:3!important;font-size:13px!important;line-height:1.22!important;font-weight:850!important;max-height:32px!important;margin:0 0 4px!important;}
-#list .card .listing-subtitle{order:4!important;font-size:11px!important;line-height:1.25!important;color:#68788d!important;max-height:28px!important;margin:0 0 7px!important;}
-#list .card .loc-row{order:5!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:5px!important;min-width:0!important;margin-top:auto!important;padding-top:2px!important;}
-#list .card .loc-row .loc{flex:1 1 auto!important;min-width:0!important;width:auto!important;margin:0!important;}
-#list .card .card-published-time{flex:0 0 auto!important;max-width:48%!important;color:#77859a!important;font-size:9px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
-#list .card .photo{position:relative!important;}
-#list .card .card-photo-count{position:absolute!important;left:8px!important;bottom:8px!important;z-index:2!important;padding:4px 7px!important;border-radius:999px!important;background:rgba(17,24,39,.72)!important;color:white!important;font-size:10px!important;font-weight:800!important;line-height:1!important;backdrop-filter:blur(4px)!important;}
-@media(max-width:380px){#list .card .deal-pill{padding:4px 7px!important;font-size:9px!important}#list .card .tag{font-size:9px!important;padding:4px 7px!important}#list .card .price{font-size:16px!important}#list .card .listing-name{font-size:12px!important}#list .card .card-published-time{font-size:8px!important}}
-</style>
-<style id="madloba-card-consistency-v3">
-/* Keep Popular and Fresh cards visually consistent and compact on mobile. */
-#bestRow.best-row, #list.list {
-  display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  grid-auto-flow:row!important; grid-auto-columns:initial!important;
-  gap:9px!important; overflow:visible!important; padding:2px 2px 8px!important;
-  align-items:stretch!important;
-}
-#homeView:not(.catalog-mode) #list {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-auto-flow:row!important;grid-auto-columns:initial!important;gap:9px!important;overflow:visible!important;padding:2px 2px 8px!important;}
-#homeView:not(.catalog-mode) #list .card {width:100%!important;min-width:0!important;max-width:100%!important;scroll-snap-align:unset!important;}
-#list .card,#bestRow .best-card {display:flex!important;flex-direction:column!important;min-width:0!important;width:100%!important;max-width:100%!important;height:100%!important;overflow:hidden!important;border-radius:18px!important;background:#fff!important;}
-#list .card .photo,#bestRow .best-card .best-photo {position:relative!important;width:100%!important;height:112px!important;min-height:112px!important;max-height:112px!important;flex:0 0 112px!important;overflow:hidden!important;background:#edf3fa!important;}
-#list .card .photo img,#bestRow .best-card .best-photo img {display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important;}
-#list .card .cardbody,#bestRow .best-card .best-body {display:flex!important;flex:1 1 auto!important;flex-direction:column!important;gap:0!important;min-width:0!important;padding:9px 10px 10px!important;}
-#list .card .card-meta-row,#bestRow .best-meta-row {display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:5px!important;margin:0 0 6px!important;min-width:0!important;}
-#list .card .deal-pill,#bestRow .best-deal-pill {display:inline-flex!important;align-items:center!important;justify-content:center!important;max-width:100%!important;padding:4px 7px!important;border-radius:999px!important;background:#e8f1ff!important;color:#1768d2!important;font-size:9px!important;font-weight:850!important;line-height:1.15!important;white-space:nowrap!important;}
-#list .card .tag,#bestRow .best-tag {display:inline-flex!important;align-items:center!important;width:max-content!important;max-width:100%!important;margin:0!important;padding:4px 7px!important;border-radius:999px!important;background:#f0f6ff!important;color:#1768d2!important;font-size:9px!important;font-weight:750!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
-#bestRow .best-tag {margin:0!important;}
-#list .card .price,#bestRow .best-price {order:2!important;margin:0 0 4px!important;font-size:18px!important;line-height:1.12!important;font-weight:950!important;letter-spacing:-.3px!important;}
-#list .card .listing-name,#bestRow .best-title {order:3!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;min-height:0!important;max-height:32px!important;overflow:hidden!important;margin:0 0 4px!important;font-size:12px!important;line-height:1.25!important;font-weight:850!important;overflow-wrap:anywhere!important;}
-#list .card .listing-subtitle,#bestRow .best-subtitle {order:4!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;min-height:0!important;max-height:28px!important;overflow:hidden!important;margin:0 0 6px!important;color:#68788d!important;font-size:10px!important;line-height:1.35!important;overflow-wrap:anywhere!important;}
-#list .card .loc-row,#bestRow .best-loc {order:5!important;display:flex!important;align-items:center!important;gap:5px!important;min-width:0!important;width:100%!important;margin-top:auto!important;padding-top:5px!important;overflow:hidden!important;white-space:nowrap!important;color:#718096!important;font-size:9px!important;line-height:14px!important;}
-#list .card .loc-row .loc,#bestRow .best-loc span {display:flex!important;align-items:center!important;flex:1 1 auto!important;min-width:0!important;width:auto!important;margin:0!important;overflow:hidden!important;white-space:nowrap!important;}
-#list .card .loc svg,#bestRow .best-loc svg {display:block!important;position:static!important;float:none!important;flex:0 0 14px!important;width:14px!important;height:14px!important;min-width:14px!important;min-height:14px!important;fill:none!important;stroke:#1478f5!important;stroke-width:2!important;}
-#list .card .card-published-time,#bestRow .best-loc time {display:inline-block!important;flex:0 0 auto!important;max-width:49%!important;margin-left:auto!important;color:#8792a3!important;font-size:9px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
-@media(max-width:380px){#bestRow.best-row,#homeView:not(.catalog-mode) #list{gap:7px!important}#list .card .photo,#bestRow .best-card .best-photo{height:100px!important;min-height:100px!important;max-height:100px!important;flex-basis:100px!important}#list .card .cardbody,#bestRow .best-card .best-body{padding:8px!important}#list .card .price,#bestRow .best-price{font-size:16px!important}#list .card .listing-name,#bestRow .best-title{font-size:11px!important;max-height:29px!important}#list .card .card-published-time,#bestRow .best-loc time{font-size:8px!important}}
 </style>
 </body></html>""", mimetype="text/html")
 
@@ -12692,7 +12703,6 @@ def mini_app_listings():
         item["price"] = str(row.get("price")) if row.get("price") is not None else item.get("price", "")
         item["currency"] = row.get("currency") or item.get("currency", "")
         item["address"] = row.get("address") or item.get("district", "")
-        item["created_at"] = row.get("created_at") or item.get("created_at") or ""
         item["category_name"] = item.get("category") or "Объявление"
         if city == "all":
             _row_city_id = row.get("city_id")
