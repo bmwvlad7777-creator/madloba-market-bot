@@ -9898,38 +9898,38 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
     scroll-padding-left:20px!important;scroll-padding-right:20px!important;
   }
 }
-/* Category results header: consistent layout for every category. */
+/* Category results header: title, count and sort stay on one line for every category. */
 .results-head{
-  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
-  justify-content:flex-start!important;column-gap:10px!important;row-gap:10px!important;
-  margin-top:26px!important;
+  display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+  justify-content:space-between!important;gap:8px!important;margin-top:26px!important;
 }
 .results-head>.section-head{
-  flex:0 0 100%!important;width:100%!important;min-width:0!important;
+  flex:1 1 auto!important;width:auto!important;min-width:0!important;
   display:flex!important;align-items:center!important;justify-content:flex-start!important;
-  gap:10px!important;margin:0!important;
+  gap:6px!important;margin:0!important;
 }
 .results-head .section-head h2{
   min-width:0!important;flex:0 1 auto!important;margin:0!important;
-  font-size:23px!important;line-height:1.12!important;letter-spacing:-.5px!important;
-  overflow-wrap:anywhere!important;
+  font-size:22px!important;line-height:1.12!important;letter-spacing:-.5px!important;
+  overflow-wrap:normal!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
 }
 .results-head .section-head small{
   display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;
-  min-width:30px!important;height:30px!important;padding:0 9px!important;
+  min-width:30px!important;height:30px!important;padding:0 8px!important;
   border-radius:999px!important;background:#e7f1ff!important;border:1px solid #d5e7ff!important;
   color:#176fda!important;font-size:13px!important;font-weight:850!important;line-height:1!important;
 }
 .results-head .sort-select{
-  margin:0 0 0 auto!important;align-self:flex-end!important;max-width:100%!important;
-  min-height:44px!important;padding:9px 12px!important;border:1px solid #dce6f2!important;
+  flex:0 0 clamp(132px,39vw,152px)!important;width:clamp(132px,39vw,152px)!important;
+  min-width:0!important;margin:0!important;align-self:center!important;
+  min-height:42px!important;padding:8px 8px!important;border:1px solid #dce6f2!important;
   border-radius:14px!important;background:rgba(255,255,255,.96)!important;
   box-shadow:0 4px 12px rgba(24,54,91,.055)!important;color:#176fda!important;
-  font-size:15px!important;font-weight:800!important;
+  font-size:13px!important;font-weight:800!important;white-space:nowrap!important;
 }
 @media(max-width:380px){
-  .results-head .section-head h2{font-size:21px!important}
-  .results-head .sort-select{font-size:14px!important;min-height:42px!important;padding:8px 10px!important}
+  .results-head .section-head h2{font-size:19px!important;letter-spacing:-.45px!important}
+  .results-head .sort-select{font-size:12px!important;min-height:40px!important;padding:7px 6px!important}
 }
 </style>
 </head>
