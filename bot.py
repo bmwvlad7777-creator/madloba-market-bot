@@ -10094,6 +10094,33 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   color:#718096 !important;
 }
 </style>
+<style id="madloba-best-empty-centering-final">
+/* The popular row is a horizontal flex carousel. Make its empty state span the
+   whole row; otherwise it occupies only one card-width and looks left-aligned. */
+#bestRow:has(> .best-empty) {
+  display:flex !important;
+  width:100% !important;
+  min-width:0 !important;
+  overflow-x:hidden !important;
+  scroll-snap-type:none !important;
+}
+#bestRow > .best-empty {
+  flex:0 0 100% !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:100% !important;
+  min-height:96px !important;
+  margin:0 !important;
+  padding:18px 24px !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+  white-space:normal !important;
+}
+#bestRow > .best-empty br { display:block !important; }
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><div class="quick-actions" aria-label="Категории">
