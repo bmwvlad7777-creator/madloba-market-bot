@@ -9932,6 +9932,80 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .results-head .sort-select{font-size:12px!important;min-height:40px!important;padding:7px 6px!important}
 }
 </style>
+
+<style id="madloba-detail-and-card-alignment-fix">
+/* Detail screen: keep the title/back button safely below Telegram's top controls. */
+#detailView .detail-top{
+  padding-top:76px!important;
+  margin-top:0!important;
+  scroll-margin-top:calc(76px + var(--tg-content-safe-area-inset-top,0px))!important;
+}
+@media(max-width:390px){
+  #detailView .detail-top{padding-top:76px!important;gap:9px!important;}
+}
+/* Listing cards: equal columns and consistent internal rhythm across every category. */
+#list.list{
+  align-items:stretch!important;
+  grid-auto-rows:1fr!important;
+}
+#list .card{
+  display:flex!important;
+  flex-direction:column!important;
+  align-self:stretch!important;
+  min-width:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+#list .card .photo{
+  flex:0 0 118px!important;
+  height:118px!important;
+  min-height:118px!important;
+  max-height:118px!important;
+  width:100%!important;
+  overflow:hidden!important;
+}
+#list .card .photo img{
+  width:100%!important;height:100%!important;display:block!important;
+  object-fit:cover!important;
+}
+#list .card .cardbody{
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+#list .card .listing-name{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  line-clamp:2!important;
+  min-height:30px!important;
+  max-height:30px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+}
+#list .card .tag{
+  align-self:flex-start!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#list .card .loc{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+@media(max-width:380px){
+  #list .card .photo{flex-basis:105px!important;height:105px!important;min-height:105px!important;max-height:105px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><div class="quick-actions" aria-label="Категории">
