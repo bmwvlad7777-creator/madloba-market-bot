@@ -12451,6 +12451,22 @@ body::before{height:390px!important;min-height:0!important;max-height:none!impor
 }
 #list .card .loc, #bestRow .best-loc {display:flex!important;align-items:center!important;min-height:14px!important;}
 #list .card .loc span, #bestRow .best-loc span {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+/* Compact home listing cards — visual-only refinement; detail page is untouched. */
+#bestRow.best-row,#list.list{grid-auto-rows:252px!important;gap:9px!important}
+#bestRow .best-card,#list .card{height:252px!important;min-height:252px!important;max-height:252px!important;border-radius:17px!important;box-shadow:0 5px 15px rgba(24,48,80,.065)!important}
+#bestRow .best-photo,#list .card .photo{flex:0 0 104px!important;height:104px!important;min-height:104px!important;max-height:104px!important}
+#bestRow .best-body,#list .card .cardbody{height:148px!important;min-height:148px!important;max-height:148px!important;padding:7px 9px 7px!important}
+#bestRow .card-kickers,#list .card-kickers{flex-basis:21px!important;height:21px!important;min-height:21px!important;max-height:21px!important;margin-bottom:3px!important;gap:4px!important}
+#bestRow .deal-badge,#list .deal-badge,#bestRow .best-tag,#list .card .tag{height:20px!important;min-height:20px!important;max-height:20px!important;line-height:20px!important;padding-left:7px!important;padding-right:7px!important;font-size:9px!important}
+#bestRow .best-tag,#list .card .tag{background:linear-gradient(180deg,#f2f7ff,#eaf3ff)!important;border:1px solid #dfebfb!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.9)!important;color:#176fc9!important}
+#bestRow .best-price,#list .card .price{flex-basis:21px!important;height:21px!important;min-height:21px!important;max-height:21px!important;line-height:21px!important;margin-bottom:2px!important;font-size:17px!important}
+#bestRow .best-title,#list .card .listing-name{flex-basis:31px!important;height:31px!important;min-height:31px!important;max-height:31px!important;line-height:15.5px!important;font-size:12.5px!important;margin-bottom:2px!important}
+#bestRow .best-subtitle,#list .card .listing-subtitle{flex-basis:24px!important;height:24px!important;min-height:24px!important;max-height:24px!important;line-height:12px!important;font-size:10.5px!important;margin:0!important}
+#bestRow .card-meta,#list .card-meta{flex-basis:15px!important;height:15px!important;min-height:15px!important;max-height:15px!important;padding-top:0!important}
+#bestRow .best-loc,#list .card .loc{height:15px!important;min-height:15px!important;max-height:15px!important;line-height:15px!important;font-size:9.5px!important}
+#bestRow .card-time,#list .card-time{font-size:8.5px!important;line-height:15px!important}
+#bestRow .best-card .fav-btn,#list .card .fav-btn{top:7px!important;right:7px!important;width:30px!important;height:30px!important;font-size:19px!important;line-height:30px!important}
+@media(max-width:390px){#bestRow.best-row,#list.list{grid-auto-rows:246px!important;gap:8px!important}#bestRow .best-card,#list .card{height:246px!important;min-height:246px!important;max-height:246px!important}#bestRow .best-photo,#list .card .photo{flex-basis:98px!important;height:98px!important;min-height:98px!important;max-height:98px!important}#bestRow .best-body,#list .card .cardbody{height:148px!important;min-height:148px!important;max-height:148px!important;padding-left:8px!important;padding-right:8px!important}}
 </style>
 
 </body></html>""", mimetype="text/html")
