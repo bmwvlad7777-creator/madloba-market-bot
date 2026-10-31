@@ -2715,14 +2715,31 @@ def auto_choice_keyboard(kind, options, page=0):
     return rows
 
 
+def auto_picker_keyboard(kind, make=""):
+    """Reply-keyboard Mini App button; sendData returns the choice to this bot chat."""
+    base = str(MINI_APP_URL or "").strip()
+    parsed = urllib.parse.urlsplit(base)
+    picker_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "/auto-picker", "", ""))
+    query = {"kind": kind}
+    if make:
+        query["make"] = make
+    picker_url += "?" + urllib.parse.urlencode(query)
+    label = "🚘 Выбрать марку" if kind == "make" else "🚘 Выбрать модель"
+    return {"keyboard": [[{"text": label, "web_app": {"url": picker_url}}]],
+            "resize_keyboard": True, "one_time_keyboard": True, "is_persistent": False}
+
+
+def send_auto_picker_message(chat_id, text, kind, make=""):
+    return api("sendMessage", {"chat_id": chat_id, "text": text, "parse_mode": "HTML",
+                                "reply_markup": auto_picker_keyboard(kind, make)})
+
+
 def send_auto_make_picker(chat_id, index, page=0):
-    options = auto_make_options()
     current_step = str(states[chat_id].get("step", ""))
     is_edit = current_step.startswith("edit_detail_")
     states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
-    states[chat_id]["auto_picker"] = {"kind": "make", "index": index, "page": page, "is_edit": is_edit}
-    send(chat_id, "<b>🚗 Выберите марку автомобиля</b>\n\nЛистайте список кнопками. Можно выбрать нужную марку.",
-         auto_choice_keyboard("make", options, page))
+    states[chat_id]["auto_picker"] = {"kind": "make", "index": index, "is_edit": is_edit}
+    send_auto_picker_message(chat_id, "<b>🚗 Выберите марку автомобиля</b>\n\nНажмите кнопку ниже, пролистайте список и выберите марку.", "make")
 
 
 def send_auto_model_picker(chat_id, index, make, page=0):
@@ -2742,9 +2759,8 @@ def send_auto_model_picker(chat_id, index, make, page=0):
     picker = states[chat_id].get("auto_picker") or {}
     is_edit = bool(picker.get("is_edit"))
     states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
-    states[chat_id]["auto_picker"] = {"kind": "model", "index": index, "make": make, "page": page, "is_edit": is_edit}
-    send(chat_id, f"<b>{esc(make)}</b>\nВыберите модель:",
-         auto_choice_keyboard("model", options, page))
+    states[chat_id]["auto_picker"] = {"kind": "model", "index": index, "make": make, "is_edit": is_edit}
+    send_auto_picker_message(chat_id, f"<b>{esc(make)}</b>\nВыберите модель автомобиля:", "model", make)
 
 
 def ask_detail(
@@ -5143,6 +5159,49 @@ def _handle_update_core(
             "chat"
         ]["id"]
 
+        # Result returned by the swipeable Mini App catalog picker.
+        web_app_data = message.get("web_app_data")
+        if isinstance(web_app_data, dict) and chat_id in states:
+            try:
+                payload = json.loads(str(web_app_data.get("data") or "{}"))
+            except (TypeError, ValueError):
+                payload = {}
+            picker = states[chat_id].get("auto_picker") or {}
+            kind = str(payload.get("kind") or "")
+            value = str(payload.get("value") or "").strip()
+            expected_kind = str(picker.get("kind") or "")
+            if kind != expected_kind or not value:
+                send(chat_id, "Не удалось принять выбор. Откройте список ещё раз.")
+                return
+            index = int(picker.get("index", -1))
+            listing_data = states[chat_id].get("data") or {}
+            fields = category_fields(listing_data)
+            if index < 0 or index >= len(fields) or fields[index][0] != "make_model":
+                send(chat_id, "Шаг объявления изменился. Начните выбор заново.")
+                return
+            if kind == "make":
+                if value not in auto_make_options():
+                    send(chat_id, "Такой марки нет в каталоге. Выберите марку из списка.")
+                    return
+                listing_data.setdefault("details", {})["make"] = value
+                send_auto_model_picker(chat_id, index, value)
+                return
+            if kind == "model":
+                make = str(picker.get("make") or listing_data.get("details", {}).get("make") or "")
+                if value not in auto_model_options(make):
+                    send(chat_id, "Эта модель не относится к выбранной марке. Выберите модель ещё раз.")
+                    return
+                details = listing_data.setdefault("details", {})
+                details["make"] = make
+                details["model"] = value
+                details["make_model"] = f"{make} {value}"
+                is_edit = bool(picker.get("is_edit"))
+                states[chat_id].pop("auto_picker", None)
+                if is_edit:
+                    preview(chat_id)
+                else:
+                    ask_detail(chat_id, index + 1)
+                return
 
         # ====================================================
         # ФОТО
@@ -12014,6 +12073,30 @@ def mini_app_admin_data():
 @app.get("/app")
 def mini_app():
     return Response(MINI_APP_HTML, mimetype="text/html")
+
+
+@app.get("/auto-picker")
+def auto_picker_mini_app():
+    # Small Telegram Mini App used only to select an auto make/model in the bot flow.
+    kind = str(request.args.get("kind") or "make").strip().lower()
+    make = str(request.args.get("make") or "").strip()
+    if kind not in {"make", "model"}:
+        return "Invalid picker", 400
+    if kind == "make":
+        options = auto_make_options()
+        title = "Выберите марку автомобиля"
+    else:
+        if make not in AUTO_FALLBACK_DATA:
+            return "Invalid car make", 400
+        options = auto_model_options(make)
+        title = f"Выберите модель · {html.escape(make)}"
+    options_json = json.dumps(options, ensure_ascii=False).replace("</", "<\\/")
+    kind_json = json.dumps(kind)
+    html_page = r'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><script src="https://telegram.org/js/telegram-web-app.js"></script><title>Madloba Market</title><style>
+:root{color-scheme:light;--bg:#f2f4f7;--panel:#fff;--text:#17202b;--muted:#7b8794;--line:#e8edf2;--accent:#70a94b}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:rgba(10,18,28,.35);color:var(--text)}.scrim{position:absolute;inset:0}.sheet{position:absolute;left:0;right:0;bottom:0;height:min(88dvh,760px);background:var(--panel);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:10px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px #0002}.handle{width:38px;height:4px;border-radius:9px;background:#d5dbe1;margin:0 auto 15px}.head{font-size:19px;font-weight:750;margin:0 0 13px}.search{height:44px;border:1px solid var(--line);border-radius:12px;padding:0 13px;font-size:16px;outline:none;background:#f7f8fa;width:100%;margin-bottom:8px}.list{overflow-y:auto;overscroll-behavior:contain;flex:1;-webkit-overflow-scrolling:touch}.item{display:flex;align-items:center;min-height:52px;padding:0 10px;border-bottom:1px solid var(--line);font-size:16px;cursor:pointer}.item:active{background:#edf5e8}.empty{padding:22px 10px;color:var(--muted);text-align:center}.foot{font-size:12px;color:var(--muted);padding-top:10px;text-align:center}</style></head><body><div class="scrim"></div><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div class="foot">Листайте список вверх и вниз и нажмите нужный вариант</div></section><script>
+const tg=window.Telegram&&window.Telegram.WebApp;const options=__OPTIONS__;const kind=__KIND__;const title=__TITLE__;document.getElementById('title').textContent=title;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7');}const list=document.getElementById('list'),search=document.getElementById('search');function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';if(!found.length){const e=document.createElement('div');e.className='empty';e.textContent='Ничего не найдено';list.appendChild(e);return;}found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>{if(!tg||!tg.sendData){alert('Откройте список из Telegram-бота');return;}tg.sendData(JSON.stringify({kind:kind,value:value}));});list.appendChild(row);});}search.addEventListener('input',render);render();</script></body></html>'''
+    html_page = html_page.replace("__OPTIONS__", options_json).replace("__KIND__", kind_json).replace("__TITLE__", json.dumps(title, ensure_ascii=False))
+    return Response(html_page, mimetype="text/html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/config")
