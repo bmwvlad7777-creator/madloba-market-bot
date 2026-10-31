@@ -5771,15 +5771,46 @@ def _handle_update_core(
                 show_admin_main_menu(chat_id)
                 return
 
-            # Normal user flow is unchanged.
-            send(
-                chat_id,
-                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
-                "Главная доска объявлений Батуми.\n\n"
-                "Купи · Продай · Сдай · Найди\n\n"
-                "<b>Выберите категорию:</b>",
-                main_menu()
+            # Normal users must not keep the temporary city-picker reply keyboard
+            # after returning to the main menu. Send the menu message with
+            # ReplyKeyboardRemove, then attach the inline category buttons to
+            # that SAME message. This avoids an extra cleanup message and
+            # leaves the chat history intact.
+            menu_text = (
+                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\\n\\n"
+                "Главная доска объявлений Батуми.\\n\\n"
+                "Купи · Продай · Сдай · Найди\\n\\n"
+                "<b>Выберите категорию:</b>"
             )
+            menu_result = api(
+                "sendMessage",
+                {
+                    "chat_id": chat_id,
+                    "text": menu_text,
+                    "parse_mode": "HTML",
+                    "reply_markup": {"remove_keyboard": True},
+                },
+            )
+            if isinstance(menu_result, dict) and menu_result.get("ok"):
+                menu_message = (menu_result.get("result") or {})
+                menu_message_id = menu_message.get("message_id")
+                if menu_message_id:
+                    menu_markup_result = api(
+                        "editMessageReplyMarkup",
+                        {
+                            "chat_id": chat_id,
+                            "message_id": menu_message_id,
+                            "reply_markup": {"inline_keyboard": main_menu()},
+                        },
+                    )
+                    if not (isinstance(menu_markup_result, dict) and menu_markup_result.get("ok")):
+                        # Rare fallback if Telegram refuses to edit the newly
+                        # sent menu message: send the inline menu separately.
+                        send(chat_id, menu_text, main_menu())
+            else:
+                # Fallback: keep the category menu usable if Telegram rejects
+                # the keyboard-removal request for any reason.
+                send(chat_id, menu_text, main_menu())
             return
 
 
