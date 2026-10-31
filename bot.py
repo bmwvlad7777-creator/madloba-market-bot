@@ -11777,6 +11777,48 @@ $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
 $('profileBack').onclick=()=>showHome();
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home'){state.category='';state.q='';state.sort='new';state.page=0;state.cursorIds=[null];state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''};$('search').value='';$('sortSelect').value='new';$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');$('backBtn').classList.remove('show');showHome()}else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
+// Madloba brand and hero backdrop are shortcuts to Home; controls retain their own actions.
+function resetToHomeFromBrand(){
+ state.category='';
+ state.q='';
+ state.sort='new';
+ state.page=0;
+ state.cursorIds=[null];
+ state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''};
+ $('search').value='';
+ $('sortSelect').value='new';
+ $('filterPanel').classList.remove('show');
+ $('filterToggle').classList.remove('open');
+ $('backBtn').classList.remove('show');
+ showHome();
+}
+const homeBrand=document.querySelector('.brand');
+if(homeBrand){
+ homeBrand.style.cursor='pointer';
+ homeBrand.setAttribute('role','button');
+ homeBrand.setAttribute('tabindex','0');
+ homeBrand.setAttribute('aria-label',t('home'));
+ homeBrand.addEventListener('click',resetToHomeFromBrand);
+ homeBrand.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();resetToHomeFromBrand();}
+ });
+}
+const topHomeArea=document.querySelector('.top');
+if(topHomeArea){
+ topHomeArea.addEventListener('click',e=>{
+  if(e.target.closest('.city,select,button,input,a'))return;
+  resetToHomeFromBrand();
+ });
+}
+const homeHero=document.querySelector('.hero');
+if(homeHero){
+ homeHero.style.cursor='pointer';
+ homeHero.addEventListener('click',e=>{
+  if(e.target.closest('button,input,select,textarea,a,[role="button"],.search,.quick-actions-shell,.filter-bar,#filterPanel'))return;
+  resetToHomeFromBrand();
+ });
+}
+
 
 // Support form: sends the authenticated Telegram user's message to configured admins.
 (()=>{const overlay=$('mmSupportOverlay'),form=$('mmSupportForm'),message=$('mmSupportMessage'),send=$('mmSupportSend');if(!overlay||!form)return;const close=()=>{overlay.classList.remove('show');};$('mmSupportOpen').addEventListener('click',()=>{overlay.classList.add('show');setTimeout(()=>message.focus(),80)});$('mmSupportCancel').addEventListener('click',close);overlay.addEventListener('click',e=>{if(e.target===overlay)close()});document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});form.addEventListener('submit',async e=>{e.preventDefault();const text=String(message.value||'').trim();if(!text){toast(t('support_empty'));message.focus();return}send.disabled=true;send.textContent=t('loading');try{const r=await apiFetch('/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:$('mmSupportTopic').value,message:text,city:state.city,lang:state.lang})});const data=await r.json().catch(()=>({}));if(r.status===401){toast(t('login_telegram'));return}if(!r.ok||!data.ok)throw new Error(data.error||'support_failed');message.value='';close();toast(t('support_sent'))}catch(err){toast(t('support_failed'))}finally{send.disabled=false;send.textContent=t('support_send')}})})();
@@ -12154,7 +12196,7 @@ apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam
 
 /* Detail header spacing and unified bottom-navigation icon set. */
 #detailView .detail-top .detail-back{
-  transform:translateY(11px)!important;
+  transform:translateY(-5px)!important;
   position:relative!important;
   z-index:2!important;
 }
@@ -12185,7 +12227,7 @@ apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam
 .bottom .nav:active .ni{background:#e5f0ff!important;color:#176fe5!important;}
 .bottom .nav[data-nav="add"]:active .ni{background:#0865dc!important;color:#fff!important;}
 @media(max-width:390px){
-  #detailView .detail-top .detail-back{transform:translateY(10px)!important;}
+  #detailView .detail-top .detail-back{transform:translateY(-5px)!important;}
   .bottom .nav .ni{width:38px!important;height:30px!important;}
   .bottom .nav .ni svg{width:22px!important;height:22px!important;}
 }
