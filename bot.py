@@ -1143,7 +1143,6 @@ CATEGORIES = {
 
             "apartment": "🏢 Квартиры",
             "house": "🏡 Дома",
-            "room": "🛏 Комнаты",
             "commercial": "🏬 Коммерция",
             "land": "🌳 Земля",
             "garage": "🚗 Гаражи и парковки",
@@ -3052,53 +3051,21 @@ def ask_photos(
     chat_id
 ):
 
-    count = len(
+    states[chat_id]["step"] = "photos"
+    count = len(states[chat_id]["data"].get("photos", []))
+    states[chat_id]["photo_status_message_id"] = None
 
-        states[
-            chat_id
-        ]["data"]["photos"]
-    )
-
-    ask(
-
+    result = send(
         chat_id,
-
-        "photos",
-
-        f"<b>📷 Фотографии</b>\n\n"
-        f"Добавлено: <b>{count}/{MAX_PHOTOS}</b>\n\n"
-        "Отправляйте фотографии по одной.\n"
-        "Когда закончите — нажмите «Готово».\n\n"
-        "После публикации Telegram покажет "
-        "их компактным альбомом.",
-
+        f"<b>📷 Фотографии: {count}/{MAX_PHOTOS}</b>\n\n"
+        "Отправьте фотографии. Когда закончите — нажмите «Готово».",
         [
-
-            [
-
-                {
-
-                    "text":
-                        "✅ Готово",
-
-                    "callback_data":
-                        "photos_done"
-                }
-            ],
-
-            [
-
-                {
-
-                    "text":
-                        "⏭ Пропустить",
-
-                    "callback_data":
-                        "photos_skip"
-                }
-            ]
-        ]
+            [{"text": "✅ Готово", "callback_data": "photos_done"}],
+            [{"text": "⏭ Пропустить", "callback_data": "photos_skip"}],
+        ],
     )
+    if isinstance(result, dict) and result.get("ok"):
+        states[chat_id]["photo_status_message_id"] = result.get("result", {}).get("message_id")
 
 
 # ============================================================
@@ -5449,28 +5416,29 @@ def _handle_update_core(
                     )
 
 
-                send(
-
-                    chat_id,
-
-                    f"📷 Фото добавлено: "
-                    f"<b>{len(photos)}/{MAX_PHOTOS}</b>",
-
-                    [
-
-                        [
-
-                            {
-
-                                "text":
-                                    "✅ Готово",
-
-                                "callback_data":
-                                    "photos_done"
-                            }
-                        ]
-                    ]
+                status_text = (
+                    f"<b>📷 Фотографии: {len(photos)}/{MAX_PHOTOS}</b>\n\n"
+                    "Отправьте ещё фотографии или нажмите «Готово»."
                 )
+                status_keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "✅ Готово", "callback_data": "photos_done"}],
+                        [{"text": "⏭ Пропустить", "callback_data": "photos_skip"}],
+                    ]
+                }
+                status_message_id = states[chat_id].get("photo_status_message_id")
+                if status_message_id:
+                    api("editMessageText", {
+                        "chat_id": chat_id,
+                        "message_id": status_message_id,
+                        "text": status_text,
+                        "parse_mode": "HTML",
+                        "reply_markup": status_keyboard,
+                    })
+                else:
+                    result = send(chat_id, status_text, status_keyboard["inline_keyboard"])
+                    if isinstance(result, dict) and result.get("ok"):
+                        states[chat_id]["photo_status_message_id"] = result.get("result", {}).get("message_id")
 
 
             return
@@ -11185,7 +11153,7 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 <button class="quick-action" data-cat="pets"><span class="quick-icon" data-icon="pets"></span><span class="quick-label" data-i18n="category_pets">Животные</span></button>
 <button class="quick-action" data-cat="give"><span class="quick-icon" data-icon="give"></span><span class="quick-label" data-i18n="category_give">Отдам</span></button>
 
-</div></div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button"><span class="filter-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="17" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/></svg></span><span data-i18n="filters">Фильтры</span><span id="filterActive"></span><span class="filter-chevron" aria-hidden="true">›</span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="room">🛏 Комната</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><select id="filterDistrict"><option value="" data-i18n="all">Все районы</option><option value="old_batumi">Старый Батуми</option><option value="new_boulevard">Новый Бульвар</option><option value="khimshiashvili">Химшиашвили</option><option value="bagrationi">Багратиони</option><option value="angisa">Ангиса</option><option value="airport">Аэропорт</option><option value="gonio">Гонио</option><option value="kvariati">Квариати</option><option value="makhinjauri">Махинджаури</option></select></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
+</div></div><div class="filter-bar" id="filterBar"><button class="filter-btn" id="filterToggle" type="button"><span class="filter-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="17" r="2" fill="white" stroke="currentColor" stroke-width="1.6"/></svg></span><span data-i18n="filters">Фильтры</span><span id="filterActive"></span><span class="filter-chevron" aria-hidden="true">›</span></button><div class="filter-panel" id="filterPanel"><div id="realestateFilterFields" class="filter-grid"><div class="filter-field"><label data-i18n="deal">Сделка</label><select id="filterDeal"><option value="" data-i18n="all">Все</option><option value="rent" data-i18n="rent">Сдам</option><option value="seek" data-i18n="seek">Сниму</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div><div class="filter-field"><label data-i18n="property_type">Тип</label><select id="filterSub"><option value="" data-i18n="all">Все</option><option value="apartment">🏢 Квартира</option><option value="house">🏡 Дом</option><option value="commercial">🏬 Коммерция</option><option value="land">🌳 Земля</option><option value="garage">🚗 Гараж / парковка</option></select></div><div class="filter-field"><label data-i18n="price_from">Цена от</label><input id="filterMinPrice" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="price_to">Цена до</label><input id="filterMaxPrice" inputmode="decimal" placeholder="∞"></div><div class="filter-field"><label data-i18n="rooms">Комнаты</label><select id="filterRooms"><option value="" data-i18n="all">Все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4+</option></select></div><div class="filter-field"><label data-i18n="district">Район</label><select id="filterDistrict"><option value="" data-i18n="all">Все районы</option><option value="old_batumi">Старый Батуми</option><option value="new_boulevard">Новый Бульвар</option><option value="khimshiashvili">Химшиашвили</option><option value="bagrationi">Багратиони</option><option value="angisa">Ангиса</option><option value="airport">Аэропорт</option><option value="gonio">Гонио</option><option value="kvariati">Квариати</option><option value="makhinjauri">Махинджаури</option></select></div><div class="filter-field"><label data-i18n="area_from">Площадь от, м²</label><input id="filterMinArea" inputmode="decimal" placeholder="0"></div><div class="filter-field"><label data-i18n="area_to">Площадь до, м²</label><input id="filterMaxArea" inputmode="decimal" placeholder="∞"></div></div><div id="autoFilterFields" class="filter-grid" style="display:none">
 <div class="filter-field" style="grid-column:1/-1"><label data-i18n="deal">Сделка</label><select id="autoFilterDeal"><option value="" data-i18n="all">Все</option><option value="sell" data-i18n="sell">Продам</option><option value="buy" data-i18n="buy">Куплю</option></select></div>
 <div class="filter-field"><label data-i18n="auto_make">Марка</label><select id="autoFilterMake"><option value="" data-i18n="auto_select_make">Выберите марку</option></select></div>
 <div class="filter-field"><label data-i18n="auto_model">Модель</label><select id="autoFilterModel" disabled><option value="" data-i18n="auto_select_model">Сначала выберите марку</option></select></div>
@@ -13389,7 +13357,7 @@ def mini_app_listings():
             params["metadata->>type_key"] = f"eq.{selected_deal_db}"
 
         selected_sub_db = str(request.args.get("sub", "")).strip().lower()
-        allowed_realestate_subs = {"apartment", "house", "room", "commercial", "land", "garage"}
+        allowed_realestate_subs = {"apartment", "house", "commercial", "land", "garage"}
         if selected_sub_db and (category in generic_filter_categories or (category == "realestate" and selected_sub_db in allowed_realestate_subs)):
             params["metadata->>subcategory_key"] = f"eq.{selected_sub_db}"
 
@@ -13765,7 +13733,7 @@ def mini_app_listings():
                 if selected_deal and selected_deal in {"rent", "seek", "sell", "buy"}:
                     if str(meta.get("type_key", "")).strip().lower() != selected_deal:
                         continue
-                if selected_sub and selected_sub in {"apartment", "house", "room", "commercial", "land", "garage"}:
+                if selected_sub and selected_sub in {"apartment", "house", "commercial", "land", "garage"}:
                     if str(meta.get("subcategory_key", "")).strip().lower() != selected_sub:
                         continue
 
