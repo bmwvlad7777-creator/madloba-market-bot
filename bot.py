@@ -11096,7 +11096,322 @@ document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.
 
 // Support form: sends the authenticated Telegram user's message to configured admins.
 (()=>{const overlay=$('mmSupportOverlay'),form=$('mmSupportForm'),message=$('mmSupportMessage'),send=$('mmSupportSend');if(!overlay||!form)return;const close=()=>{overlay.classList.remove('show');};$('mmSupportOpen').addEventListener('click',()=>{overlay.classList.add('show');setTimeout(()=>message.focus(),80)});$('mmSupportCancel').addEventListener('click',close);overlay.addEventListener('click',e=>{if(e.target===overlay)close()});document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});form.addEventListener('submit',async e=>{e.preventDefault();const text=String(message.value||'').trim();if(!text){toast(t('support_empty'));message.focus();return}send.disabled=true;send.textContent=t('loading');try{const r=await apiFetch('/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:$('mmSupportTopic').value,message:text,city:state.city,lang:state.lang})});const data=await r.json().catch(()=>({}));if(r.status===401){toast(t('login_telegram'));return}if(!r.ok||!data.ok)throw new Error(data.error||'support_failed');message.value='';close();toast(t('support_sent'))}catch(err){toast(t('support_failed'))}finally{send.disabled=false;send.textContent=t('support_send')}})})();
-apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam=new URLSearchParams(window.location.search).get('renew');if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else{load(true)}</script></body></html>'''
+apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam=new URLSearchParams(window.location.search).get('renew');if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else{load(true)}</script><style id="madloba-card-system-authoritative-v4">
+/* One final source of truth for listing cards. This intentionally overrides legacy card CSS. */
+#bestRow.best-row,
+#list.list {
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-auto-rows:248px!important;
+  grid-auto-flow:row!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+  gap:10px!important;
+  overflow:visible!important;
+  padding:0 2px 6px!important;
+}
+#bestRow .best-card,
+#list .card {
+  position:relative!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-self:stretch!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:248px!important;
+  height:248px!important;
+  max-height:248px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  border:1px solid #e5edf7!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 5px 16px rgba(24,48,80,.065)!important;
+  transform:none;
+}
+#bestRow .best-photo,
+#list .card .photo {
+  position:relative!important;
+  display:flex!important;
+  flex:0 0 102px!important;
+  width:100%!important;
+  height:102px!important;
+  min-height:102px!important;
+  max-height:102px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+  overflow:hidden!important;
+  border-radius:0!important;
+  background:#f2f5fa!important;
+}
+#bestRow .best-photo img,
+#list .card .photo img {
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+}
+#bestRow .best-body,
+#list .card .cardbody {
+  display:grid!important;
+  flex:0 0 146px!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:20px 22px 32px 26px 16px!important;
+  row-gap:2px!important;
+  align-items:center!important;
+  width:100%!important;
+  height:146px!important;
+  min-height:146px!important;
+  max-height:146px!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  padding:8px 9px!important;
+  overflow:hidden!important;
+}
+#bestRow .card-kickers,
+#list .card-kickers {
+  grid-row:1!important;
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:5px!important;
+  width:100%!important;
+  height:20px!important;
+  min-height:20px!important;
+  max-height:20px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+#bestRow .deal-badge,
+#list .deal-badge {
+  display:inline-flex!important;
+  flex:0 1 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:20px!important;
+  min-height:20px!important;
+  max-height:20px!important;
+  max-width:48%!important;
+  padding:0 7px!important;
+  border:0!important;
+  border-radius:999px!important;
+  color:#fff!important;
+  font-size:8.5px!important;
+  font-weight:900!important;
+  line-height:20px!important;
+  letter-spacing:.35px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .deal-sell,#list .deal-sell{background:#e94f60!important;color:#fff!important}
+#bestRow .deal-buy,#list .deal-buy{background:#287be8!important;color:#fff!important}
+#bestRow .deal-rent,#list .deal-rent{background:#169b60!important;color:#fff!important}
+#bestRow .deal-seek,#list .deal-seek{background:#d99a16!important;color:#fff!important}
+#bestRow .deal-give,#list .deal-give{background:#8054d6!important;color:#fff!important}
+#bestRow .deal-offer,#list .deal-offer{background:#6848bd!important;color:#fff!important}
+#bestRow .best-tag,
+#list .card .tag {
+  display:inline-flex!important;
+  flex:0 1 auto!important;
+  align-items:center!important;
+  height:20px!important;
+  min-height:20px!important;
+  max-height:20px!important;
+  min-width:0!important;
+  max-width:58%!important;
+  margin:0!important;
+  padding:0 7px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:#edf5ff!important;
+  color:#176fc9!important;
+  font-size:9px!important;
+  font-weight:800!important;
+  line-height:20px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-price,
+#list .card .price {
+  grid-row:2!important;
+  display:block!important;
+  width:100%!important;
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  margin:0!important;
+  padding:0!important;
+  color:#111827!important;
+  font-size:17px!important;
+  font-weight:950!important;
+  line-height:22px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-title,
+#list .card .listing-name {
+  grid-row:3!important;
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  line-clamp:2!important;
+  width:100%!important;
+  height:32px!important;
+  min-height:32px!important;
+  max-height:32px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  color:#172033!important;
+  font-size:12.5px!important;
+  font-weight:850!important;
+  line-height:16px!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+#bestRow .best-subtitle,
+#list .card .listing-subtitle {
+  grid-row:4!important;
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  line-clamp:2!important;
+  width:100%!important;
+  height:26px!important;
+  min-height:26px!important;
+  max-height:26px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  color:#68758a!important;
+  font-size:10.5px!important;
+  font-weight:500!important;
+  line-height:13px!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+#bestRow .card-meta,
+#list .card-meta {
+  grid-row:5!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:4px!important;
+  width:100%!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+#bestRow .best-loc,
+#list .card .loc {
+  display:flex!important;
+  flex:1 1 auto!important;
+  align-items:center!important;
+  gap:4px!important;
+  min-width:0!important;
+  width:auto!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  color:#718096!important;
+  font-size:9.5px!important;
+  line-height:16px!important;
+  white-space:nowrap!important;
+}
+#bestRow .best-loc svg,
+#list .card .loc svg {
+  display:block!important;
+  position:static!important;
+  flex:0 0 13px!important;
+  width:13px!important;
+  height:13px!important;
+  min-width:13px!important;
+  min-height:13px!important;
+  margin:0!important;
+  fill:none!important;
+  stroke:#2786f5!important;
+  stroke-width:2!important;
+}
+#bestRow .best-loc span,
+#list .card .loc span {
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#bestRow .card-time,
+#list .card-time {
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  max-width:45%!important;
+  margin:0!important;
+  padding:0!important;
+  color:#8994a5!important;
+  font-size:8.5px!important;
+  font-weight:650!important;
+  line-height:16px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-card .fav-btn,
+#list .card .fav-btn {
+  position:absolute!important;
+  z-index:3!important;
+  top:8px!important;
+  right:8px!important;
+  width:32px!important;
+  height:32px!important;
+}
+/* High-contrast deal labels inside the opened listing. */
+#detailView #detailContent .detail-deal-badge {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:30px!important;
+  padding:7px 12px!important;
+  border:0!important;
+  border-radius:999px!important;
+  color:#fff!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  letter-spacing:.35px!important;
+  line-height:1!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+#detailView #detailContent .detail-deal-badge.deal-sell{background:#e94f60!important;color:#fff!important}
+#detailView #detailContent .detail-deal-badge.deal-buy{background:#287be8!important;color:#fff!important}
+#detailView #detailContent .detail-deal-badge.deal-rent{background:#169b60!important;color:#fff!important}
+#detailView #detailContent .detail-deal-badge.deal-seek{background:#d99a16!important;color:#fff!important}
+#detailView #detailContent .detail-deal-badge.deal-give{background:#8054d6!important;color:#fff!important}
+#detailView #detailContent .detail-deal-badge.deal-offer{background:#6848bd!important;color:#fff!important}
+@media(max-width:390px){
+  #bestRow.best-row,#list.list{gap:8px!important}
+  #bestRow .best-body,#list .card .cardbody{padding-left:8px!important;padding-right:8px!important}
+  #bestRow .best-price,#list .card .price{font-size:16px!important}
+  #bestRow .best-title,#list .card .listing-name{font-size:12px!important}
+  #bestRow .best-subtitle,#list .card .listing-subtitle{font-size:10px!important}
+}
+</style>
+</body></html>'''
 
 
 
@@ -11443,6 +11758,7 @@ body::before{height:390px!important;min-height:0!important;max-height:none!impor
 #list .card .loc, #bestRow .best-loc {display:flex!important;align-items:center!important;min-height:14px!important;}
 #list .card .loc span, #bestRow .best-loc span {min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
 </style>
+
 </body></html>""", mimetype="text/html")
 
 
