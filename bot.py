@@ -11521,24 +11521,39 @@ function fieldLabel(key){const meta=FIELD_LABELS[key];if(meta)return meta[1][sta
 function localizeListingText(value){
  const raw=String(value??'');if(!raw||state.lang==='ru')return raw;
  const words={
-  'Телефоны и планшеты':{en:'Phones and tablets',ka:'ტელეფონები და პლანშეტები'},
-  'Фото и видео':{en:'Photo and video',ka:'ფოტო და ვიდეო'},
+  'Телефоны и планшеты':{en:'Phones and tablets',ka:'ტელეფონები და პლანშეტები'},'Фото и видео':{en:'Photo and video',ka:'ფოტო და ვიდეო'},
   'Недвижимость':{en:'Real estate',ka:'უძრავი ქონება'},'Авто':{en:'Cars',ka:'ავტო'},'Техника':{en:'Electronics',ka:'ტექნიკა'},
   'Дом и мебель':{en:'Home & furniture',ka:'სახლი და ავეჯი'},'Детское':{en:'Kids',ka:'ბავშვები'},'Работа и услуги':{en:'Jobs and services',ka:'სამუშაო და სერვისები'},
-  'Работа':{en:'Jobs',ka:'სამუშაო'},'Услуги':{en:'Services',ka:'სერვისები'},'Животные':{en:'Pets',ka:'ცხოველები'},'Отдам':{en:'Free',ka:'გაჩუქება'},'Ищу':{en:'Wanted',ka:'ვეძებ'},
-  'Квартиры':{en:'Apartments',ka:'ბინები'},'Дома':{en:'Houses',ka:'სახლები'},'Комнаты':{en:'Rooms',ka:'ოთახები'},'Мебель':{en:'Furniture',ka:'ავეჯი'},
-  'Телефоны':{en:'Phones',ka:'ტელეფონები'},'Планшеты':{en:'Tablets',ka:'ტაბლეტები'},'Продам':{en:'For sale',ka:'იყიდება'},'Куплю':{en:'Buying',ka:'ვიყიდი'},'Сдам':{en:'For rent',ka:'ქირავდება'},'Сниму':{en:'Looking to rent',ka:'ვიქირავებ'},
-  'Б/у':{en:'Used',ka:'მეორადი'},'Новое':{en:'New',ka:'ახალი'},'Идеально':{en:'Excellent',ka:'იდეალური'},'Хорошее':{en:'Good',ka:'კარგი'},'Среднее':{en:'Fair',ka:'საშუალო'},'Нет':{en:'No',ka:'არა'},'Есть':{en:'Yes',ka:'კი'}
+  'Работа':{en:'Jobs',ka:'სამუშაო'},'Услуги':{en:'Services',ka:'სერვისები'},'Животные':{en:'Pets',ka:'ცხოველები'},'Отдам':{en:'Free items',ka:'გაჩუქება'},'Ищу':{en:'Wanted',ka:'ვეძებ'},
+  'Квартиры':{en:'Apartments',ka:'ბინები'},'Квартира':{en:'Apartment',ka:'ბინა'},'Дома':{en:'Houses',ka:'სახლები'},'Дом':{en:'House',ka:'სახლი'},'Комнаты':{en:'Rooms',ka:'ოთახები'},'Мебель':{en:'Furniture',ka:'ავეჯი'},
+  'Коммерческое помещение':{en:'Commercial property',ka:'კომერციული ფართი'},'Земельный участок':{en:'Land plot',ka:'მიწის ნაკვეთი'},'Гараж':{en:'Garage',ka:'გარაჟი'},
+  'Телефоны':{en:'Phones',ka:'ტელეფონები'},'Планшеты':{en:'Tablets',ka:'ტაბლეტები'},'Компьютеры и ноутбуки':{en:'Computers and laptops',ka:'კომპიუტერები და ლეპტოპები'},
+  'Вакансии':{en:'Job vacancies',ka:'ვაკანსიები'},'Подработка':{en:'Part-time work',ka:'დამატებითი სამუშაო'},'Удалённая работа':{en:'Remote work',ka:'დისტანციური სამუშაო'},
+  'Красота и уход':{en:'Beauty and personal care',ka:'სილამაზე და მოვლა'},'Массаж и wellness':{en:'Massage and wellness',ka:'მასაჟი და ველნესი'},'Ремонт и строительство':{en:'Renovation and construction',ka:'რემონტი და მშენებლობა'},
+  'Уборка':{en:'Cleaning',ka:'დასუფთავება'},'Транспорт и доставка':{en:'Transport and delivery',ka:'ტრანსპორტი და მიწოდება'},'Обучение и репетиторы':{en:'Tutoring and lessons',ka:'სწავლება და რეპეტიტორები'},
+  'IT и цифровые услуги':{en:'IT and digital services',ka:'IT და ციფრული სერვისები'},'Фото и видеосъёмка':{en:'Photography and videography',ka:'ფოტო და ვიდეოგადაღება'},'Мероприятия':{en:'Events',ka:'ღონისძიებები'},'Переезды':{en:'Moving services',ka:'გადაზიდვის სერვისები'},'Другие услуги':{en:'Other services',ka:'სხვა სერვისები'},
+  'Собаки':{en:'Dogs',ka:'ძაღლები'},'Кошки':{en:'Cats',ka:'კატები'},'Другие животные':{en:'Other animals',ka:'სხვა ცხოველები'},
+  'Продам':{en:'For sale',ka:'იყიდება'},'Куплю':{en:'Looking to buy',ka:'ვიყიდი'},'Сдам':{en:'For rent',ka:'ქირავდება'},'Сниму':{en:'Looking to rent',ka:'ვიქირავებ'},
+  'Б/у':{en:'Used',ka:'მეორადი'},'Новое':{en:'New',ka:'ახალი'},'Идеально':{en:'Excellent',ka:'იდეალური'},'Хорошее':{en:'Good',ka:'კარგი'},'Среднее':{en:'Fair',ka:'საშუალო'},'Нет':{en:'No',ka:'არა'},'Есть':{en:'Yes',ka:'კი'},
+  'Аниматор':{en:'Entertainer',ka:'ანიმატორი'},'Ремонт квартир':{en:'Apartment renovation',ka:'ბინის რემონტი'},'Ремонт под ключ':{en:'Turnkey renovation',ka:'რემონტი სრულად'},'Клининг':{en:'Cleaning service',ka:'დასუფთავება'},
+  'Водитель':{en:'Driver',ka:'მძღოლი'},'Курьер':{en:'Courier',ka:'კურიერი'},'Продавец':{en:'Sales assistant',ka:'გამყიდველი'},'Менеджер':{en:'Manager',ka:'მენეჯერი'},'Няня':{en:'Nanny',ka:'ძიძა'},'Мастер':{en:'Technician',ka:'ხელოსანი'},'Электрик':{en:'Electrician',ka:'ელექტრიკოსი'},'Сантехник':{en:'Plumber',ka:'სანტექნიკოსი'},
+  'Чистая с ремонтом, по суточно':{en:'Clean, renovated property; available for daily rent',ka:'სუფთა, გარემონტებული საცხოვრებელი; დღიურად ქირავდება'},'Красный красивый, есть царапины':{en:'Red, attractive, with some scratches',ka:'წითელი, ლამაზი, აქვს ნაკაწრები'},'Не весело)':{en:'Not fun :)',ka:'არ არის სახალისო :)'},'Царапины есть':{en:'Has scratches',ka:'აქვს ნაკაწრები'},'Почти идеально':{en:'Almost perfect',ka:'თითქმის იდეალური'}
  };
  let out=raw;
- Object.keys(words).sort((a,b)=>b.length-a.length).forEach(src=>{const target=words[src][state.lang];if(target)out=out.replace(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),target)});
+ if(state.lang==='en')out=out.replace(/(\d+)\s*[- ]комнатн(?:ый|ая|ое)\s+(дом|квартира)/giu,(_,n,kind)=>`${n}-bedroom ${kind.toLowerCase()==='дом'?'house':'apartment'}`);
+ else if(state.lang==='ka')out=out.replace(/(\d+)\s*[- ]комнатн(?:ый|ая|ое)\s+(дом|квартира)/giu,(_,n,kind)=>`${n}-ოთახიანი ${kind.toLowerCase()==='дом'?'სახლი':'ბინა'}`);
+ Object.keys(words).sort((a,b)=>b.length-a.length).forEach(src=>{const target=words[src][state.lang];if(!target)return;const escaped=src.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');out=out.replace(new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`,'giu'),(match,prefix)=>prefix+target)});
  return out;
 }
-function formatSpecValue(k,v){const value=String(v??'').trim();if(!value)return '';const localizedFields=new Set(['condition','warranty','gender','service','requirements']);const formatted=localizedFields.has(k)?localizeListingText(value):value;if(k==='area'&&!/м²|m²|м2|m2/i.test(formatted))return formatted+(state.lang==='en'?' m²':state.lang==='ka'?' მ²':' м²');if(k==='mileage'&&!/км|km/i.test(formatted))return formatted+(state.lang==='en'?' km':state.lang==='ka'?' კმ':' км');return formatted}
+function formatSpecValue(k,v){const value=String(v??'').trim();if(!value)return '';const localizedFields=new Set(['condition','warranty','gender','service','requirements','property_type','object_type','building_type','body_type','fuel','transmission','drivetrain','steering_wheel','brand','product_name','service_name','job_title','vacancy','work_format','employment_type','payment_type','schedule','renovation','subtype','category_detail']);const formatted=localizedFields.has(k)?localizeListingText(value):value;if(k==='area'&&!/м²|m²|м2|m2/i.test(formatted))return formatted+(state.lang==='en'?' m²':state.lang==='ka'?' მ²':' м²');if(k==='mileage'&&!/км|km/i.test(formatted))return formatted+(state.lang==='en'?' km':state.lang==='ka'?' კმ':' км');return formatted}
 function detailSpecs(d,detail=false){return Object.entries(d||{}).filter(([k,v])=>v!==''&&v!=null&&typeof v!=='object').map(([k,v])=>{const meta=FIELD_LABELS[k]||['•',null];const cls=detail?'detail-spec':'spec';const vc=detail?'detail-spec-value':'spec-value';const lc=detail?'detail-spec-label':'spec-label';const formatted=formatSpecValue(k,v);const valueText=detail?esc(formatted):`${esc(meta[0])} ${esc(formatted)}`;return `<div class="${cls}"><div class="${vc}">${valueText}</div><div class="${lc}">${esc(fieldLabel(k))}</div></div>`}).join('')}
 function isFav(x){return !!x.is_favorite}
 function favButton(x,detail=false){const active=isFav(x);const cls=detail?'detail-fav':'fav-btn';return `<button class="${cls}${active?' active':''}" data-fav="${esc(x.id)}" aria-label="${active?t('favorite_remove'):t('favorite_add')}">${active?'♥':'♡'}</button>`}
-function localizedCategory(v){const m={'Недвижимость':'category_realestate','Авто':'category_auto','Техника':'category_tech','Дом и мебель':'category_home','Детское':'category_kids','Работа и услуги':'category_work','Работа':'category_work','Услуги':'category_services','Животные':'category_pets','Отдам':'category_give','Ищу':'category_search'};return m[v]?t(m[v]):(v||t('no_listing'))}
+function localizedCategory(v){
+ const raw=String(v||'').trim();if(!raw)return t('no_listing');
+ const aliases={'realestate':'category_realestate','real_estate':'category_realestate','Недвижимость':'category_realestate','Авто':'category_auto','auto':'category_auto','cars':'category_auto','Техника':'category_tech','tech':'category_tech','electronics':'category_tech','Дом и мебель':'category_home','home':'category_home','kids':'category_kids','Детское':'category_kids','Работа и услуги':'category_work','Работа':'category_work','work':'category_work','Услуги':'category_services','services':'category_services','Животные':'category_pets','pets':'category_pets','Отдам':'category_give','give':'category_give','Ищу':'category_search','search':'category_search'};
+ const key=aliases[raw]||aliases[raw.toLowerCase()];return key?t(key):localizeListingText(raw);
+}
 // Hide auto-generated taxonomy titles for every category, while preserving seller-written product names.
 function cardDisplayTitle(rawTitle,rawCategory){
  const raw=String(rawTitle||'').trim();if(!raw)return '';
