@@ -2685,6 +2685,11 @@ def pet_choice_keyboard(field_key, prefix):
 
 
 def display_detail_value(field_key, value):
+    if field_key == "mileage":
+        raw = str(value or "").strip()
+        if raw and raw != "Не указан":
+            try: return f"{int(re.sub(r'\D', '', raw)):,}".replace(",", " ") + " км"
+            except ValueError: pass
     if field_key == "gender":
         return normalize_pet_gender(value)
     if field_key == "age":
@@ -2693,6 +2698,25 @@ def display_detail_value(field_key, value):
 
 
 AUTO_PICK_PAGE_SIZE = 8
+
+GEORGIA_CITIES = [
+    "Батуми", "Тбилиси", "Кутаиси", "Рустави", "Гори", "Поти", "Зугдиди",
+    "Кобулети", "Телави", "Хашури", "Самтредиа", "Сенаки", "Зестафони",
+    "Марнеули", "Ахалцихе", "Озургети", "Чиатура", "Сачхере", "Боржоми",
+    "Болниси", "Гардабани", "Мцхета", "Каспи", "Цхалтубо", "Абаша",
+    "Ланчхути", "Хоби", "Цаленджиха", "Мартвили", "Дманиси", "Ахалкалаки",
+    "Ниноцминда", "Амбролаури", "Они", "Местия", "Кварели", "Гурджаани",
+    "Сигнахи", "Лагодехи", "Сагареджо", "Дедоплис-Цкаро", "Тержола",
+    "Вани", "Багдати", "Хони", "Ткибули", "Казбеги", "Степанцминда",
+]
+
+def picker_options(kind, make=""):
+    if kind == "make": return auto_make_options()
+    if kind == "model": return auto_model_options(make)
+    if kind == "year": return [str(y) for y in range(datetime.now().year, 1979, -1)]
+    if kind == "mileage": return ["Не указан"] + [f"{n:,}".replace(",", " ") + " км" for n in range(0, 500001, 1000)]
+    if kind == "city": return GEORGIA_CITIES
+    return []
 
 def auto_make_options():
     return sorted(AUTO_FALLBACK_DATA.keys(), key=str.casefold)
@@ -2730,7 +2754,8 @@ def auto_picker_keyboard(kind, make=""):
     if make:
         query["make"] = make
     picker_url += "?" + urllib.parse.urlencode(query)
-    label = "🚘 Выбрать марку" if kind == "make" else "🚘 Выбрать модель"
+    labels = {"make":"🚘 Выбрать марку", "model":"🚘 Выбрать модель", "year":"📅 Выбрать год", "mileage":"🛣 Выбрать пробег", "city":"📍 Выбрать город"}
+    label = labels.get(kind, "Выбрать")
     return {"keyboard": [[{"text": label, "web_app": {"url": picker_url}}]],
             "resize_keyboard": True, "one_time_keyboard": True, "is_persistent": False}
 
@@ -2769,6 +2794,15 @@ def send_auto_model_picker(chat_id, index, make, page=0):
     send_auto_picker_message(chat_id, f"<b>{esc(make)}</b>\nВыберите модель автомобиля:", "model", make)
 
 
+def send_catalog_picker(chat_id, index, kind):
+    current_step = str(states[chat_id].get("step", ""))
+    is_edit = current_step.startswith("edit_detail_")
+    states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
+    states[chat_id]["auto_picker"] = {"kind": kind, "index": index, "is_edit": is_edit}
+    prompts = {"year":"<b>📅 Выберите год выпуска</b>", "mileage":"<b>🛣 Выберите пробег</b>"}
+    send_auto_picker_message(chat_id, prompts[kind], kind)
+
+
 def ask_detail(
     chat_id,
     index=0
@@ -2794,6 +2828,8 @@ def ask_detail(
             states[chat_id]["step"] = f"detail_{index}"
         elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
             send_auto_make_picker(chat_id, index)
+        elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key in {"year", "mileage"}:
+            send_catalog_picker(chat_id, index, field_key)
         else:
             prompt += "Введите значение. Опечатки в известных названиях будут исправлены автоматически."
             ask(chat_id, f"detail_{index}", prompt)
@@ -2907,20 +2943,13 @@ def ask_amount(
 # ЛОКАЦИЯ
 # ============================================================
 
-def ask_district(
-    chat_id
-):
-
-    ask(
-
-        chat_id,
-
-        "district",
-
-        "<b>📍 Адрес</b>\n\n"
-        "Укажите улицу, номер дома или точный ориентир.\n\n"
-        "<i>Например: Пиросмани 18А</i>"
-    )
+def ask_district(chat_id):
+    data = states[chat_id]["data"]
+    current_step = str(states[chat_id].get("step", ""))
+    is_edit = current_step.startswith("edit_")
+    states[chat_id]["step"] = "edit_district" if is_edit else "district"
+    states[chat_id]["auto_picker"] = {"kind": "city", "index": -1, "is_edit": is_edit}
+    send_auto_picker_message(chat_id, "<b>📍 Выберите город</b>", "city")
 
 
 # ============================================================
@@ -3174,6 +3203,15 @@ def price_text(
     )
 
     suffix = ""
+    raw_price = str(data.get("price") or "")
+    try:
+        numeric_price = float(raw_price.replace(" ", "").replace(",", "."))
+        if numeric_price.is_integer():
+            formatted_price = f"{int(numeric_price):,}".replace(",", " ")
+        else:
+            formatted_price = f"{numeric_price:,.2f}".replace(",", " ")
+    except (TypeError, ValueError):
+        formatted_price = raw_price
 
     if data[
         "type_key"
@@ -3184,7 +3222,7 @@ def price_text(
     return (
 
         f"💰 <b>"
-        f"{esc(data['price'])} "
+        f"{esc(formatted_price)} "
         f"{symbol}"
         f"{suffix}"
         f"</b>"
@@ -5177,7 +5215,35 @@ def _handle_update_core(
             index = int(picker.get("index", -1))
             listing_data = states[chat_id].get("data") or {}
             fields = category_fields(listing_data)
-            if index < 0 or index >= len(fields) or fields[index][0] != "make_model":
+            if kind == "city":
+                if value not in GEORGIA_CITIES:
+                    send(chat_id, "Выберите город из каталога.")
+                    return
+                listing_data["district"] = value
+                is_edit = bool(picker.get("is_edit"))
+                states[chat_id].pop("auto_picker", None)
+                if is_edit:
+                    preview(chat_id)
+                else:
+                    ask_description(chat_id)
+                return
+            if index < 0 or index >= len(fields):
+                send(chat_id, "Шаг объявления изменился. Начните выбор заново.")
+                return
+            field_key = fields[index][0]
+            if kind in {"year", "mileage"}:
+                if field_key != kind or value not in picker_options(kind):
+                    send(chat_id, "Выберите значение из списка.")
+                    return
+                listing_data.setdefault("details", {})[kind] = value.replace(" км", "").replace(" ", "") if kind == "mileage" and value != "Не указан" else value
+                is_edit = bool(picker.get("is_edit"))
+                states[chat_id].pop("auto_picker", None)
+                if is_edit:
+                    preview(chat_id)
+                else:
+                    ask_detail(chat_id, index + 1)
+                return
+            if field_key != "make_model":
                 send(chat_id, "Шаг объявления изменился. Начните выбор заново.")
                 return
             if kind == "make":
@@ -12085,16 +12151,13 @@ def auto_picker_mini_app():
     # Small Telegram Mini App used only to select an auto make/model in the bot flow.
     kind = str(request.args.get("kind") or "make").strip().lower()
     make = str(request.args.get("make") or "").strip()
-    if kind not in {"make", "model"}:
+    if kind not in {"make", "model", "year", "mileage", "city"}:
         return "Invalid picker", 400
-    if kind == "make":
-        options = auto_make_options()
-        title = "Выберите марку автомобиля"
-    else:
-        if make not in AUTO_FALLBACK_DATA:
-            return "Invalid car make", 400
-        options = auto_model_options(make)
-        title = f"Выберите модель · {html.escape(make)}"
+    if kind == "model" and make not in AUTO_FALLBACK_DATA:
+        return "Invalid car make", 400
+    titles = {"make":"Выберите марку автомобиля", "model":f"Выберите модель · {html.escape(make)}", "year":"Выберите год выпуска", "mileage":"Выберите пробег", "city":"Выберите город Грузии"}
+    options = picker_options(kind, make)
+    title = titles[kind]
     options_json = json.dumps(options, ensure_ascii=False).replace("</", "<\\/")
     kind_json = json.dumps(kind)
     html_page = r'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><script src="https://telegram.org/js/telegram-web-app.js"></script><title>Madloba Market</title><style>
