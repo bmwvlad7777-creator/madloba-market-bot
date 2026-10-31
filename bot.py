@@ -11511,11 +11511,11 @@ function renderCats(){$('cats').innerHTML=cats.map(c=>`<button class="cat" data-
 function bindHomeRedesign(){const more=$('quickMore');if(more)more.onclick=()=>{const row=document.querySelector('.quick-actions');if(!row)return;const max=Math.max(0,row.scrollWidth-row.clientWidth);if(max<=2)return;const atEnd=row.scrollLeft>=max-8;row.scrollTo({left:atEnd?0:Math.min(max,row.scrollLeft+Math.max(170,row.clientWidth*.72)),behavior:'smooth'});};const toggle=$('categoriesToggle');if(toggle)toggle.onclick=()=>{const block=$('categoriesBlock');if(!block)return;const collapsed=block.classList.toggle('is-collapsed');toggle.textContent=t(collapsed?'expand_categories':'collapse_categories')}}
 function bindPopular(){document.querySelectorAll('.popular-card').forEach(b=>b.onclick=()=>{state.q='';$('search').value='';showHome();state.category=b.dataset.cat;$('backBtn').classList.add('show');updateFilterVisibility();load(true)});if($('popularAll'))$('popularAll').onclick=()=>{state.q='';$('search').value='';showHome();state.category='';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};}
 const FIELD_LABELS={
- rooms:['🛏',{ru:'Комнаты',en:'Rooms',ka:'ოთახები'}],area:['📐',{ru:'Площадь',en:'Area',ka:'ფართობი'}],floor:['🏢',{ru:'Этаж',en:'Floor',ka:'სართული'}],
- make_model:['🚗',{ru:'Марка и модель',en:'Make and model',ka:'მარკა და მოდელი'}],year:['📅',{ru:'Год выпуска',en:'Year',ka:'გამოშვების წელი'}],mileage:['🛣',{ru:'Пробег',en:'Mileage',ka:'გარბენი'}],color:['🎨',{ru:'Цвет',en:'Color',ka:'ფერი'}],drivetrain:['⚙️',{ru:'Привод',en:'Drivetrain',ka:'ამძრავი'}],fuel:['⛽',{ru:'Топливо',en:'Fuel',ka:'საწვავი'}],transmission:['⚙️',{ru:'Коробка передач',en:'Transmission',ka:'გადაცემათა კოლოფი'}],
- brand_model:['📱',{ru:'Модель',en:'Model',ka:'მოდელი'}],brand:['🏷',{ru:'Бренд',en:'Brand',ka:'ბრენდი'}],memory:['💾',{ru:'Память',en:'Storage',ka:'მეხსიერება'}],condition:['✨',{ru:'Состояние',en:'Condition',ka:'მდგომარეობა'}],warranty:['🛡',{ru:'Гарантия',en:'Warranty',ka:'გარანტია'}],dimensions:['📏',{ru:'Размеры',en:'Dimensions',ka:'ზომები'}],
- age:['👶',{ru:'Возраст',en:'Age',ka:'ასაკი'}],breed:['🐾',{ru:'Порода',en:'Breed',ka:'ჯიში'}],gender:['🐾',{ru:'Пол',en:'Sex',ka:'სქესი'}],service:['🛠',{ru:'Услуга',en:'Service',ka:'სერვისი'}],service_name:['🛠',{ru:'Услуга',en:'Service',ka:'სერვისი'}],experience:['⭐',{ru:'Опыт',en:'Experience',ka:'გამოცდილება'}],requirements:['📋',{ru:'Требования',en:'Requirements',ka:'მოთხოვნები'}],
- property_type:['🏠',{ru:'Тип недвижимости',en:'Property type',ka:'უძრავი ქონების ტიპი'}],object_type:['📌',{ru:'Тип объекта',en:'Object type',ka:'ობიექტის ტიპი'}],rooms_count:['🛏',{ru:'Комнаты',en:'Rooms',ka:'ოთახები'}],district:['📍',{ru:'Район',en:'District',ka:'რაიონი'}],address:['📍',{ru:'Адрес',en:'Address',ka:'მისამართი'}],salary:['💵',{ru:'Зарплата',en:'Salary',ka:'ხელფასი'}],schedule:['🕒',{ru:'График',en:'Schedule',ka:'გრაფიკი'}],work_format:['💻',{ru:'Формат работы',en:'Work format',ka:'სამუშაო ფორმატი'}],
+ rooms:['🛏',{ru:'Комнаты',en:'Rooms',ka:'ოთახები'}],rooms_count:['🛏',{ru:'Комнаты',en:'Rooms',ka:'ოთახები'}],area:['📐',{ru:'Площадь',en:'Area',ka:'ფართობი'}],floor:['🏢',{ru:'Этаж',en:'Floor',ka:'სართული'}],total_floors:['🏢',{ru:'Этажей в здании',en:'Total floors',ka:'სართულები'}],property_type:['🏠',{ru:'Тип недвижимости',en:'Property type',ka:'უძრავი ქონების ტიპი'}],object_type:['📌',{ru:'Тип объекта',en:'Object type',ka:'ობიექტის ტიპი'}],renovation:['🛠',{ru:'Ремонт',en:'Renovation',ka:'რემონტი'}],building_type:['🏗',{ru:'Тип здания',en:'Building type',ka:'შენობის ტიპი'}],land_area:['🌳',{ru:'Площадь участка',en:'Land area',ka:'მიწის ფართობი'}],heating:['🔥',{ru:'Отопление',en:'Heating',ka:'გათბობა'}],utilities:['🔌',{ru:'Коммуникации',en:'Utilities',ka:'კომუნიკაციები'}],
+ make_model:['🚗',{ru:'Марка и модель',en:'Make and model',ka:'მარკა და მოდელი'}],make:['🚗',{ru:'Марка',en:'Make',ka:'მარკა'}],model:['🚘',{ru:'Модель',en:'Model',ka:'მოდელი'}],year:['📅',{ru:'Год выпуска',en:'Year',ka:'გამოშვების წელი'}],mileage:['🛣',{ru:'Пробег',en:'Mileage',ka:'გარბენი'}],color:['🎨',{ru:'Цвет',en:'Color',ka:'ფერი'}],drivetrain:['⚙️',{ru:'Привод',en:'Drivetrain',ka:'ამძრავი'}],fuel:['⛽',{ru:'Топливо',en:'Fuel',ka:'საწვავი'}],transmission:['⚙️',{ru:'Коробка передач',en:'Transmission',ka:'გადაცემათა კოლოფი'}],engine:['🔧',{ru:'Двигатель',en:'Engine',ka:'ძრავი'}],engine_volume:['🔧',{ru:'Объём двигателя',en:'Engine size',ka:'ძრავის მოცულობა'}],body_type:['🚙',{ru:'Тип кузова',en:'Body type',ka:'ძარის ტიპი'}],owners:['👤',{ru:'Владельцы',en:'Owners',ka:'მფლობელები'}],steering_wheel:['🛞',{ru:'Руль',en:'Steering wheel',ka:'საჭე'}],
+ brand_model:['📱',{ru:'Марка и модель',en:'Make and model',ka:'მარკა და მოდელი'}],brand:['🏷',{ru:'Бренд',en:'Brand',ka:'ბრენდი'}],product_name:['📦',{ru:'Товар',en:'Product',ka:'პროდუქტი'}],memory:['💾',{ru:'Память',en:'Storage',ka:'მეხსიერება'}],storage:['💾',{ru:'Память',en:'Storage',ka:'მეხსიერება'}],ram:['🧠',{ru:'Оперативная память',en:'RAM',ka:'ოპერატიული მეხსიერება'}],screen_size:['📺',{ru:'Диагональ экрана',en:'Screen size',ka:'ეკრანის ზომა'}],condition:['✨',{ru:'Состояние',en:'Condition',ka:'მდგომარეობა'}],warranty:['🛡',{ru:'Гарантия',en:'Warranty',ka:'გარანტია'}],dimensions:['📏',{ru:'Размеры',en:'Dimensions',ka:'ზომები'}],
+ age:['👶',{ru:'Возраст',en:'Age',ka:'ასაკი'}],breed:['🐾',{ru:'Порода',en:'Breed',ka:'ჯიში'}],gender:['🐾',{ru:'Пол',en:'Sex',ka:'სქესი'}],service:['🛠',{ru:'Вид услуги',en:'Service type',ka:'სერვისის ტიპი'}],service_name:['🛠',{ru:'Услуга',en:'Service',ka:'სერვისი'}],experience:['⭐',{ru:'Опыт',en:'Experience',ka:'გამოცდილება'}],requirements:['📋',{ru:'Требования',en:'Requirements',ka:'მოთხოვნები'}],job_title:['💼',{ru:'Должность',en:'Position',ka:'პოზიცია'}],vacancy:['💼',{ru:'Вакансия',en:'Vacancy',ka:'ვაკანსია'}],salary:['💵',{ru:'Зарплата',en:'Salary',ka:'ხელფასი'}],schedule:['🕒',{ru:'График',en:'Schedule',ka:'გრაფიკი'}],work_format:['💻',{ru:'Формат работы',en:'Work format',ka:'სამუშაო ფორმატი'}],employment_type:['📋',{ru:'Тип занятости',en:'Employment type',ka:'დასაქმების ტიპი'}],payment_type:['💳',{ru:'Оплата',en:'Payment',ka:'ანაზღაურება'}],
+ district:['📍',{ru:'Район',en:'District',ka:'რაიონი'}],address:['📍',{ru:'Адрес',en:'Address',ka:'მისამართი'}],subtype:['📂',{ru:'Тип',en:'Type',ka:'ტიპი'}],category_detail:['📂',{ru:'Категория',en:'Category',ka:'კატეგორია'}]
 };
 function fieldLabel(key){const meta=FIELD_LABELS[key];if(meta)return meta[1][state.lang]||meta[1].en;const pretty=String(key||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]+/g,' ').trim();return pretty?pretty.charAt(0).toLocaleUpperCase()+pretty.slice(1):'Характеристика'}
 function localizeListingText(value){
@@ -11633,25 +11633,49 @@ function cardTimeLabel(x){
 function cardText(x){
  const category=String(x.category_name||x.category||'');
  const details=x&&typeof x.details==='object'&&x.details?x.details:{};
- const direct=cardDisplayTitle(x.title||x.name||'',category);
- // Prefer a concrete object/service name from structured category fields when the stored title is generic.
- const detailTitle=[details.product_name,details.brand_model,details.make_model,details.model,details.object_type,details.property_type,details.service_name,details.service,details.job_title,details.vacancy,details.vehicle_model]
-   .map(v=>String(v||'').trim()).find(v=>v&&!/^[-—]+$/.test(v));
- const subcategory=String(x.subcategory_name||x.subcategory||x.subcategory_title||'').trim();
- let structuredTitle=cardDisplayTitle(detailTitle||'',category);
  const categoryKey=String(x.category_key||x.category_slug||'').toLowerCase();
- if(!structuredTitle&&categoryKey==='realestate'){
-   const rooms=String(details.rooms||details.rooms_count||'').trim();
-   const kind=String(details.object_type||details.property_type||subcategory||'').trim();
-   const normalizedKind=kind.toLocaleLowerCase();
-   const isApartment=/apartment|квартир|ბინ/i.test(normalizedKind);
-   if(rooms&&isApartment)structuredTitle=`${rooms}-комнатная квартира`;
-   else if(kind&&!/^(realestate|недвижимость|квартиры|дома|коммерция)$/i.test(kind))structuredTitle=kind;
-   else if(details.area)structuredTitle=isApartment?'Квартира · '+formatSpecValue('area',details.area):'';
+ const subcategoryKey=String(x.subcategory_key||'').toLowerCase();
+ const subcategory=String(x.subcategory_name||x.subcategory||x.subcategory_title||'').trim();
+ const direct=cardDisplayTitle(x.title||x.name||'',category);
+ const firstValue=keys=>keys.map(k=>String(details[k]||'').trim()).find(v=>v&&!/^[-—]+$/.test(v))||'';
+ let structuredTitle='';
+
+ // Use the chosen property subtype and real entered facts, not a generic category label.
+ if(categoryKey==='realestate'){
+   const rooms=firstValue(['rooms','rooms_count']);
+   const area=firstValue(['area']);
+   const typeMap={apartment:'квартира',house:'дом',commercial:'коммерческое помещение',land:'земельный участок',garage:'гараж'};
+   let kind=typeMap[subcategoryKey]||firstValue(['object_type','property_type'])||subcategory;
+   kind=String(kind||'').replace(/^[^\p{L}\p{N}]+/u,'').trim();
+   const kindNorm=kind.toLocaleLowerCase();
+   if(/квартир|apartment|ბინ/i.test(kindNorm))kind='квартира';
+   else if(/дом|house|სახლ/i.test(kindNorm))kind='дом';
+   else if(/коммерц|commercial/i.test(kindNorm))kind='коммерческое помещение';
+   else if(/земл|land/i.test(kindNorm))kind='земельный участок';
+   else if(/гараж|garage/i.test(kindNorm))kind='гараж';
+   if(kind==='квартира'&&rooms)structuredTitle=`${rooms}-комнатная квартира`;
+   else if(kind==='дом'&&rooms)structuredTitle=`${rooms}-комнатный дом`;
+   else if(kind&&kind!=='Недвижимость')structuredTitle=kind;
+   if(structuredTitle&&area)structuredTitle+=` · ${formatSpecValue('area',area)}`;
  }
  if(!structuredTitle&&categoryKey==='auto'){
-   const make=String(details.make||'').trim(),model=String(details.model||'').trim();
-   if(make||model)structuredTitle=[make,model].filter(Boolean).join(' ');
+   const combined=firstValue(['make_model','vehicle_model']);
+   const make=firstValue(['make']),model=firstValue(['model']);
+   structuredTitle=combined||[make,model].filter(Boolean).join(' ');
+ }
+ if(!structuredTitle&&categoryKey==='tech'){
+   structuredTitle=firstValue(['product_name','brand_model'])||[firstValue(['brand']),firstValue(['model'])].filter(Boolean).join(' ');
+ }
+ if(!structuredTitle&&['services','work'].includes(categoryKey)){
+   structuredTitle=firstValue(['service_name','service','job_title','vacancy']);
+ }
+ if(!structuredTitle&&categoryKey==='pets'){
+   const breed=firstValue(['breed']),age=firstValue(['age']);
+   structuredTitle=[breed,age].filter(Boolean).join(' · ');
+ }
+ if(!structuredTitle){
+   structuredTitle=firstValue(['product_name','service_name','job_title','vacancy','brand_model','make_model','vehicle_model','object_type','property_type','model','service']);
+   if(structuredTitle)structuredTitle=cardDisplayTitle(structuredTitle,category);
  }
  const candidate=direct||structuredTitle||cardDisplayTitle(subcategory,category);
  const description=String(x.description||'').trim();
