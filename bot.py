@@ -2799,7 +2799,7 @@ def send_auto_model_picker(chat_id, index, make, page=0):
         else:
             ask_detail(chat_id, index + 1)
         return
-    send_listing_picker(chat_id, f"<b>{esc(make)}</b>\\nВыберите модель автомобиля", "model", index, make)
+    send_listing_picker(chat_id, f"<b>{esc(make)}</b>\nВыберите модель автомобиля", "model", index, make)
 
 
 def ask_detail(
@@ -2949,7 +2949,7 @@ def ask_amount(
 def ask_district(chat_id):
     send_listing_picker(
         chat_id,
-        "<b>📍 Выберите город Грузии</b>\\n\\nУлицу и номер дома указывать не нужно. При необходимости добавьте ориентир в описании.",
+        "<b>📍 Выберите город Грузии</b>\n\nУлицу и номер дома указывать не нужно. При необходимости добавьте ориентир в описании.",
         "city",
         None
     )
@@ -3736,7 +3736,7 @@ def show_moderation_photos(admin_chat_id, request_id):
     if not photos:
         edit_moderation_anchor(
             admin_chat_id, request_id,
-            f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\\nФотографий нет.",
+            f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\nФотографий нет.",
             [[{"text": "⬅️ К объявлению", "callback_data": f"mod_back_{request_id}"}]],
         )
         return
@@ -3763,12 +3763,12 @@ def show_moderation_photos(admin_chat_id, request_id):
 
     if not isinstance(result, dict) or not result.get("ok"):
         print("MODERATION PHOTO PREVIEW ERROR:", request_id, str(result)[:500])
-        photo_text = f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\\n⚠️ Не удалось загрузить фотографии."
+        photo_text = f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\n⚠️ Не удалось загрузить фотографии."
     else:
         item["photo_preview_chat_id"] = admin_chat_id
         item["photo_preview_message_ids"] = media_messages
         photo_text = (
-            f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\\n"
+            f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\n"
             f"Фотографий: <b>{len(photos)}</b> · выберите фото для удаления."
         )
 
@@ -4463,7 +4463,7 @@ def show_moderation_editor(admin_chat_id, request_id):
     moderator_sessions[admin_chat_id] = {"request_id": request_id, "step": "menu"}
     edit_moderation_anchor(
         admin_chat_id, request_id,
-        f"<b>✏️ РЕДАКТИРОВАНИЕ · ЗАЯВКА #{request_id}</b>\\nВыберите поле:",
+        f"<b>✏️ РЕДАКТИРОВАНИЕ · ЗАЯВКА #{request_id}</b>\nВыберите поле:",
         moderation_edit_menu(request_id),
     )
 
@@ -6152,7 +6152,7 @@ def _handle_update_core(
         answer(callback["id"])
         edit_moderation_anchor(
             callback_from_id, request_id,
-            f"<b>📋 ХАРАКТЕРИСТИКИ · ЗАЯВКА #{request_id}</b>\\nВыберите поле:",
+            f"<b>📋 ХАРАКТЕРИСТИКИ · ЗАЯВКА #{request_id}</b>\nВыберите поле:",
             moderation_detail_menu(request_id, item["data"])
         )
         return
@@ -6185,7 +6185,7 @@ def _handle_update_core(
         answer(callback["id"])
         edit_moderation_anchor(
             callback_from_id, request_id,
-            f"<b>{esc(fields[index][1])}</b>\\nВведите новое значение сообщением.",
+            f"<b>{esc(fields[index][1])}</b>\nВведите новое значение сообщением.",
             [[{"text": "⬅️ Назад", "callback_data": f"mod_details_{request_id}"}],
              [{"text": "❌ К заявке", "callback_data": f"mod_back_{request_id}"}]],
         )
