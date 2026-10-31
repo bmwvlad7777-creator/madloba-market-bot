@@ -1001,6 +1001,7 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
 
     metadata = dict(data)
     metadata.pop("_telegram_id", None)
+    metadata["telegram_username"] = str(data.get("telegram_username") or "").strip().lstrip("@")
     metadata["legacy_id"] = data.get("id")
     # address/district remains the exact street or landmark; district_key is a separate stable filter key.
     metadata["district_key"] = str(data.get("district_key") or "").strip().lower() or None
@@ -1014,6 +1015,7 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
         "price": _price_number(data.get("price")),
         "currency": data.get("currency", "") or "USD",
         "phone": data.get("contact", "") or "",
+        "telegram": (f"https://t.me/{str(data.get('telegram_username') or '').strip().lstrip('@')}" if data.get("telegram_username") else ""),
         "address": data.get("district", "") or "",
         "status": "published",
         "published_at": _utc_now_iso(),
@@ -2695,10 +2697,6 @@ def display_detail_value(field_key, value):
         return normalize_pet_gender(value)
     if field_key == "age":
         return normalize_pet_age(value)
-    if field_key == "mileage":
-        raw = str(value or "").strip().replace(" ", "").replace(",", "")
-        if raw.isdigit():
-            return f"{int(raw):,}".replace(",", " ")
     return str(value or "")
 
 
@@ -2710,6 +2708,31 @@ def auto_make_options():
 
 def auto_model_options(make):
     return sorted(AUTO_FALLBACK_DATA.get(str(make or ""), []), key=str.casefold)
+
+
+GEORGIA_CITIES = ["Батуми","Тбилиси","Кутаиси","Рустави","Гори","Поти","Зугдиди","Кобулети","Телави","Боржоми","Ахалцихе","Озургети","Сенаки","Самтредиа","Зестафони","Марнеули","Хашури","Чиатура","Цхалтубо","Сагареджо","Гардабани","Болниси","Каспи","Хони","Ланчхути","Мцхета","Ахалкалаки","Ниноцминда","Дедоплисцкаро","Лагодехи","Кварели","Гурджаани","Сигнахи","Цнори","Абаша","Мартвили","Хоби","Цаленджиха","Чхороцку","Вани","Багдати","Тержола","Сачхере","Амбролаури","Они","Цагери","Местиа","Хелвачаури","Кеда","Шуахеви","Хуло"]
+AUTO_YEAR_OPTIONS = [str(y) for y in range(2026, 1979, -1)]
+AUTO_MILEAGE_MAX = 500000
+
+def listing_picker_keyboard(kind, make=""):
+    parsed = urllib.parse.urlsplit(str(MINI_APP_URL or "").strip())
+    picker_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "/listing-picker", "", ""))
+    query = {"kind": kind}
+    if make:
+        query["make"] = make
+    picker_url += "?" + urllib.parse.urlencode(query)
+    labels = {"make":"🚘 Выбрать марку","model":"🚘 Выбрать модель","year":"📅 Выбрать год","mileage":"🛣 Выбрать пробег","city":"📍 Выбрать город","color":"🎨 Выбрать цвет","drivetrain":"⚙️ Выбрать привод"}
+    return {"keyboard":[[{"text":labels.get(kind,"Выбрать"),"web_app":{"url":picker_url}}]],"resize_keyboard":True,"one_time_keyboard":True,"is_persistent":False}
+
+def send_listing_picker(chat_id, title, kind, index=None, make=""):
+    current_step = str(states[chat_id].get("step", ""))
+    is_edit = current_step.startswith("edit_")
+    if index is not None:
+        states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
+    elif kind == "city":
+        states[chat_id]["step"] = "edit_district" if is_edit else "district"
+    states[chat_id]["listing_picker"] = {"kind":kind,"index":index,"make":make,"is_edit":is_edit}
+    return api("sendMessage", {"chat_id":chat_id,"text":title,"parse_mode":"HTML","reply_markup":listing_picker_keyboard(kind,make)})
 
 
 AUTO_COLOR_OPTIONS = [
@@ -2759,13 +2782,7 @@ def auto_choice_keyboard(kind, options, page=0):
 
 
 def send_auto_make_picker(chat_id, index, page=0):
-    options = auto_make_options()
-    current_step = str(states[chat_id].get("step", ""))
-    is_edit = current_step.startswith("edit_detail_")
-    states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
-    states[chat_id]["auto_picker"] = {"kind": "make", "index": index, "page": page, "is_edit": is_edit}
-    send(chat_id, "<b>🚗 Выберите марку автомобиля</b>\n\nЛистайте список кнопками. Можно выбрать нужную марку.",
-         auto_choice_keyboard("make", options, page))
+    send_listing_picker(chat_id, "<b>🚗 Выберите марку автомобиля</b>", "make", index)
 
 
 def send_auto_model_picker(chat_id, index, make, page=0):
@@ -2775,19 +2792,14 @@ def send_auto_model_picker(chat_id, index, make, page=0):
         details["make_model"] = make
         details["make"] = make
         details["model"] = ""
-        is_edit = bool((states[chat_id].get("auto_picker") or {}).get("is_edit"))
-        states[chat_id].pop("auto_picker", None)
-        if is_edit:
+        picker = states[chat_id].get("listing_picker") or {}
+        states[chat_id].pop("listing_picker", None)
+        if picker.get("is_edit"):
             preview(chat_id)
         else:
             ask_detail(chat_id, index + 1)
         return
-    picker = states[chat_id].get("auto_picker") or {}
-    is_edit = bool(picker.get("is_edit"))
-    states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
-    states[chat_id]["auto_picker"] = {"kind": "model", "index": index, "make": make, "page": page, "is_edit": is_edit}
-    send(chat_id, f"<b>{esc(make)}</b>\nВыберите модель:",
-         auto_choice_keyboard("model", options, page))
+    send_listing_picker(chat_id, f"<b>{esc(make)}</b>\\nВыберите модель автомобиля", "model", index, make)
 
 
 def ask_detail(
@@ -2815,8 +2827,12 @@ def ask_detail(
             states[chat_id]["step"] = f"detail_{index}"
         elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
             send_auto_make_picker(chat_id, index)
+        elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "year":
+            send_listing_picker(chat_id, "<b>📅 Выберите год выпуска</b>", "year", index)
+        elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "mileage":
+            send_listing_picker(chat_id, "<b>🛣 Выберите пробег автомобиля</b>", "mileage", index)
         elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key in {"color", "drivetrain"}:
-            send_auto_attribute_picker(chat_id, index, field_key)
+            send_listing_picker(chat_id, "<b>🚗 Выберите характеристику</b>", field_key, index)
         else:
             prompt += "Введите значение. Опечатки в известных названиях будут исправлены автоматически."
             ask(chat_id, f"detail_{index}", prompt)
@@ -2930,19 +2946,12 @@ def ask_amount(
 # ЛОКАЦИЯ
 # ============================================================
 
-def ask_district(
-    chat_id
-):
-
-    ask(
-
+def ask_district(chat_id):
+    send_listing_picker(
         chat_id,
-
-        "district",
-
-        "<b>📍 Адрес</b>\n\n"
-        "Укажите улицу, номер дома или точный ориентир.\n\n"
-        "<i>Например: Пиросмани 18А</i>"
+        "<b>📍 Выберите город Грузии</b>\\n\\nУлицу и номер дома указывать не нужно. При необходимости добавьте ориентир в описании.",
+        "city",
+        None
     )
 
 
@@ -3042,7 +3051,7 @@ def ask_contact(
         "<b>📞 Контакт для связи</b>\n\n"
         "Телефон укажите в международном формате Грузии: <code>+995XXXXXXXXX</code>.\n"
         "Пример: <code>+995 599 02 47 23</code>.\n\n"
-        "Имя пользователя Telegram будет добавлено автоматически, если оно указано в профиле."
+        "Можно также указать @username в Telegram или ссылку WhatsApp."
     )
 
 
@@ -3165,6 +3174,18 @@ def make_title(
 # ОТОБРАЖЕНИЕ ЦЕНЫ
 # ============================================================
 
+def format_grouped_number(value):
+    raw = str(value or "").strip()
+    cleaned = raw.replace(" ", "").replace(",", ".")
+    try:
+        if "." in cleaned:
+            whole, decimal = cleaned.split(".", 1)
+            return f"{int(whole):,}".replace(",", " ") + (("." + decimal) if decimal else "")
+        return f"{int(cleaned):,}".replace(",", " ")
+    except (TypeError, ValueError):
+        return raw
+
+
 def price_text(
     data
 ):
@@ -3207,7 +3228,7 @@ def price_text(
     return (
 
         f"💰 <b>"
-        f"{esc(data['price'])} "
+        f"{esc(format_grouped_number(data['price']))} "
         f"{symbol}"
         f"{suffix}"
         f"</b>"
@@ -3511,32 +3532,17 @@ def build_listing(
 
     # ========================================================
     # КОНТАКТ
-    # ========================================================
-
-    if data[
-        "contact"
-    ]:
-
-        lines.extend(
-
-            [
-
-                "",
-
-                # Telegram auto-links phone numbers in ordinary/bold text.
-                # A code entity displays the same number without the underline/link popup.
-                f"📞 <code>"
-                f"{esc(data['contact'])}"
-                f"</code>",
-
-                "<i>"
-                "WhatsApp / Telegram"
-                "</i>"
-            ]
-        )
+    contact_lines = []
+    if data.get("contact"):
+        contact_lines.append(f"📞 <code>{esc(data['contact'])}</code>")
+    username = str(data.get("telegram_username") or "").strip().lstrip("@")
+    if username:
+        safe_username = esc(username)
+        contact_lines.append(f'💬 <a href="https://t.me/{safe_username}">Написать в Telegram · @{safe_username}</a>')
+    if contact_lines:
+        lines.extend(["", *contact_lines])
 
 
-    # ========================================================
     # ХЭШТЕГИ
     # ========================================================
 
@@ -5189,6 +5195,92 @@ def _handle_update_core(
         ]["id"]
 
 
+        sender = message.get("from") or {}
+        if chat_id in states and isinstance(states[chat_id].get("data"), dict):
+            states[chat_id]["data"]["telegram_username"] = str(sender.get("username") or "").strip().lstrip("@")
+            states[chat_id]["data"]["telegram_first_name"] = str(sender.get("first_name") or "").strip()
+
+        web_app_data = message.get("web_app_data")
+        if isinstance(web_app_data, dict) and chat_id in states:
+            try:
+                picked = json.loads(str(web_app_data.get("data") or "{}"))
+            except (TypeError, ValueError):
+                picked = {}
+            picker = states[chat_id].get("listing_picker") or {}
+            kind = str(picked.get("kind") or "")
+            value = str(picked.get("value") or "").strip()
+            if not value or kind != str(picker.get("kind") or ""):
+                send(chat_id, "Не удалось принять выбор. Откройте список ещё раз.")
+                return
+            listing_data = states[chat_id].get("data") or {}
+            details = listing_data.setdefault("details", {})
+            is_edit = bool(picker.get("is_edit"))
+
+            if kind == "city":
+                if value not in GEORGIA_CITIES:
+                    send(chat_id, "Выберите город из списка.")
+                    return
+                listing_data["district"] = value
+                states[chat_id].pop("listing_picker", None)
+                if is_edit:
+                    preview(chat_id)
+                elif listing_data.get("category_key") == "realestate":
+                    ask_realestate_district(chat_id)
+                else:
+                    ask_description(chat_id)
+                return
+
+            index = int(picker.get("index", -1))
+            fields = category_fields(listing_data)
+            expected = {"make":"make_model","model":"make_model","year":"year","mileage":"mileage","color":"color","drivetrain":"drivetrain"}.get(kind)
+            if index < 0 or index >= len(fields) or fields[index][0] != expected:
+                send(chat_id, "Шаг объявления изменился. Начните выбор заново.")
+                return
+            if kind == "make":
+                if value not in auto_make_options():
+                    send(chat_id, "Марка не найдена в каталоге.")
+                    return
+                details["make"] = value
+                send_auto_model_picker(chat_id, index, value)
+                return
+            if kind == "model":
+                make = str(picker.get("make") or details.get("make") or "")
+                if value not in auto_model_options(make):
+                    send(chat_id, "Модель не относится к выбранной марке.")
+                    return
+                details.update({"make":make,"model":value,"make_model":f"{make} {value}"})
+            elif kind == "year":
+                if value not in AUTO_YEAR_OPTIONS:
+                    send(chat_id, "Выберите год из списка.")
+                    return
+                details["year"] = value
+            elif kind == "mileage":
+                try:
+                    mileage = int(re.sub(r"\\D", "", value))
+                except ValueError:
+                    mileage = -1
+                if mileage < 0 or mileage > AUTO_MILEAGE_MAX or mileage % 1000:
+                    send(chat_id, "Выберите корректный пробег.")
+                    return
+                details["mileage"] = str(mileage)
+            elif kind == "color":
+                if value not in AUTO_COLOR_OPTIONS:
+                    send(chat_id, "Выберите цвет из списка.")
+                    return
+                details["color"] = value
+            elif kind == "drivetrain":
+                if value not in AUTO_DRIVETRAIN_OPTIONS:
+                    send(chat_id, "Выберите привод из списка.")
+                    return
+                details["drivetrain"] = value
+
+            states[chat_id].pop("listing_picker", None)
+            if is_edit:
+                preview(chat_id)
+            else:
+                ask_detail(chat_id, index + 1)
+            return
+
         # ====================================================
         # ФОТО
         # ====================================================
@@ -5665,6 +5757,10 @@ def _handle_update_core(
         "from"
     ]["id"]
 
+    callback_sender = callback.get("from") or {}
+    if chat_id in states and isinstance(states[chat_id].get("data"), dict):
+        states[chat_id]["data"]["telegram_username"] = str(callback_sender.get("username") or "").strip().lstrip("@")
+        states[chat_id]["data"]["telegram_first_name"] = str(callback_sender.get("first_name") or "").strip()
 
     # ========================================================
     # ВЫБОР СТАНДАРТИЗИРОВАННЫХ ХАРАКТЕРИСТИК ЖИВОТНЫХ
@@ -6771,9 +6867,13 @@ def _handle_update_core(
     # ЛОКАЦИЯ / ОПИСАНИЕ / КОНТАКТ
     # ========================================================
 
-    if data in (
+    if data == "edit_district":
+        if chat_id in states:
+            states[chat_id]["step"] = "edit_district"
+            ask_district(chat_id)
+        return
 
-        "edit_district",
+    if data in (
 
         "edit_description",
 
@@ -12081,6 +12181,41 @@ def mini_app_admin_data():
 def mini_app():
     return Response(MINI_APP_HTML, mimetype="text/html")
 
+
+
+@app.get("/listing-picker")
+def listing_picker_mini_app():
+    kind = str(request.args.get("kind") or "").strip().lower()
+    make = str(request.args.get("make") or "").strip()
+    allowed = {"make", "model", "year", "mileage", "city", "color", "drivetrain"}
+    if kind not in allowed:
+        return "Invalid picker", 400
+    if kind == "make":
+        options, title = auto_make_options(), "Выберите марку автомобиля"
+    elif kind == "model":
+        if make not in AUTO_FALLBACK_DATA:
+            return "Invalid car make", 400
+        options, title = auto_model_options(make), f"Выберите модель · {make}"
+    elif kind == "year":
+        options, title = AUTO_YEAR_OPTIONS, "Выберите год выпуска"
+    elif kind == "city":
+        options, title = GEORGIA_CITIES, "Выберите город Грузии"
+    elif kind == "color":
+        options, title = AUTO_COLOR_OPTIONS, "Выберите цвет автомобиля"
+    elif kind == "drivetrain":
+        options, title = AUTO_DRIVETRAIN_OPTIONS, "Выберите привод"
+    else:
+        options, title = [], "Выберите пробег"
+    options_json = json.dumps(options, ensure_ascii=False).replace("</", "<\\/")
+    kind_json = json.dumps(kind)
+    title_json = json.dumps(title, ensure_ascii=False)
+    html_page = r'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><script src="https://telegram.org/js/telegram-web-app.js"></script><title>Madloba Market</title><style>
+:root{color-scheme:light;--panel:#fff;--text:#17202b;--muted:#7b8794;--line:#e8edf2;--accent:#70a94b}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:rgba(10,18,28,.35);color:var(--text)}.sheet{position:absolute;left:0;right:0;bottom:0;height:min(88dvh,760px);background:var(--panel);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:10px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px #0002}.handle{width:38px;height:4px;border-radius:9px;background:#d5dbe1;margin:0 auto 15px}.head{font-size:19px;font-weight:750;margin:0 0 13px}.search{height:44px;border:1px solid var(--line);border-radius:12px;padding:0 13px;font-size:16px;outline:none;background:#f7f8fa;width:100%;margin-bottom:8px}.list{overflow-y:auto;overscroll-behavior:contain;flex:1;-webkit-overflow-scrolling:touch}.item{display:flex;align-items:center;min-height:52px;padding:0 10px;border-bottom:1px solid var(--line);font-size:16px;cursor:pointer}.item:active{background:#edf5e8}.foot{font-size:12px;color:var(--muted);padding-top:10px;text-align:center}.value{font-size:30px;font-weight:750;text-align:center;margin:30px 0 20px}.range{width:100%;accent-color:var(--accent);height:42px}.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+</style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0 км</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span>0 км</span><span>500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать пробег</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
+const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(kind==='mileage'){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue');function fmt(n){return Number(n).toLocaleString('ru-RU')+' км'}range.addEventListener('input',()=>out.textContent=fmt(range.value));document.getElementById('chooseMileage').addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
+</script></body></html>'''
+    html_page = html_page.replace("__OPTIONS__", options_json).replace("__KIND__", kind_json).replace("__TITLE__", title_json)
+    return Response(html_page, mimetype="text/html", headers={"Cache-Control":"no-store"})
 
 @app.get("/api/config")
 def mini_app_config():
