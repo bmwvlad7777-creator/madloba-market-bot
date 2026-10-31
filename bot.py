@@ -11361,7 +11361,7 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   <div class="mm-support-actions"><button class="mm-support-cancel" id="mmSupportCancel" type="button" data-i18n="cancel">Отмена</button><button class="mm-support-send" id="mmSupportSend" type="submit" data-i18n="support_send">Отправить</button></div>
  </form>
 </div>
-<nav class="bottom"><button class="nav active" data-nav="home"><span class="ni">⌂</span><span data-i18n="home">Главная</span></button><button class="nav" data-nav="favorites"><span class="ni">♡</span><span data-i18n="favorites">Избранное</span></button><button class="nav" data-nav="add"><span class="ni">＋</span><span data-i18n="post">Разместить</span></button><button class="nav" data-nav="mine"><span class="ni">▤</span><span data-i18n="mine_short">Мои</span></button><button class="nav" data-nav="profile"><span class="ni">◉</span><span data-i18n="profile">Профиль</span></button></nav><div class="toast" id="toast"></div>
+<nav class="bottom"><button class="nav active" data-nav="home"><span class="ni" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span><span data-i18n="home">Главная</span></button><button class="nav" data-nav="favorites"><span class="ni" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.1-8.8 11-8.8 11s-8.8-5.9-8.8-11A4.7 4.7 0 0 1 12 6.2a4.7 4.7 0 0 1 8.8 2.5Z"/></svg></span><span data-i18n="favorites">Избранное</span></button><button class="nav" data-nav="add"><span class="ni" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span data-i18n="post">Разместить</span></button><button class="nav" data-nav="mine"><span class="ni" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5h13M8 12h13M8 19h13M3 5h.01M3 12h.01M3 19h.01"/></svg></span><span data-i18n="mine_short">Мои</span></button><button class="nav" data-nav="profile"><span class="ni" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span data-i18n="profile">Профиль</span></button></nav><div class="toast" id="toast"></div>
 <script>
 const tg=window.Telegram&&window.Telegram.WebApp;if(tg){tg.ready();tg.expand();try{tg.setHeaderColor('#0b73f6');tg.setBackgroundColor('#f5f7fb')}catch(e){}}
 const I18N={
@@ -12151,6 +12151,45 @@ apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam
 #detailView #detailContent .contacts{gap:8px!important;margin-top:14px!important}
 #detailView #detailContent .contact-btn{min-height:46px!important;padding:11px 13px!important;border-radius:13px!important;font-size:14px!important}
 @media(max-width:390px){#detailView .detail-top{padding-top:66px!important}#detailView .detail-top .section-head{top:66px!important}#detailView #detailContent .detail-photo{height:190px!important;min-height:190px!important;max-height:190px!important}#detailView #detailContent .detail-body{padding:12px!important}}
+
+/* Detail header spacing and unified bottom-navigation icon set. */
+#detailView .detail-top .detail-back{
+  transform:translateY(11px)!important;
+  position:relative!important;
+  z-index:2!important;
+}
+#detailView #detailContent{margin-top:6px!important;}
+.bottom .nav .ni{
+  width:40px!important;height:32px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  margin:0 auto 3px!important;border-radius:13px!important;
+  background:transparent!important;color:#7b8798!important;
+  transition:background .16s ease,color .16s ease!important;
+}
+.bottom .nav .ni svg{
+  display:block!important;width:23px!important;height:23px!important;
+  fill:none!important;stroke:currentColor!important;stroke-width:1.9!important;
+  stroke-linecap:round!important;stroke-linejoin:round!important;
+}
+.bottom .nav{color:#7b8798!important;font-size:10px!important;font-weight:800!important;}
+.bottom .nav.active{color:#176fe5!important;}
+.bottom .nav.active .ni{background:#eaf3ff!important;color:#176fe5!important;}
+.bottom .nav[data-nav="add"] .ni{
+  width:48px!important;height:40px!important;margin-top:-13px!important;
+  margin-bottom:3px!important;border-radius:15px!important;
+  background:linear-gradient(145deg,#2788ff,#0865dc)!important;
+  color:#fff!important;border:3px solid #f5f7fb!important;
+  box-shadow:0 7px 17px rgba(11,105,224,.25)!important;
+}
+.bottom .nav[data-nav="add"] .ni svg{width:25px!important;height:25px!important;stroke-width:2.5!important;}
+.bottom .nav:active .ni{background:#e5f0ff!important;color:#176fe5!important;}
+.bottom .nav[data-nav="add"]:active .ni{background:#0865dc!important;color:#fff!important;}
+@media(max-width:390px){
+  #detailView .detail-top .detail-back{transform:translateY(10px)!important;}
+  .bottom .nav .ni{width:38px!important;height:30px!important;}
+  .bottom .nav .ni svg{width:22px!important;height:22px!important;}
+}
+
 </style>
 
 </body></html>'''
