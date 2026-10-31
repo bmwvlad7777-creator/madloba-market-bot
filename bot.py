@@ -2835,6 +2835,15 @@ def send_auto_model_picker(chat_id, index, make, page=0):
     send_listing_picker(chat_id, f"<b>{esc(make)}</b>\nВыберите модель автомобиля", "model", index, make)
 
 
+def condition_choice_keyboard():
+    return [
+        [
+            {"text": "🆕 Новое", "callback_data": "conditionpick_new"},
+            {"text": "♻️ Б/у", "callback_data": "conditionpick_used"},
+        ]
+    ]
+
+
 def ask_detail(
     chat_id,
     index=0
@@ -2854,7 +2863,11 @@ def ask_detail(
 
         field_key = fields[index][0]
         prompt = f"<b>{index + 3} · {esc(label)}</b>\n\n"
-        if data.get("category_key") == "pets" and field_key in {"age", "gender"}:
+        if field_key == "condition":
+            prompt += "Выберите состояние товара:"
+            send(chat_id, prompt, condition_choice_keyboard())
+            states[chat_id]["step"] = f"detail_{index}"
+        elif data.get("category_key") == "pets" and field_key in {"age", "gender"}:
             prompt += "Выберите подходящий вариант из списка."
             send(chat_id, prompt, pet_choice_keyboard(field_key, "petpick"))
             states[chat_id]["step"] = f"detail_{index}"
@@ -4990,6 +5003,9 @@ def process_text(
         ):
 
             field_key = fields[index][0]
+            if field_key == "condition":
+                send(chat_id, "Выберите состояние товара — только один из двух вариантов:", condition_choice_keyboard())
+                return True
             if data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
                 send_auto_make_picker(chat_id, index)
                 return True
@@ -5034,6 +5050,9 @@ def process_text(
         ):
 
             field_key = fields[index][0]
+            if field_key == "condition":
+                send(chat_id, "Выберите состояние товара — только «Новое» или «Б/у»:", condition_choice_keyboard())
+                return True
             data["details"][field_key] = normalize_detail_value(
                 data.get("category_key", ""), field_key, text
             )
@@ -5976,6 +5995,35 @@ def _handle_update_core(
                 ask_detail(chat_id, index + 1)
             return
         answer(callback["id"], "Неизвестный тип выбора.", True)
+        return
+
+    if data.startswith("conditionpick_"):
+        if chat_id not in states or not isinstance(states[chat_id].get("data"), dict):
+            answer(callback["id"], "Сессия объявления завершена. Начните заново.", True)
+            return
+        listing_data = states[chat_id]["data"]
+        choice_key = data[len("conditionpick_"):]
+        condition_values = {"new": "Новое", "used": "Б/у"}
+        if choice_key not in condition_values:
+            answer(callback["id"], "Такого варианта нет.", True)
+            return
+        current_step = str(states[chat_id].get("step", ""))
+        is_edit = current_step.startswith("edit_detail_")
+        try:
+            index = int(current_step.rsplit("_", 1)[1])
+        except (ValueError, IndexError):
+            answer(callback["id"], "Шаг объявления уже изменился. Попробуйте снова.", True)
+            return
+        fields = category_fields(listing_data)
+        if index < 0 or index >= len(fields) or fields[index][0] != "condition":
+            answer(callback["id"], "Поле объявления уже изменилось. Попробуйте снова.", True)
+            return
+        listing_data.setdefault("details", {})["condition"] = condition_values[choice_key]
+        answer(callback["id"], f"Состояние: {condition_values[choice_key]}")
+        if is_edit:
+            preview(chat_id)
+        else:
+            ask_detail(chat_id, index + 1)
         return
 
     if data.startswith("petpick_"):
