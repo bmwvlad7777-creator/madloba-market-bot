@@ -2697,6 +2697,10 @@ def display_detail_value(field_key, value):
         return normalize_pet_gender(value)
     if field_key == "age":
         return normalize_pet_age(value)
+    if field_key == "mileage":
+        raw = str(value or "").strip().replace(" ", "").replace(",", "")
+        if raw.isdigit():
+            return f"{int(raw):,}".replace(",", " ")
     return str(value or "")
 
 
@@ -3049,9 +3053,9 @@ def ask_contact(
         "contact",
 
         "<b>📞 Контакт для связи</b>\n\n"
-        "Телефон укажите в международном формате Грузии: <code>+995XXXXXXXXX</code>.\n"
+        "Укажите свой номер телефона в международном формате: <code>+995XXXXXXXXX</code>.\n"
         "Пример: <code>+995 599 02 47 23</code>.\n\n"
-        "Можно также указать @username в Telegram или ссылку WhatsApp."
+        "Ваш Telegram username добавится автоматически из профиля. Чужой username указать нельзя."
     )
 
 
@@ -5146,15 +5150,22 @@ def process_text(
         "edit_contact"
     ):
 
-        data[
-            "contact"
-        ] = text
+        compact_phone = re.sub(r"[\s()\-]", "", text)
+        if not re.fullmatch(r"\+?[1-9]\d{6,14}", compact_phone):
+            send(
+                chat_id,
+                "⚠️ Укажите только номер телефона в международном формате.\n"
+                "Например: <code>+995 599 02 47 23</code>.\n"
+                "Telegram username добавится автоматически из вашего профиля."
+            )
+            return True
 
+        data["contact"] = compact_phone
+        data["telegram_username"] = str(data.get("telegram_username") or "").strip().lstrip("@")
 
         preview(
             chat_id
         )
-
 
         return True
 
