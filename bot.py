@@ -1512,18 +1512,29 @@ def api(method, data=None):
 # ОТПРАВКА СООБЩЕНИЯ
 # ============================================================
 
-def send_admin_reply_keyboard(chat_id, force=False):
-    """Install or restore the administrator shortcut keyboard."""
+ADMIN_REPLY_KEYBOARD_MARKUP = {
+    "keyboard": [
+        [{"text": "🛡 Модерация"}],
+        [{"text": "🏠 Главное меню"}],
+    ],
+    "resize_keyboard": True,
+    "is_persistent": True,
+    "input_field_placeholder": "Выберите действие",
+}
+
+
+def send_admin_reply_keyboard(chat_id):
+    """Install the administrator shortcut once, not on every /start."""
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
 
     marker = str(chat_id)
     state_key = _runtime_key("admin_reply_keyboard", marker)
-    if not force and marker in ADMIN_REPLY_KEYBOARD_INSTALLED:
+    if marker in ADMIN_REPLY_KEYBOARD_INSTALLED:
         return {"ok": True, "skipped": True}
 
     found, saved, state_ok = runtime_state_load(state_key)
-    if not force and found and isinstance(saved, dict) and saved.get("installed"):
+    if found and isinstance(saved, dict) and saved.get("installed"):
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
         return {"ok": True, "skipped": True}
 
@@ -1533,15 +1544,7 @@ def send_admin_reply_keyboard(chat_id, force=False):
             "chat_id": chat_id,
             "text": "🛡 <b>Панель администратора</b>\n\nИспользуйте кнопки ниже для переключения между модерацией и главным меню.",
             "parse_mode": "HTML",
-            "reply_markup": {
-                "keyboard": [
-                    [{"text": "🛡 Модерация"}],
-                    [{"text": "🏠 Главное меню"}],
-                ],
-                "resize_keyboard": True,
-                "is_persistent": True,
-                "input_field_placeholder": "Выберите действие",
-            },
+            "reply_markup": ADMIN_REPLY_KEYBOARD_MARKUP,
         },
     )
     if isinstance(result, dict) and result.get("ok"):
@@ -1569,32 +1572,19 @@ def send(
     }
 
     if keyboard:
-
-        data[
-            "reply_markup"
-        ] = {
-
-            "inline_keyboard":
-                keyboard
-        }
+        # Accept either the usual inline keyboard rows or a complete Telegram
+        # reply_markup object (used to remove the temporary city picker or
+        # restore the administrator shortcuts on the same meaningful message).
+        data["reply_markup"] = (
+            keyboard if isinstance(keyboard, dict)
+            else {"inline_keyboard": keyboard}
+        )
 
     return api(
 
         "sendMessage",
 
         data
-    )
-
-
-def remove_reply_keyboard(chat_id):
-    """Hide temporary picker keyboards (for example, the city selector)."""
-    return api(
-        "sendMessage",
-        {
-            "chat_id": chat_id,
-            "text": "\u2063",
-            "reply_markup": {"remove_keyboard": True},
-        },
     )
 
 
@@ -4380,12 +4370,6 @@ def submit_for_moderation(
     moderation_requests[request_id]["message_chat_id"] = None
     moderation_requests[request_id]["message_id"] = None
 
-    # A temporary picker keyboard (especially "Выбрать город") must not remain
-    # attached to the home screen after submission. Admins get their own shortcuts back.
-    remove_reply_keyboard(chat_id)
-    if moderator_is_allowed(chat_id):
-        send_admin_reply_keyboard(chat_id, force=True)
-
     send(
 
         chat_id,
@@ -4396,10 +4380,23 @@ def submit_for_moderation(
         "После решения администратора "
         "вы получите уведомление.",
 
-        # When the administrator is also testing as a listing author, do not
-        # attach the public category keyboard after every submission.
-        None if moderator_is_allowed(chat_id) else main_menu()
+        # Replace the temporary city-picker keyboard on this same confirmation
+        # message. For an administrator, restore the moderation shortcuts;
+        # for everyone else, remove the temporary reply keyboard. No blank
+        # message is sent and no chat history is deleted.
+        ADMIN_REPLY_KEYBOARD_MARKUP if moderator_is_allowed(chat_id)
+        else {"remove_keyboard": True}
     )
+
+    # Keep the normal user's category menu as a separate, useful message:
+    # Telegram cannot combine ReplyKeyboardRemove and an inline keyboard
+    # in one reply_markup object.
+    if not moderator_is_allowed(chat_id):
+        send(
+            chat_id,
+            "<b>Главное меню</b>\n\nВыберите категорию:",
+            main_menu()
+        )
 
     # Keep one administrator queue card updated; don't send a new queue message per listing.
     refresh_admin_moderation_queue()
@@ -5384,7 +5381,6 @@ def _handle_update_core(
                 if listing_data["city_slug"] not in {"batumi", "tbilisi"}:
                     listing_data.pop("district_key", None)
                 states[chat_id].pop("listing_picker", None)
-                remove_reply_keyboard(chat_id)
                 if is_edit:
                     preview(chat_id)
                 elif listing_data.get("category_key") == "realestate" and listing_data["city_slug"] in {"batumi", "tbilisi"}:
@@ -5735,14 +5731,13 @@ def _handle_update_core(
             # Returning to the main menu clears only the active draft/session.
             # Previously submitted moderation requests must remain available.
             states.pop(chat_id, None)
-            remove_reply_keyboard(chat_id)
 
             if moderator_is_allowed(chat_id):
                 if text.startswith("/start"):
                     # Install the persistent reply keyboard only once, then show
                     # the main menu in the same reusable inline card used by the
                     # moderation queue. Repeated /start must not add new panels.
-                    send_admin_reply_keyboard(chat_id, force=True)
+                    send_admin_reply_keyboard(chat_id)
                     show_admin_main_menu(chat_id)
                     return
 
