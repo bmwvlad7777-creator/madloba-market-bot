@@ -2686,6 +2686,67 @@ def display_detail_value(field_key, value):
     return str(value or "")
 
 
+AUTO_PICK_PAGE_SIZE = 8
+
+def auto_make_options():
+    return sorted(AUTO_FALLBACK_DATA.keys(), key=str.casefold)
+
+
+def auto_model_options(make):
+    return sorted(AUTO_FALLBACK_DATA.get(str(make or ""), []), key=str.casefold)
+
+
+def auto_choice_keyboard(kind, options, page=0):
+    """Compact paginated Telegram inline selector for auto make/model."""
+    total_pages = max(1, (len(options) + AUTO_PICK_PAGE_SIZE - 1) // AUTO_PICK_PAGE_SIZE)
+    page = max(0, min(int(page), total_pages - 1))
+    start = page * AUTO_PICK_PAGE_SIZE
+    visible = options[start:start + AUTO_PICK_PAGE_SIZE]
+    rows = [[{"text": value, "callback_data": f"autopick_{kind}_{start+i}"}]
+            for i, value in enumerate(visible)]
+    nav = []
+    if page > 0:
+        nav.append({"text": "⬅️ Назад", "callback_data": f"autopage_{kind}_{page-1}"})
+    nav.append({"text": f"{page+1}/{total_pages}", "callback_data": "autopage_noop"})
+    if page + 1 < total_pages:
+        nav.append({"text": "Далее ➡️", "callback_data": f"autopage_{kind}_{page+1}"})
+    if nav:
+        rows.append(nav)
+    return rows
+
+
+def send_auto_make_picker(chat_id, index, page=0):
+    options = auto_make_options()
+    current_step = str(states[chat_id].get("step", ""))
+    is_edit = current_step.startswith("edit_detail_")
+    states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
+    states[chat_id]["auto_picker"] = {"kind": "make", "index": index, "page": page, "is_edit": is_edit}
+    send(chat_id, "<b>🚗 Выберите марку автомобиля</b>\n\nЛистайте список кнопками. Можно выбрать нужную марку.",
+         auto_choice_keyboard("make", options, page))
+
+
+def send_auto_model_picker(chat_id, index, make, page=0):
+    options = auto_model_options(make)
+    if not options:
+        details = states[chat_id]["data"].setdefault("details", {})
+        details["make_model"] = make
+        details["make"] = make
+        details["model"] = ""
+        is_edit = bool((states[chat_id].get("auto_picker") or {}).get("is_edit"))
+        states[chat_id].pop("auto_picker", None)
+        if is_edit:
+            preview(chat_id)
+        else:
+            ask_detail(chat_id, index + 1)
+        return
+    picker = states[chat_id].get("auto_picker") or {}
+    is_edit = bool(picker.get("is_edit"))
+    states[chat_id]["step"] = f"edit_detail_{index}" if is_edit else f"detail_{index}"
+    states[chat_id]["auto_picker"] = {"kind": "model", "index": index, "make": make, "page": page, "is_edit": is_edit}
+    send(chat_id, f"<b>{esc(make)}</b>\nВыберите модель:",
+         auto_choice_keyboard("model", options, page))
+
+
 def ask_detail(
     chat_id,
     index=0
@@ -2709,6 +2770,8 @@ def ask_detail(
             prompt += "Выберите подходящий вариант из списка."
             send(chat_id, prompt, pet_choice_keyboard(field_key, "petpick"))
             states[chat_id]["step"] = f"detail_{index}"
+        elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
+            send_auto_make_picker(chat_id, index)
         else:
             prompt += "Введите значение. Опечатки в известных названиях будут исправлены автоматически."
             ask(chat_id, f"detail_{index}", prompt)
@@ -4831,6 +4894,9 @@ def process_text(
         ):
 
             field_key = fields[index][0]
+            if data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
+                send_auto_make_picker(chat_id, index)
+                return True
             data["details"][field_key] = normalize_detail_value(
                 data.get("category_key", ""), field_key, text
             )
@@ -5582,6 +5648,81 @@ def _handle_update_core(
         support_reply_sessions[chat_id] = {"user_id": target_user_id, "started_at": int(time.time())}
         answer(callback["id"], "Напиши ответ следующим сообщением.")
         send(chat_id, "✍️ Напиши ответ пользователю следующим сообщением.\n\nДля отмены отправь /cancel.", [[{"text": "❌ Отмена ответа", "callback_data": "support_reply_cancel"}]])
+        return
+
+    if data == "autopage_noop":
+        answer(callback["id"])
+        return
+
+    if data.startswith("autopage_"):
+        if chat_id not in states or not isinstance(states[chat_id].get("data"), dict):
+            answer(callback["id"], "Сессия объявления завершена. Начните заново.", True)
+            return
+        parts = data.split("_")
+        if len(parts) != 3 or parts[2] not in {str(i) for i in range(1000)}:
+            answer(callback["id"], "Некорректная страница.", True)
+            return
+        kind, page = parts[1], int(parts[2])
+        picker = states[chat_id].get("auto_picker") or {}
+        if picker.get("kind") != kind:
+            answer(callback["id"], "Список уже изменился. Откройте выбор заново.", True)
+            return
+        answer(callback["id"])
+        if kind == "make":
+            send_auto_make_picker(chat_id, picker.get("index", 0), page)
+        elif kind == "model":
+            send_auto_model_picker(chat_id, picker.get("index", 0), picker.get("make", ""), page)
+        return
+
+    if data.startswith("autopick_"):
+        if chat_id not in states or not isinstance(states[chat_id].get("data"), dict):
+            answer(callback["id"], "Сессия объявления завершена. Начните заново.", True)
+            return
+        parts = data.split("_")
+        if len(parts) != 3 or not parts[2].isdigit():
+            answer(callback["id"], "Некорректный вариант.", True)
+            return
+        kind, option_index = parts[1], int(parts[2])
+        picker = states[chat_id].get("auto_picker") or {}
+        if picker.get("kind") != kind:
+            answer(callback["id"], "Список уже изменился. Откройте выбор заново.", True)
+            return
+        index = int(picker.get("index", -1))
+        listing_data = states[chat_id]["data"]
+        fields = category_fields(listing_data)
+        if index < 0 or index >= len(fields) or fields[index][0] != "make_model":
+            answer(callback["id"], "Поле объявления уже изменилось.", True)
+            return
+        if kind == "make":
+            options = auto_make_options()
+            if option_index >= len(options):
+                answer(callback["id"], "Марка не найдена.", True)
+                return
+            make = options[option_index]
+            listing_data.setdefault("details", {})["make"] = make
+            answer(callback["id"], f"Марка: {make}")
+            send_auto_model_picker(chat_id, index, make)
+            return
+        if kind == "model":
+            make = str(picker.get("make") or listing_data.get("details", {}).get("make") or "")
+            options = auto_model_options(make)
+            if option_index >= len(options):
+                answer(callback["id"], "Модель не найдена.", True)
+                return
+            model = options[option_index]
+            details = listing_data.setdefault("details", {})
+            details["make"] = make
+            details["model"] = model
+            details["make_model"] = f"{make} {model}"
+            states[chat_id].pop("auto_picker", None)
+            is_edit = bool(picker.get("is_edit"))
+            answer(callback["id"], f"Выбрано: {make} {model}")
+            if is_edit:
+                preview(chat_id)
+            else:
+                ask_detail(chat_id, index + 1)
+            return
+        answer(callback["id"], "Неизвестный тип выбора.", True)
         return
 
     if data.startswith("petpick_"):
@@ -6693,6 +6834,9 @@ def _handle_update_core(
             if states[chat_id]["data"].get("category_key") == "pets" and field_key in {"age", "gender"}:
                 states[chat_id]["step"] = f"edit_detail_{index}"
                 send(chat_id, prompt + "Выберите вариант.", pet_choice_keyboard(field_key, "petpick"))
+            elif states[chat_id]["data"].get("category_key") == "auto" and states[chat_id]["data"].get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
+                states[chat_id]["step"] = f"edit_detail_{index}"
+                send_auto_make_picker(chat_id, index)
             else:
                 send(chat_id, prompt + "Введите новое значение. Опечатки в известных названиях будут исправлены автоматически.")
 
@@ -12545,6 +12689,93 @@ def mini_app_my_listings():
     return jsonify({"items":items})
 
 
+AUTO_FALLBACK_DATA = {
+    "AC": ["Ace", "Cobra", "378 GT Zagato"],
+    "Acura": ["ILX", "Integra", "TL", "TLX", "TSX", "RL", "RLX", "MDX", "RDX", "NSX", "ZDX"],
+    "Alfa Romeo": ["147", "156", "159", "166", "4C", "Giulia", "Giulietta", "Stelvio", "Tonale", "MiTo"],
+    "Aston Martin": ["DB7", "DB9", "DB11", "DB12", "V8 Vantage", "V12 Vantage", "Vanquish", "Valkyrie", "DBX"],
+    "Audi": ["A1", "A3", "A4", "A5", "A6", "A7", "A8", "Q2", "Q3", "Q4", "Q5", "Q7", "Q8", "TT", "R8", "e-tron", "Q8 e-tron"],
+    "BAIC": ["X3", "X5", "X7", "BJ40", "BJ60", "U5", "EU5"],
+    "Bentley": ["Bentayga", "Continental GT", "Continental Flying Spur", "Flying Spur", "Mulsanne", "Arnage"],
+    "BMW": ["1 Series", "2 Series", "3 Series", "4 Series", "5 Series", "6 Series", "7 Series", "8 Series", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "Z3", "Z4", "i3", "i4", "i5", "i7", "iX", "iX1", "iX3", "M2", "M3", "M4", "M5", "M8"],
+    "BYD": ["Atto 3", "Dolphin", "D1", "E6", "F3", "F5", "F6", "Han", "Seal", "Seagull", "Song", "Tang", "Yuan Plus"],
+    "Cadillac": ["ATS", "CT4", "CT5", "CT6", "CTS", "DeVille", "Escalade", "SRX", "XT4", "XT5", "XT6", "XTS"],
+    "Changan": ["Alsvin", "CS35", "CS55", "CS75", "CS85", "CS95", "UNI-T", "UNI-K", "UNI-V", "Hunter"],
+    "Chery": ["Arrizo 5", "Arrizo 8", "Tiggo 2", "Tiggo 4", "Tiggo 7", "Tiggo 8", "Tiggo 9", "Omoda 5", "Omoda C5"],
+    "Chevrolet": ["Aveo", "Blazer", "Camaro", "Captiva", "Cobalt", "Cruze", "Equinox", "Impala", "Malibu", "Niva", "Silverado", "Spark", "Suburban", "Tahoe", "Trailblazer", "Traverse", "Trax", "Volt"],
+    "Chrysler": ["200", "300", "300C", "Pacifica", "PT Cruiser", "Sebring", "Town & Country", "Voyager"],
+    "Citroen": ["C1", "C3", "C4", "C5", "C5 Aircross", "Berlingo", "Jumper", "Jumpy", "DS3", "DS4", "DS7"],
+    "Dacia": ["Dokker", "Duster", "Jogger", "Lodgy", "Logan", "Sandero", "Spring"],
+    "Daewoo": ["Damas", "Gentra", "Lanos", "Leganza", "Matiz", "Nexia", "Nubira", "Tico"],
+    "Daihatsu": ["Boon", "Charade", "Copen", "Cuore", "Mira", "Rocky", "Sirion", "Terios", "YRV"],
+    "Dodge": ["Avenger", "Challenger", "Charger", "Dart", "Durango", "Grand Caravan", "Journey", "Nitro", "Ram", "Viper"],
+    "DongFeng": ["AX7", "DF6", "H30 Cross", "Rich", "T5 EVO", "T5", "T7"],
+    "DS": ["DS 3", "DS 4", "DS 5", "DS 7", "DS 9"],
+    "FAW": ["Bestune B70", "Bestune T55", "Bestune T77", "Bestune T99", "X40", "X80"],
+    "Ferrari": ["458 Italia", "488 GTB", "812 Superfast", "California", "F8 Tributo", "GTC4Lusso", "Portofino", "Roma", "SF90 Stradale", "296 GTB"],
+    "Fiat": ["500", "500X", "500L", "Albea", "Bravo", "Doblo", "Ducato", "Fiorino", "Linea", "Panda", "Punto", "Tipo"],
+    "Ford": ["Bronco", "EcoSport", "Edge", "Escape", "Expedition", "Explorer", "F-150", "Fiesta", "Focus", "Fusion", "Kuga", "Maverick", "Mondeo", "Mustang", "Ranger", "Transit"],
+    "GAC": ["GS3", "GS4", "GS5", "GS8", "Empow", "Aion S", "Aion Y", "Aion V"],
+    "Geely": ["Atlas", "Coolray", "Emgrand", "Geometry C", "Monjaro", "Okavango", "Tugella", "Starray"],
+    "Genesis": ["G70", "G80", "G90", "GV60", "GV70", "GV80"],
+    "GMC": ["Acadia", "Canyon", "Hummer EV", "Sierra", "Terrain", "Yukon"],
+    "Great Wall": ["C30", "C50", "Hover H3", "Hover H5", "M4", "Poer", "Wingle 5", "Wingle 7"],
+    "Haval": ["F7", "F7x", "H2", "H5", "H6", "H9", "Jolion", "Dargo"],
+    "Honda": ["Accord", "Civic", "CR-V", "CR-Z", "Fit", "HR-V", "Insight", "Jazz", "Odyssey", "Pilot", "Ridgeline"],
+    "Hongqi": ["H5", "H6", "H9", "HS5", "HS7", "E-HS9"],
+    "Hyundai": ["Accent", "Avante", "Creta", "Elantra", "Getz", "Ioniq", "Ioniq 5", "Kona", "Palisade", "Santa Fe", "Sonata", "Staria", "Tucson", "Veloster"],
+    "Infiniti": ["EX", "FX", "G25", "G35", "G37", "JX", "Q30", "Q50", "Q60", "QX30", "QX50", "QX60", "QX70", "QX80"],
+    "Isuzu": ["D-Max", "MU-X", "Trooper", "Rodeo", "NPR"],
+    "JAC": ["J5", "J7", "JS3", "JS4", "JS6", "S3", "S5", "T6", "T8"],
+    "Jaguar": ["E-Pace", "F-Pace", "F-Type", "I-Pace", "XE", "XF", "XJ"],
+    "Jeep": ["Avenger", "Cherokee", "Compass", "Gladiator", "Grand Cherokee", "Renegade", "Wrangler"],
+    "Kia": ["Carens", "Carnival", "Ceed", "Cerato", "EV6", "Forte", "K3", "K5", "K8", "K9", "Mohave", "Niro", "Optima", "Picanto", "Rio", "Sorento", "Soul", "Sportage", "Stinger", "Stonic", "Telluride"],
+    "Lada": ["Granta", "Kalina", "Largus", "Niva", "Niva Travel", "Priora", "Vesta", "XRAY"],
+    "Lamborghini": ["Aventador", "Gallardo", "Huracan", "Revuelto", "Urus"],
+    "Land Rover": ["Defender", "Discovery", "Discovery Sport", "Freelander", "Range Rover", "Range Rover Evoque", "Range Rover Sport", "Range Rover Velar"],
+    "Lexus": ["CT", "ES", "GS", "GX", "IS", "LC", "LS", "LX", "NX", "RC", "RX", "RZ", "UX"],
+    "Lincoln": ["Aviator", "Continental", "Corsair", "MKC", "MKS", "MKX", "MKZ", "Nautilus", "Navigator", "Town Car"],
+    "Li Auto": ["L6", "L7", "L8", "L9", "Mega"],
+    "Lotus": ["Elise", "Emira", "Evora", "Exige", "Eletre"],
+    "Lucid": ["Air", "Gravity"],
+    "Lynk & Co": ["01", "02", "03", "05", "06", "09"],
+    "Mahindra": ["Scorpio", "Thar", "XUV300", "XUV500", "XUV700"],
+    "Maserati": ["Ghibli", "GranTurismo", "Grecale", "Levante", "MC20", "Quattroporte"],
+    "Mazda": ["2", "3", "6", "CX-3", "CX-30", "CX-5", "CX-7", "CX-9", "CX-60", "CX-90", "MX-5"],
+    "McLaren": ["570S", "600LT", "650S", "720S", "765LT", "Artura", "GT", "P1"],
+    "Mercedes-Benz": ["A-Class", "B-Class", "C-Class", "CLA", "CLS", "E-Class", "EQA", "EQB", "EQC", "EQE", "EQS", "G-Class", "GLA", "GLB", "GLC", "GLE", "GLS", "S-Class", "SL", "Sprinter", "V-Class"],
+    "MG": ["3", "4", "5", "6", "ZS", "HS", "Marvel R", "Cyberster"],
+    "MINI": ["Cooper", "Clubman", "Countryman", "Paceman", "Hatch", "Convertible"],
+    "Mitsubishi": ["ASX", "Eclipse Cross", "Galant", "Lancer", "Outlander", "Pajero", "Pajero Sport", "L200"],
+    "NIO": ["ET5", "ET7", "EL6", "EL7", "EL8", "ES6", "ES7", "ES8"],
+    "Nissan": ["350Z", "370Z", "Altima", "Juke", "Leaf", "Micra", "Murano", "Navara", "Note", "Pathfinder", "Qashqai", "Rogue", "Sentra", "Serena", "Skyline", "X-Trail"],
+    "Opel": ["Adam", "Astra", "Corsa", "Crossland", "Grandland", "Insignia", "Mokka", "Omega", "Vectra", "Zafira"],
+    "Peugeot": ["108", "208", "2008", "308", "3008", "408", "508", "5008", "Partner", "Rifter", "Traveller"],
+    "Polestar": ["1", "2", "3", "4"],
+    "Porsche": ["718 Boxster", "718 Cayman", "911", "Cayenne", "Macan", "Panamera", "Taycan"],
+    "RAM": ["1500", "2500", "3500", "ProMaster"],
+    "Renault": ["Arkana", "Captur", "Clio", "Duster", "Fluence", "Kadjar", "Koleos", "Megane", "Sandero", "Scenic", "Symbol", "Talisman", "Zoe"],
+    "Rivian": ["R1T", "R1S", "R2"],
+    "Rolls-Royce": ["Cullinan", "Dawn", "Ghost", "Phantom", "Spectre", "Wraith"],
+    "Seat": ["Alhambra", "Arona", "Ateca", "Ibiza", "Leon", "Tarraco", "Toledo"],
+    "Skoda": ["Fabia", "Kamiq", "Karoq", "Kodiaq", "Octavia", "Rapid", "Scala", "Superb", "Yeti"],
+    "Smart": ["ForTwo", "ForFour", "#1", "#3"],
+    "SsangYong": ["Actyon", "Korando", "Musso", "Rexton", "Tivoli", "Torres"],
+    "Subaru": ["BRZ", "Forester", "Impreza", "Legacy", "Levorg", "Outback", "WRX", "XV"],
+    "Suzuki": ["Alto", "Baleno", "Celerio", "Grand Vitara", "Ignis", "Jimny", "S-Cross", "Swift", "Vitara"],
+    "Tesla": ["Model 3", "Model S", "Model X", "Model Y", "Cybertruck"],
+    "Toyota": ["4Runner", "Alphard", "Aqua", "Avalon", "Avensis", "C-HR", "Camry", "Corolla", "Crown", "FJ Cruiser", "Fortuner", "GR86", "Hiace", "Highlander", "Hilux", "Land Cruiser", "Land Cruiser Prado", "Prius", "RAV4", "Sequoia", "Sienna", "Supra", "Tacoma", "Tundra", "Venza", "Yaris"],
+    "UAZ": ["469", "Hunter", "Patriot", "Pickup", "Profi"],
+    "Volkswagen": ["Amarok", "Arteon", "Caddy", "Golf", "Jetta", "Passat", "Polo", "T-Cross", "T-Roc", "Taigo", "Tiguan", "Touareg", "Transporter", "ID.3", "ID.4", "ID.5", "ID.7"],
+    "Volvo": ["C30", "C40", "S40", "S60", "S80", "S90", "V40", "V60", "V70", "V90", "XC40", "XC60", "XC70", "XC90"],
+    "XPeng": ["P5", "P7", "G3", "G6", "G9", "X9"],
+    "Zeekr": ["001", "007", "009", "X", "7X"],
+    "Zotye": ["T200", "T600", "T700", "SR7", "Coupa"],
+    "Москвич": ["3", "3e", "6", "8"],
+    "ВАЗ": ["2107", "2110", "2114", "2115", "Niva", "Vesta", "Granta", "Priora"]
+}
+
+
 @app.get("/api/auto-options")
 def mini_app_auto_options():
     """Возвращает марки и модели для фильтра Авто. Марки берутся из опубликованных
@@ -12560,91 +12791,7 @@ def mini_app_auto_options():
     # Важно: это именно fallback-каталог — объявления пользователей дополняют его,
     # а не заменяют его. Поэтому даже при одном объявлении Audi пользователь всё равно
     # видит весь список марок и основные модели.
-    fallback_data = {
-        "AC": ["Ace", "Cobra", "378 GT Zagato"],
-        "Acura": ["ILX", "Integra", "TL", "TLX", "TSX", "RL", "RLX", "MDX", "RDX", "NSX", "ZDX"],
-        "Alfa Romeo": ["147", "156", "159", "166", "4C", "Giulia", "Giulietta", "Stelvio", "Tonale", "MiTo"],
-        "Aston Martin": ["DB7", "DB9", "DB11", "DB12", "V8 Vantage", "V12 Vantage", "Vanquish", "Valkyrie", "DBX"],
-        "Audi": ["A1", "A3", "A4", "A5", "A6", "A7", "A8", "Q2", "Q3", "Q4", "Q5", "Q7", "Q8", "TT", "R8", "e-tron", "Q8 e-tron"],
-        "BAIC": ["X3", "X5", "X7", "BJ40", "BJ60", "U5", "EU5"],
-        "Bentley": ["Bentayga", "Continental GT", "Continental Flying Spur", "Flying Spur", "Mulsanne", "Arnage"],
-        "BMW": ["1 Series", "2 Series", "3 Series", "4 Series", "5 Series", "6 Series", "7 Series", "8 Series", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "Z3", "Z4", "i3", "i4", "i5", "i7", "iX", "iX1", "iX3", "M2", "M3", "M4", "M5", "M8"],
-        "BYD": ["Atto 3", "Dolphin", "D1", "E6", "F3", "F5", "F6", "Han", "Seal", "Seagull", "Song", "Tang", "Yuan Plus"],
-        "Cadillac": ["ATS", "CT4", "CT5", "CT6", "CTS", "DeVille", "Escalade", "SRX", "XT4", "XT5", "XT6", "XTS"],
-        "Changan": ["Alsvin", "CS35", "CS55", "CS75", "CS85", "CS95", "UNI-T", "UNI-K", "UNI-V", "Hunter"],
-        "Chery": ["Arrizo 5", "Arrizo 8", "Tiggo 2", "Tiggo 4", "Tiggo 7", "Tiggo 8", "Tiggo 9", "Omoda 5", "Omoda C5"],
-        "Chevrolet": ["Aveo", "Blazer", "Camaro", "Captiva", "Cobalt", "Cruze", "Equinox", "Impala", "Malibu", "Niva", "Silverado", "Spark", "Suburban", "Tahoe", "Trailblazer", "Traverse", "Trax", "Volt"],
-        "Chrysler": ["200", "300", "300C", "Pacifica", "PT Cruiser", "Sebring", "Town & Country", "Voyager"],
-        "Citroen": ["C1", "C3", "C4", "C5", "C5 Aircross", "Berlingo", "Jumper", "Jumpy", "DS3", "DS4", "DS7"],
-        "Dacia": ["Dokker", "Duster", "Jogger", "Lodgy", "Logan", "Sandero", "Spring"],
-        "Daewoo": ["Damas", "Gentra", "Lanos", "Leganza", "Matiz", "Nexia", "Nubira", "Tico"],
-        "Daihatsu": ["Boon", "Charade", "Copen", "Cuore", "Mira", "Rocky", "Sirion", "Terios", "YRV"],
-        "Dodge": ["Avenger", "Challenger", "Charger", "Dart", "Durango", "Grand Caravan", "Journey", "Nitro", "Ram", "Viper"],
-        "DongFeng": ["AX7", "DF6", "H30 Cross", "Rich", "T5 EVO", "T5", "T7"],
-        "DS": ["DS 3", "DS 4", "DS 5", "DS 7", "DS 9"],
-        "FAW": ["Bestune B70", "Bestune T55", "Bestune T77", "Bestune T99", "X40", "X80"],
-        "Ferrari": ["458 Italia", "488 GTB", "812 Superfast", "California", "F8 Tributo", "GTC4Lusso", "Portofino", "Roma", "SF90 Stradale", "296 GTB"],
-        "Fiat": ["500", "500X", "500L", "Albea", "Bravo", "Doblo", "Ducato", "Fiorino", "Linea", "Panda", "Punto", "Tipo"],
-        "Ford": ["Bronco", "EcoSport", "Edge", "Escape", "Expedition", "Explorer", "F-150", "Fiesta", "Focus", "Fusion", "Kuga", "Maverick", "Mondeo", "Mustang", "Ranger", "Transit"],
-        "GAC": ["GS3", "GS4", "GS5", "GS8", "Empow", "Aion S", "Aion Y", "Aion V"],
-        "Geely": ["Atlas", "Coolray", "Emgrand", "Geometry C", "Monjaro", "Okavango", "Tugella", "Starray"],
-        "Genesis": ["G70", "G80", "G90", "GV60", "GV70", "GV80"],
-        "GMC": ["Acadia", "Canyon", "Hummer EV", "Sierra", "Terrain", "Yukon"],
-        "Great Wall": ["C30", "C50", "Hover H3", "Hover H5", "M4", "Poer", "Wingle 5", "Wingle 7"],
-        "Haval": ["F7", "F7x", "H2", "H5", "H6", "H9", "Jolion", "Dargo"],
-        "Honda": ["Accord", "Civic", "CR-V", "CR-Z", "Fit", "HR-V", "Insight", "Jazz", "Odyssey", "Pilot", "Ridgeline"],
-        "Hongqi": ["H5", "H6", "H9", "HS5", "HS7", "E-HS9"],
-        "Hyundai": ["Accent", "Avante", "Creta", "Elantra", "Getz", "Ioniq", "Ioniq 5", "Kona", "Palisade", "Santa Fe", "Sonata", "Staria", "Tucson", "Veloster"],
-        "Infiniti": ["EX", "FX", "G25", "G35", "G37", "JX", "Q30", "Q50", "Q60", "QX30", "QX50", "QX60", "QX70", "QX80"],
-        "Isuzu": ["D-Max", "MU-X", "Trooper", "Rodeo", "NPR"],
-        "JAC": ["J5", "J7", "JS3", "JS4", "JS6", "S3", "S5", "T6", "T8"],
-        "Jaguar": ["E-Pace", "F-Pace", "F-Type", "I-Pace", "XE", "XF", "XJ"],
-        "Jeep": ["Avenger", "Cherokee", "Compass", "Gladiator", "Grand Cherokee", "Renegade", "Wrangler"],
-        "Kia": ["Carens", "Carnival", "Ceed", "Cerato", "EV6", "Forte", "K3", "K5", "K8", "K9", "Mohave", "Niro", "Optima", "Picanto", "Rio", "Sorento", "Soul", "Sportage", "Stinger", "Stonic", "Telluride"],
-        "Lada": ["Granta", "Kalina", "Largus", "Niva", "Niva Travel", "Priora", "Vesta", "XRAY"],
-        "Lamborghini": ["Aventador", "Gallardo", "Huracan", "Revuelto", "Urus"],
-        "Land Rover": ["Defender", "Discovery", "Discovery Sport", "Freelander", "Range Rover", "Range Rover Evoque", "Range Rover Sport", "Range Rover Velar"],
-        "Lexus": ["CT", "ES", "GS", "GX", "IS", "LC", "LS", "LX", "NX", "RC", "RX", "RZ", "UX"],
-        "Lincoln": ["Aviator", "Continental", "Corsair", "MKC", "MKS", "MKX", "MKZ", "Nautilus", "Navigator", "Town Car"],
-        "Li Auto": ["L6", "L7", "L8", "L9", "Mega"],
-        "Lotus": ["Elise", "Emira", "Evora", "Exige", "Eletre"],
-        "Lucid": ["Air", "Gravity"],
-        "Lynk & Co": ["01", "02", "03", "05", "06", "09"],
-        "Mahindra": ["Scorpio", "Thar", "XUV300", "XUV500", "XUV700"],
-        "Maserati": ["Ghibli", "GranTurismo", "Grecale", "Levante", "MC20", "Quattroporte"],
-        "Mazda": ["2", "3", "6", "CX-3", "CX-30", "CX-5", "CX-7", "CX-9", "CX-60", "CX-90", "MX-5"],
-        "McLaren": ["570S", "600LT", "650S", "720S", "765LT", "Artura", "GT", "P1"],
-        "Mercedes-Benz": ["A-Class", "B-Class", "C-Class", "CLA", "CLS", "E-Class", "EQA", "EQB", "EQC", "EQE", "EQS", "G-Class", "GLA", "GLB", "GLC", "GLE", "GLS", "S-Class", "SL", "Sprinter", "V-Class"],
-        "MG": ["3", "4", "5", "6", "ZS", "HS", "Marvel R", "Cyberster"],
-        "MINI": ["Cooper", "Clubman", "Countryman", "Paceman", "Hatch", "Convertible"],
-        "Mitsubishi": ["ASX", "Eclipse Cross", "Galant", "Lancer", "Outlander", "Pajero", "Pajero Sport", "L200"],
-        "NIO": ["ET5", "ET7", "EL6", "EL7", "EL8", "ES6", "ES7", "ES8"],
-        "Nissan": ["350Z", "370Z", "Altima", "Juke", "Leaf", "Micra", "Murano", "Navara", "Note", "Pathfinder", "Qashqai", "Rogue", "Sentra", "Serena", "Skyline", "X-Trail"],
-        "Opel": ["Adam", "Astra", "Corsa", "Crossland", "Grandland", "Insignia", "Mokka", "Omega", "Vectra", "Zafira"],
-        "Peugeot": ["108", "208", "2008", "308", "3008", "408", "508", "5008", "Partner", "Rifter", "Traveller"],
-        "Polestar": ["1", "2", "3", "4"],
-        "Porsche": ["718 Boxster", "718 Cayman", "911", "Cayenne", "Macan", "Panamera", "Taycan"],
-        "RAM": ["1500", "2500", "3500", "ProMaster"],
-        "Renault": ["Arkana", "Captur", "Clio", "Duster", "Fluence", "Kadjar", "Koleos", "Megane", "Sandero", "Scenic", "Symbol", "Talisman", "Zoe"],
-        "Rivian": ["R1T", "R1S", "R2"],
-        "Rolls-Royce": ["Cullinan", "Dawn", "Ghost", "Phantom", "Spectre", "Wraith"],
-        "Seat": ["Alhambra", "Arona", "Ateca", "Ibiza", "Leon", "Tarraco", "Toledo"],
-        "Skoda": ["Fabia", "Kamiq", "Karoq", "Kodiaq", "Octavia", "Rapid", "Scala", "Superb", "Yeti"],
-        "Smart": ["ForTwo", "ForFour", "#1", "#3"],
-        "SsangYong": ["Actyon", "Korando", "Musso", "Rexton", "Tivoli", "Torres"],
-        "Subaru": ["BRZ", "Forester", "Impreza", "Legacy", "Levorg", "Outback", "WRX", "XV"],
-        "Suzuki": ["Alto", "Baleno", "Celerio", "Grand Vitara", "Ignis", "Jimny", "S-Cross", "Swift", "Vitara"],
-        "Tesla": ["Model 3", "Model S", "Model X", "Model Y", "Cybertruck"],
-        "Toyota": ["4Runner", "Alphard", "Aqua", "Avalon", "Avensis", "C-HR", "Camry", "Corolla", "Crown", "FJ Cruiser", "Fortuner", "GR86", "Hiace", "Highlander", "Hilux", "Land Cruiser", "Land Cruiser Prado", "Prius", "RAV4", "Sequoia", "Sienna", "Supra", "Tacoma", "Tundra", "Venza", "Yaris"],
-        "UAZ": ["469", "Hunter", "Patriot", "Pickup", "Profi"],
-        "Volkswagen": ["Amarok", "Arteon", "Caddy", "Golf", "Jetta", "Passat", "Polo", "T-Cross", "T-Roc", "Taigo", "Tiguan", "Touareg", "Transporter", "ID.3", "ID.4", "ID.5", "ID.7"],
-        "Volvo": ["C30", "C40", "S40", "S60", "S80", "S90", "V40", "V60", "V70", "V90", "XC40", "XC60", "XC70", "XC90"],
-        "XPeng": ["P5", "P7", "G3", "G6", "G9", "X9"],
-        "Zeekr": ["001", "007", "009", "X", "7X"],
-        "Zotye": ["T200", "T600", "T700", "SR7", "Coupa"],
-        "Москвич": ["3", "3e", "6", "8"],
-        "ВАЗ": ["2107", "2110", "2114", "2115", "Niva", "Vesta", "Granta", "Priora"]
-    }
+    fallback_data = AUTO_FALLBACK_DATA
     fallback_makes = sorted(fallback_data.keys(), key=str.casefold)
     fallback_models = {k.casefold(): v for k, v in fallback_data.items()}
 
