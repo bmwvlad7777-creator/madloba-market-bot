@@ -2732,6 +2732,86 @@ def display_detail_value(field_key, value):
     return str(value or "")
 
 
+
+# Каталог техники: бренды и популярные линейки моделей по типу устройства.
+TECH_CATALOG = {
+    "phones": {
+        "Apple": ["iPhone 17 Pro Max", "iPhone 17 Pro", "iPhone 17", "iPhone 16 Pro Max", "iPhone 16 Pro", "iPhone 16 Plus", "iPhone 16", "iPhone 15 Pro Max", "iPhone 15 Pro", "iPhone 15 Plus", "iPhone 15", "iPhone 14 Pro Max", "iPhone 14 Pro", "iPhone 14", "iPhone 13 Pro Max", "iPhone 13 Pro", "iPhone 13", "iPhone 12", "iPhone 11", "iPhone SE"],
+        "Samsung": ["Galaxy S26 Ultra", "Galaxy S26+", "Galaxy S26", "Galaxy S25 Ultra", "Galaxy S25+", "Galaxy S25", "Galaxy S24 Ultra", "Galaxy S24+", "Galaxy S24", "Galaxy S23 Ultra", "Galaxy S23", "Galaxy Z Fold7", "Galaxy Z Flip7", "Galaxy A56", "Galaxy A55", "Galaxy A36", "Galaxy A35", "Galaxy A26", "Galaxy A16"],
+        "Xiaomi": ["Xiaomi 17 Ultra", "Xiaomi 17", "Xiaomi 15 Ultra", "Xiaomi 15", "Xiaomi 14 Ultra", "Xiaomi 14", "Xiaomi 13", "Redmi Note 15 Pro+", "Redmi Note 15 Pro", "Redmi Note 14 Pro+", "Redmi Note 14 Pro", "Redmi Note 14", "Redmi 14C", "POCO F7 Pro", "POCO F7", "POCO X7 Pro", "POCO X7", "POCO M7"],
+        "Huawei": ["Pura 80 Pro", "Pura 80", "Pura 70 Pro", "Pura 70", "Mate  X6", "Mate 70 Pro", "Mate 60 Pro", "Nova 13 Pro", "Nova 13", "Nova 12", "P60 Pro", "Y9a"],
+        "Honor": ["Magic7 Pro", "Magic7", "Magic6 Pro", "Magic V3", "200 Pro", "200", "90", "X9c", "X9b", "X8b", "X7c"],
+        "Google": ["Pixel 10 Pro XL", "Pixel 10 Pro", "Pixel 10", "Pixel 9 Pro XL", "Pixel 9 Pro", "Pixel 9", "Pixel 8 Pro", "Pixel 8", "Pixel 7 Pro", "Pixel 7", "Pixel 6"],
+        "OnePlus": ["OnePlus 13", "OnePlus 13R", "OnePlus 12", "OnePlus 12R", "OnePlus 11", "Nord 5", "Nord 4", "Nord CE4"],
+        "OPPO": ["Find X8 Pro", "Find X8", "Reno 13 Pro", "Reno 13", "Reno 12 Pro", "Reno 12", "A5 Pro", "A3 Pro"],
+        "Vivo": ["X200 Pro", "X200", "X100 Pro", "X100", "V50", "V40", "V30", "Y200", "Y100"],
+        "Realme": ["GT 7 Pro", "GT 6", "12 Pro+", "12 Pro", "12", "11 Pro+", "11 Pro", "C75", "C67"],
+        "Motorola": ["Edge 60 Pro", "Edge 50 Ultra", "Edge 50 Pro", "Razr 60", "Razr 50", "Moto G85", "Moto G55", "Moto G35"],
+        "Tecno": ["Phantom V Fold2", "Camon 40 Pro", "Camon 30 Pro", "Spark 30 Pro", "Pova 6 Pro"],
+        "Infinix": ["Zero 40", "Note 50 Pro", "Note 40 Pro", "Hot 50 Pro", "GT 20 Pro"],
+        "Nokia": ["G42", "G22", "XR21", "C32", "C22"],
+        "Sony": ["Xperia 1 VI", "Xperia 5 V", "Xperia 10 VI"],
+    },
+    "computers": {
+        "Apple": ["MacBook Air 13", "MacBook Air 15", "MacBook Pro 14", "MacBook Pro 16", "iMac", "Mac mini", "Mac Studio", "Mac Pro"],
+        "ASUS": ["Zenbook", "Vivobook", "ROG Zephyrus", "ROG Strix", "TUF Gaming", "ProArt", "ExpertBook"],
+        "Acer": ["Aspire", "Swift", "Spin", "Predator Helios", "Nitro", "TravelMate"],
+        "Lenovo": ["ThinkPad", "IdeaPad", "Yoga", "Legion", "LOQ", "ThinkBook"],
+        "HP": ["Pavilion", "Envy", "Spectre", "EliteBook", "ProBook", "Victus", "OMEN"],
+        "Dell": ["XPS", "Inspiron", "Latitude", "Precision", "Alienware", "G Series"],
+        "MSI": ["Stealth", "Vector", "Raider", "Katana", "Thin", "Prestige", "Modern"],
+        "Microsoft": ["Surface Laptop", "Surface Pro", "Surface Go", "Surface Studio"],
+        "Huawei": ["MateBook X Pro", "MateBook 14", "MateBook D 16", "MateBook D 14"],
+        "Samsung": ["Galaxy Book5 Pro", "Galaxy Book4 Pro", "Galaxy Book4", "Galaxy Chromebook"],
+        "Gigabyte": ["AERO", "AORUS", "G5", "G6"],
+    },
+    "tv": {
+        "Samsung": ["QLED Q-series", "Neo QLED", "OLED S-series", "Crystal UHD", "The Frame", "The Serif"],
+        "LG": ["OLED C-series", "OLED G-series", "OLED B-series", "QNED", "NanoCell", "UHD"],
+        "Sony": ["BRAVIA XR", "BRAVIA 8", "BRAVIA 7", "BRAVIA 5", "BRAVIA 3"],
+        "TCL": ["C-series", "P-series", "Q-series", "Mini LED"],
+        "Hisense": ["U-series", "E-series", "A-series", "ULED", "Laser TV"],
+        "Philips": ["OLED", "The One", "PUS series", "Ambilight"],
+        "Xiaomi": ["TV A Pro", "TV A", "TV S Mini LED", "TV Q2"],
+        "JBL": ["Bar series", "PartyBox", "Charge", "Flip", "Boombox"],
+        "Bose": ["QuietComfort", "SoundLink", "Smart Soundbar"],
+        "Sony Audio": ["WH-1000X", "WF-1000X", "ULT", "SRS"],
+    },
+    "appliances": {
+        "Bosch": ["Serie 2", "Serie 4", "Serie 6", "Serie 8"], "Samsung": ["Bespoke", "EcoBubble", "WindFree", "Jet"],
+        "LG": ["ThinQ", "Inverter Direct Drive", "DualCool", " InstaView"], "Whirlpool": ["Supreme", "FreshCare", "W Collection"],
+        "Electrolux": ["PerfectCare", "SteamBake", "600 Series", "700 Series"], "Beko": [" b300", "bPRO 500", "bPRO 700"],
+        "Haier": ["I-Pro Series", "Cube", "SBS"], "Midea": ["Xtreme Save", "Mission", "Cube"],
+        "Dyson": ["V8", "V10", "V11", "V12", "V15", "Gen5detect", "Airwrap", "Supersonic"],
+        "Philips": ["Airfryer", "AquaTrio", "PowerPro", "Lumea", "Sonicare"],
+        "De’Longhi": ["Magnifica", "Dinamica", "Eletta", "La Specialista"], "Tefal": ["Easy Fry", "OptiGrill", "Ingenio"],
+    },
+    "photo": {
+        "Canon": ["EOS R5", "EOS R6", "EOS R8", "EOS R50", "EOS R7", "PowerShot G7 X", "IXUS"],
+        "Nikon": ["Z8", "Z7 II", "Z6 III", "Z5", "Z fc", "D850", "D7500"],
+        "Sony": ["Alpha A1", "Alpha A7 IV", "Alpha A7C II", "Alpha A7R V", "Alpha A6700", "ZV-E10", "FX3"],
+        "Fujifilm": ["X-T5", "X-S20", "X100VI", "GFX 100 II", "X-H2"],
+        "Panasonic": ["Lumix S5 II", "Lumix GH7", "Lumix G9 II"],
+        "GoPro": ["HERO13 Black", "HERO12 Black", "MAX"], "DJI": ["Osmo Pocket 3", "Osmo Action 5 Pro", "Air 3S", "Mini 4 Pro", "Mavic 3 Pro"],
+        "Insta360": ["X5", "X4", "Ace Pro 2", "GO 3S"],
+    },
+    "other": {
+        "Apple": ["Apple Watch", "AirPods", "iPad", "Apple TV", "HomePod"], "Samsung": ["Galaxy Watch", "Galaxy Buds", "Galaxy Tab"],
+        "Xiaomi": ["Mi Band", "Smart Band", "Robot Vacuum", "Electric Scooter"], "Anker": ["PowerCore", "Prime", "Soundcore", "Nebula"],
+        "Logitech": ["MX Master", "MX Keys", "G Pro", "C920", "Brio"], "Razer": ["DeathAdder", "BlackWidow", "Blade", "Barracuda"],
+        "TP-Link": ["Archer", "Deco", "Tapo"], "Sony": ["PlayStation 5", "PlayStation Portal", "DualSense"],
+        "Nintendo": ["Switch", "Switch OLED", "Switch Lite"], "Microsoft": ["Xbox Series X", "Xbox Series S", "Surface"],
+    },
+}
+
+def tech_brand_options(subcategory):
+    return sorted(TECH_CATALOG.get(str(subcategory or "other"), TECH_CATALOG["other"]).keys(), key=str.casefold)
+
+def tech_model_options(subcategory, brand):
+    catalog = TECH_CATALOG.get(str(subcategory or "other"), TECH_CATALOG["other"])
+    return list(catalog.get(str(brand or ""), []))
+
+
 AUTO_PICK_PAGE_SIZE = 8
 
 def auto_make_options():
@@ -2773,7 +2853,7 @@ def send_listing_picker(chat_id, title, kind, index=None, make=""):
     elif kind == "city":
         states[chat_id]["step"] = "edit_district" if is_edit else "district"
     listing_data = states[chat_id].get("data") or {}
-    subcategory = str(listing_data.get("subcategory_key") or "") if kind == "area" else ""
+    subcategory = str(listing_data.get("subcategory_key") or "") if kind in {"area", "tech_brand", "tech_model"} else ""
     states[chat_id]["listing_picker"] = {"kind":kind,"index":index,"make":make,"subcategory":subcategory,"is_edit":is_edit}
     return api("sendMessage", {"chat_id":chat_id,"text":title,"parse_mode":"HTML","reply_markup":listing_picker_keyboard(kind,make,subcategory)})
 
@@ -2894,6 +2974,12 @@ def ask_detail(
             send_listing_picker(chat_id, f"<b>🏠 Выберите {title}</b>", field_key, index)
         elif data.get("category_key") == "realestate" and field_key == "area":
             send_listing_picker(chat_id, "<b>📐 Выберите площадь объекта</b>", "area", index)
+        elif data.get("category_key") == "tech" and field_key == "brand_model":
+            send_listing_picker(chat_id, "<b>📱 Выберите производителя техники</b>", "tech_brand", index)
+        elif data.get("category_key") == "tech" and field_key == "warranty":
+            prompt += "Выберите наличие гарантии:"
+            send(chat_id, prompt, [[{"text": "✅ Есть гарантия", "callback_data": "warrantypick_yes"}, {"text": "❌ Нет гарантии", "callback_data": "warrantypick_no"}]])
+            states[chat_id]["step"] = f"detail_{index}"
         elif data.get("category_key") == "kids" and field_key == "age":
             send_listing_picker(chat_id, "<b>👶 Выберите возраст ребёнка</b>", "child_age", index)
         elif data.get("category_key") in {"work", "services"} and field_key == "experience":
@@ -5291,11 +5377,27 @@ def _handle_update_core(
 
             index = int(picker.get("index", -1))
             fields = category_fields(listing_data)
-            expected = {"make":"make_model","model":"make_model","year":"year","mileage":"mileage","color":"color","drivetrain":"drivetrain","rooms":"rooms","floor":"floor","area":"area","child_age":"age","experience":"experience"}.get(kind)
+            expected = {"make":"make_model","model":"make_model","tech_brand":"brand_model","tech_model":"brand_model","year":"year","mileage":"mileage","color":"color","drivetrain":"drivetrain","rooms":"rooms","floor":"floor","area":"area","child_age":"age","experience":"experience"}.get(kind)
             if index < 0 or index >= len(fields) or fields[index][0] != expected:
                 send(chat_id, "Шаг объявления изменился. Начните выбор заново.")
                 return
-            if kind == "make":
+            if kind == "tech_brand":
+                if value not in tech_brand_options(listing_data.get("subcategory_key")):
+                    send(chat_id, "Производитель не найден в каталоге.")
+                    return
+                details["brand"] = value
+                send_listing_picker(chat_id, f"<b>{esc(value)}</b>\nВыберите модель устройства", "tech_model", index, value)
+                return
+            if kind == "tech_model":
+                subcategory = str(listing_data.get("subcategory_key") or "other")
+                brand = str(picker.get("make") or details.get("brand") or "")
+                if value not in tech_model_options(subcategory, brand):
+                    send(chat_id, "Модель не относится к выбранному производителю.")
+                    return
+                details["brand"] = brand
+                details["model"] = value
+                details["brand_model"] = f"{brand} {value}"
+            elif kind == "make":
                 if value not in auto_make_options():
                     send(chat_id, "Марка не найдена в каталоге.")
                     return
@@ -5428,17 +5530,11 @@ def _handle_update_core(
                 }
                 status_message_id = states[chat_id].get("photo_status_message_id")
                 if status_message_id:
-                    api("editMessageText", {
-                        "chat_id": chat_id,
-                        "message_id": status_message_id,
-                        "text": status_text,
-                        "parse_mode": "HTML",
-                        "reply_markup": status_keyboard,
-                    })
-                else:
-                    result = send(chat_id, status_text, status_keyboard["inline_keyboard"])
-                    if isinstance(result, dict) and result.get("ok"):
-                        states[chat_id]["photo_status_message_id"] = result.get("result", {}).get("message_id")
+                    # Delete the previous counter and post the updated one after the newest photo.
+                    api("deleteMessage", {"chat_id": chat_id, "message_id": status_message_id})
+                result = send(chat_id, status_text, status_keyboard["inline_keyboard"])
+                if isinstance(result, dict) and result.get("ok"):
+                    states[chat_id]["photo_status_message_id"] = result.get("result", {}).get("message_id")
 
 
             return
@@ -6004,6 +6100,35 @@ def _handle_update_core(
             return
         listing_data.setdefault("details", {})["condition"] = condition_values[choice_key]
         answer(callback["id"], f"Состояние: {condition_values[choice_key]}")
+        if is_edit:
+            preview(chat_id)
+        else:
+            ask_detail(chat_id, index + 1)
+        return
+
+    if data.startswith("warrantypick_"):
+        if chat_id not in states or not isinstance(states[chat_id].get("data"), dict):
+            answer(callback["id"], "Сессия объявления завершена. Начните заново.", True)
+            return
+        listing_data = states[chat_id]["data"]
+        current_step = str(states[chat_id].get("step", ""))
+        is_edit = current_step.startswith("edit_detail_")
+        try:
+            index = int(current_step.rsplit("_", 1)[1])
+        except (ValueError, IndexError):
+            answer(callback["id"], "Шаг объявления уже изменился. Попробуйте снова.", True)
+            return
+        fields = category_fields(listing_data)
+        if index < 0 or index >= len(fields) or fields[index][0] != "warranty":
+            answer(callback["id"], "Поле объявления уже изменилось. Попробуйте снова.", True)
+            return
+        choice = data[len("warrantypick_"):]
+        values = {"yes": "Есть гарантия", "no": "Нет гарантии"}
+        if choice not in values:
+            answer(callback["id"], "Такого варианта нет.", True)
+            return
+        listing_data.setdefault("details", {})["warranty"] = values[choice]
+        answer(callback["id"], values[choice])
         if is_edit:
             preview(chat_id)
         else:
@@ -12325,7 +12450,7 @@ def listing_picker_mini_app():
     kind = str(request.args.get("kind") or "").strip().lower()
     make = str(request.args.get("make") or "").strip()
     subcategory = str(request.args.get("subcategory") or "").strip().lower()
-    allowed = {"make", "model", "year", "mileage", "city", "color", "drivetrain", "rooms", "floor", "area", "child_age", "experience"}
+    allowed = {"make", "model", "tech_brand", "tech_model", "year", "mileage", "city", "color", "drivetrain", "rooms", "floor", "area", "child_age", "experience"}
     if kind not in allowed:
         return "Invalid picker", 400
     if kind == "make":
@@ -12334,6 +12459,12 @@ def listing_picker_mini_app():
         if make not in AUTO_FALLBACK_DATA:
             return "Invalid car make", 400
         options, title = auto_model_options(make), f"Выберите модель · {make}"
+    elif kind == "tech_brand":
+        options, title = tech_brand_options(subcategory), "Выберите производителя"
+    elif kind == "tech_model":
+        if make not in TECH_CATALOG.get(subcategory, {}):
+            return "Invalid technology brand", 400
+        options, title = tech_model_options(subcategory, make), f"Выберите модель · {make}"
     elif kind == "year":
         options, title = AUTO_YEAR_OPTIONS, "Выберите год выпуска"
     elif kind == "city":
