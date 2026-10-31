@@ -12105,6 +12105,54 @@ apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam
   #bestRow .best-subtitle,#list .card .listing-subtitle{font-size:10px!important}
 }
 </style>
+
+<style id="madloba-miniapp-card-detail-correction-v1">
+/* Correctly placed in the actual Mini App HTML (not the admin page). */
+#bestRow.best-row,#list.list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-auto-rows:200px!important;grid-auto-flow:row!important;align-items:stretch!important;justify-items:stretch!important;gap:9px!important;overflow:visible!important;padding:0 2px 5px!important}
+#bestRow .best-card,#list .card{position:relative!important;display:flex!important;flex-direction:column!important;width:100%!important;height:200px!important;min-width:0!important;min-height:200px!important;max-height:200px!important;box-sizing:border-box!important;overflow:hidden!important;border:1px solid #e5edf7!important;border-radius:16px!important;background:#fff!important;box-shadow:0 4px 13px rgba(24,48,80,.065)!important}
+#bestRow .best-photo,#list .card .photo{position:relative!important;display:flex!important;flex:0 0 82px!important;width:100%!important;height:82px!important;min-height:82px!important;max-height:82px!important;align-items:center!important;justify-content:center!important;margin:0!important;overflow:hidden!important;border-radius:0!important;background:#f2f5fa!important}
+#bestRow .best-photo img,#list .card .photo img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important}
+#bestRow .best-body,#list .card .cardbody{display:grid!important;flex:0 0 118px!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:18px 20px 28px 20px 14px!important;row-gap:1px!important;align-items:center!important;width:100%!important;height:118px!important;min-height:118px!important;max-height:118px!important;min-width:0!important;box-sizing:border-box!important;padding:5px 8px 6px!important;overflow:hidden!important}
+#bestRow .card-kickers,#list .card-kickers{grid-row:1!important;display:flex!important;align-items:center!important;flex-wrap:nowrap!important;gap:4px!important;width:100%!important;height:18px!important;min-height:18px!important;max-height:18px!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+#bestRow .deal-badge,#list .deal-badge{display:inline-flex!important;flex:0 1 44%!important;align-items:center!important;justify-content:center!important;min-width:0!important;max-width:44%!important;height:18px!important;min-height:18px!important;max-height:18px!important;padding:0 5px!important;border:0!important;border-radius:999px!important;font-size:8px!important;font-weight:900!important;line-height:18px!important;letter-spacing:.25px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#bestRow .best-tag,#list .card .tag{display:inline-flex!important;flex:1 1 0!important;align-items:center!important;min-width:0!important;max-width:56%!important;height:18px!important;min-height:18px!important;max-height:18px!important;margin:0!important;padding:0 5px!important;border:1px solid #dfebfb!important;border-radius:999px!important;background:#edf5ff!important;color:#176fc9!important;font-size:8px!important;font-weight:800!important;line-height:16px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#bestRow .best-price,#list .card .price{grid-row:2!important;display:block!important;width:100%!important;height:20px!important;min-height:20px!important;max-height:20px!important;margin:0!important;padding:0!important;color:#111827!important;font-size:16px!important;font-weight:950!important;line-height:20px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#bestRow .best-title,#list .card .listing-name{grid-row:3!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2!important;width:100%!important;height:28px!important;min-height:28px!important;max-height:28px!important;margin:0!important;padding:0!important;overflow:hidden!important;color:#172033!important;font-size:11.5px!important;font-weight:850!important;line-height:14px!important;overflow-wrap:anywhere!important;word-break:normal!important}
+#bestRow .best-subtitle,#list .card .listing-subtitle{grid-row:4!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:1!important;line-clamp:1!important;width:100%!important;height:20px!important;min-height:20px!important;max-height:20px!important;margin:0!important;padding:0!important;overflow:hidden!important;color:#68758a!important;font-size:9.5px!important;font-weight:500!important;line-height:20px!important;white-space:nowrap!important;text-overflow:ellipsis!important}
+#bestRow .card-meta,#list .card-meta{grid-row:5!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:3px!important;width:100%!important;height:14px!important;min-height:14px!important;max-height:14px!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+#bestRow .best-loc,#list .card .loc{display:flex!important;flex:1 1 auto!important;align-items:center!important;gap:3px!important;min-width:0!important;width:auto!important;height:14px!important;min-height:14px!important;max-height:14px!important;margin:0!important;padding:0!important;overflow:hidden!important;color:#718096!important;font-size:8.5px!important;line-height:14px!important;white-space:nowrap!important}
+#bestRow .best-loc svg,#list .card .loc svg{display:block!important;position:static!important;flex:0 0 11px!important;width:11px!important;height:11px!important;min-width:11px!important;min-height:11px!important;margin:0!important;fill:none!important;stroke:#2786f5!important;stroke-width:2!important}
+#bestRow .best-loc span,#list .card .loc span{display:block!important;flex:1 1 auto!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+#bestRow .card-time,#list .card-time{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;max-width:42%!important;margin:0!important;padding:0!important;color:#8994a5!important;font-size:8px!important;font-weight:650!important;line-height:14px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#bestRow .best-card .fav-btn,#list .card .fav-btn{position:absolute!important;z-index:3!important;top:6px!important;right:6px!important;width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important;line-height:28px!important;font-size:17px!important}
+@media(max-width:390px){#bestRow.best-row,#list.list{gap:8px!important}#bestRow .best-body,#list .card .cardbody{padding-left:7px!important;padding-right:7px!important}#bestRow .best-title,#list .card .listing-name{font-size:11px!important}#bestRow .best-subtitle,#list .card .listing-subtitle{font-size:9px!important}}
+/* Detail page: balanced full-width card and contact buttons clear of fixed navigation. */
+#detailView{box-sizing:border-box!important;padding-bottom:calc(116px + env(safe-area-inset-bottom))!important;scroll-padding-bottom:calc(116px + env(safe-area-inset-bottom))!important}
+#detailView .detail-top{min-height:0!important;padding-top:70px!important;margin:0 0 12px!important}
+#detailView .detail-top .section-head{top:70px!important}
+#detailView #detailContent{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;overflow:hidden!important;border:1px solid #e1e9f3!important;border-radius:20px!important;background:#fff!important;box-shadow:0 7px 20px rgba(31,55,88,.07)!important}
+#detailView #detailContent .detail-photo{width:100%!important;height:clamp(180px,48vw,230px)!important;min-height:180px!important;max-height:230px!important;border-radius:19px 19px 0 0!important;background:#f7f9fc!important}
+#detailView #detailContent .detail-photo img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important}
+#detailView #detailContent .detail-body{margin:0!important;padding:14px!important;border:0!important;border-top:1px solid #edf2f8!important;border-radius:0!important;box-shadow:none!important}
+#detailView #detailContent .detail-head-row{align-items:center!important;gap:8px!important}
+#detailView #detailContent .detail-deal-badge{min-height:26px!important;padding:6px 10px!important;font-size:10px!important}
+#detailView #detailContent .detail-tag{padding:5px 9px!important;font-size:11px!important}
+#detailView #detailContent .detail-fav{width:38px!important;height:38px!important;min-width:38px!important;flex:0 0 38px!important;font-size:19px!important}
+#detailView #detailContent .detail-listing-title{margin:10px 0 5px!important;font-size:clamp(20px,5vw,25px)!important;line-height:1.16!important}
+#detailView #detailContent .detail-price{margin:10px 0 8px!important;font-size:clamp(26px,6.2vw,31px)!important;line-height:1.08!important}
+#detailView #detailContent .detail-meta{gap:7px!important;margin:10px 0!important}
+#detailView #detailContent .detail-spec{padding:9px 8px!important;border-radius:13px!important}
+#detailView #detailContent .detail-spec-value{font-size:13px!important}
+#detailView #detailContent .detail-spec-label{margin-top:3px!important;font-size:10px!important}
+#detailView #detailContent .detail-loc{padding:9px 10px!important;font-size:13px!important}
+#detailView #detailContent .detail-description{margin-top:13px!important;padding-top:12px!important}
+#detailView #detailContent .detail-description-label{font-size:14px!important}
+#detailView #detailContent .detail-desc{margin-top:5px!important;font-size:14px!important;line-height:1.45!important}
+#detailView #detailContent .contacts{gap:8px!important;margin-top:14px!important}
+#detailView #detailContent .contact-btn{min-height:46px!important;padding:11px 13px!important;border-radius:13px!important;font-size:14px!important}
+@media(max-width:390px){#detailView .detail-top{padding-top:66px!important}#detailView .detail-top .section-head{top:66px!important}#detailView #detailContent .detail-photo{height:190px!important;min-height:190px!important;max-height:190px!important}#detailView #detailContent .detail-body{padding:12px!important}}
+</style>
+
 </body></html>'''
 
 
