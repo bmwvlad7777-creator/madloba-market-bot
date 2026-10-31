@@ -2697,7 +2697,7 @@ def display_detail_value(field_key, value):
         return normalize_pet_gender(value)
     if field_key == "age":
         return normalize_pet_age(value)
-    if field_key == "mileage":
+    if field_key in {"mileage", "area"}:
         raw = str(value or "").strip().replace(" ", "").replace(",", "")
         if raw.isdigit():
             return f"{int(raw):,}".replace(",", " ")
@@ -2717,6 +2717,13 @@ def auto_model_options(make):
 GEORGIA_CITIES = ["Батуми","Тбилиси","Кутаиси","Рустави","Гори","Поти","Зугдиди","Кобулети","Телави","Боржоми","Ахалцихе","Озургети","Сенаки","Самтредиа","Зестафони","Марнеули","Хашури","Чиатура","Цхалтубо","Сагареджо","Гардабани","Болниси","Каспи","Хони","Ланчхути","Мцхета","Ахалкалаки","Ниноцминда","Дедоплисцкаро","Лагодехи","Кварели","Гурджаани","Сигнахи","Цнори","Абаша","Мартвили","Хоби","Цаленджиха","Чхороцку","Вани","Багдати","Тержола","Сачхере","Амбролаури","Они","Цагери","Местиа","Хелвачаури","Кеда","Шуахеви","Хуло"]
 AUTO_YEAR_OPTIONS = [str(y) for y in range(2026, 1979, -1)]
 AUTO_MILEAGE_MAX = 500000
+
+REALESTATE_ROOM_OPTIONS = ["Студия"] + [str(n) for n in range(1, 11)] + ["10+"]
+REALESTATE_FLOOR_OPTIONS = [str(n) for n in range(1, 51)] + ["Последний этаж", "Цокольный этаж", "Подвальный этаж", "Не указан"]
+
+def format_grouped_number(value):
+    raw = re.sub(r"[^0-9]", "", str(value or ""))
+    return f"{int(raw):,}".replace(",", " ") if raw else str(value or "")
 
 def listing_picker_keyboard(kind, make=""):
     parsed = urllib.parse.urlsplit(str(MINI_APP_URL or "").strip())
@@ -2837,8 +2844,14 @@ def ask_detail(
             send_listing_picker(chat_id, "<b>🛣 Выберите пробег автомобиля</b>", "mileage", index)
         elif data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key in {"color", "drivetrain"}:
             send_listing_picker(chat_id, "<b>🚗 Выберите характеристику</b>", field_key, index)
+        elif data.get("category_key") == "realestate" and field_key in {"rooms", "floor"}:
+            title = "количество комнат" if field_key == "rooms" else "этаж"
+            send_listing_picker(chat_id, f"<b>🏠 Выберите {title}</b>", field_key, index)
         else:
-            prompt += "Введите значение. Опечатки в известных названиях будут исправлены автоматически."
+            if data.get("category_key") == "realestate" and field_key == "area":
+                prompt += "Введите только число в м². Например: 70 или 125."
+            else:
+                prompt += "Введите значение. Опечатки в известных названиях будут исправлены автоматически."
             ask(chat_id, f"detail_{index}", prompt)
 
     else:
@@ -5243,7 +5256,7 @@ def _handle_update_core(
 
             index = int(picker.get("index", -1))
             fields = category_fields(listing_data)
-            expected = {"make":"make_model","model":"make_model","year":"year","mileage":"mileage","color":"color","drivetrain":"drivetrain"}.get(kind)
+            expected = {"make":"make_model","model":"make_model","year":"year","mileage":"mileage","color":"color","drivetrain":"drivetrain","rooms":"rooms","floor":"floor"}.get(kind)
             if index < 0 or index >= len(fields) or fields[index][0] != expected:
                 send(chat_id, "Шаг объявления изменился. Начните выбор заново.")
                 return
@@ -5284,6 +5297,16 @@ def _handle_update_core(
                     send(chat_id, "Выберите привод из списка.")
                     return
                 details["drivetrain"] = value
+            elif kind == "rooms":
+                if value not in REALESTATE_ROOM_OPTIONS:
+                    send(chat_id, "Выберите количество комнат из списка.")
+                    return
+                details["rooms"] = value
+            elif kind == "floor":
+                if value not in REALESTATE_FLOOR_OPTIONS:
+                    send(chat_id, "Выберите этаж из списка.")
+                    return
+                details["floor"] = value
 
             states[chat_id].pop("listing_picker", None)
             if is_edit:
@@ -12198,7 +12221,7 @@ def mini_app():
 def listing_picker_mini_app():
     kind = str(request.args.get("kind") or "").strip().lower()
     make = str(request.args.get("make") or "").strip()
-    allowed = {"make", "model", "year", "mileage", "city", "color", "drivetrain"}
+    allowed = {"make", "model", "year", "mileage", "city", "color", "drivetrain", "rooms", "floor"}
     if kind not in allowed:
         return "Invalid picker", 400
     if kind == "make":
@@ -12215,6 +12238,10 @@ def listing_picker_mini_app():
         options, title = AUTO_COLOR_OPTIONS, "Выберите цвет автомобиля"
     elif kind == "drivetrain":
         options, title = AUTO_DRIVETRAIN_OPTIONS, "Выберите привод"
+    elif kind == "rooms":
+        options, title = REALESTATE_ROOM_OPTIONS, "Выберите количество комнат"
+    elif kind == "floor":
+        options, title = REALESTATE_FLOOR_OPTIONS, "Выберите этаж"
     else:
         options, title = [], "Выберите пробег"
     options_json = json.dumps(options, ensure_ascii=False).replace("</", "<\\/")
