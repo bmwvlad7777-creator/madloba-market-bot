@@ -611,11 +611,22 @@ def save_local_published_listings():
         return False
 
 
+def _normalize_price_input(value):
+    """Accept numeric prices only; allow spaces as thousands separators and up to 2 decimals."""
+    raw = str(value or "").strip()
+    cleaned = re.sub(r"\s+", "", raw).replace(",", ".")
+    if not re.fullmatch(r"\d+(?:\.\d{1,2})?", cleaned):
+        return None
+    return cleaned
+
+
 def _price_number(value):
     try:
         if value in (None, "", "Бесплатно"):
             return None
         cleaned = str(value).replace(" ", "").replace(",", ".")
+        if not re.fullmatch(r"\d+(?:\.\d{1,2})?", cleaned):
+            return None
         return float(cleaned)
     except (TypeError, ValueError):
         return None
@@ -4598,7 +4609,11 @@ def process_moderator_text(admin_chat_id, text):
         return True
 
     if step == "price":
-        data["price"] = text.replace(" ", "").replace(",", ".")
+        numeric_price = _normalize_price_input(text)
+        if numeric_price is None:
+            send(admin_chat_id, "⚠️ Цена должна содержать только цифры. Пример: <b>660</b> или <b>1 250</b>.")
+            return True
+        data["price"] = numeric_price
     elif step == "district":
         data["district"] = text
     elif step == "description":
@@ -5073,19 +5088,17 @@ def process_text(
         "edit_amount"
     ):
 
-        # Оставляем только нормальную цену.
-        cleaned = text.replace(
-            " ",
-            ""
-        ).replace(
-            ",",
-            "."
-        )
+        # Цена во всех категориях — только число. Не пропускаем слова и символы.
+        cleaned = _normalize_price_input(text)
+        if cleaned is None:
+            send(
+                chat_id,
+                "⚠️ Укажите цену только цифрами. Буквы и другие символы не принимаются.\n\n"
+                "Например: <b>660</b> или <b>1 250</b>."
+            )
+            return True
 
-        data[
-            "price"
-        ] = cleaned
-
+        data["price"] = cleaned
 
         if step == "amount":
 
