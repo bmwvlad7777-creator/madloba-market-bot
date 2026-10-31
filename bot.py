@@ -1837,6 +1837,13 @@ def category_fields(data):
         ]
     if category_key == "auto" and subcategory_key not in {"cars", "suv"}:
         return CATEGORIES.get(category_key, {}).get("fields", [])
+    if category_key == "realestate":
+        fields = list(CATEGORIES.get(category_key, {}).get("fields", []))
+        if subcategory_key in {"land", "garage"}:
+            fields = [field for field in fields if field[0] not in {"rooms", "floor"}]
+        elif subcategory_key == "room":
+            fields = [field for field in fields if field[0] != "rooms"]
+        return fields
     if category_key == "pets":
         if subcategory_key in {"dogs", "cats", "other_animals", "adoption", "lost_found"}:
             return [("age", "🐾 Возраст"), ("breed", "🐾 Порода (если известна)"), ("gender", "🐾 Пол (если известен)")]
@@ -2303,8 +2310,12 @@ TBILISI_DISTRICTS = tuple(item for item in REAL_ESTATE_DISTRICTS if item[0] in {
 })
 
 def realestate_districts_for_data(data):
-    city = str((data or {}).get("city_slug") or "batumi").strip().lower()
-    return TBILISI_DISTRICTS if city in {"tbilisi", "თბილისი"} else BATUMI_DISTRICTS
+    city = str((data or {}).get("city_slug") or "").strip().lower()
+    if city in {"tbilisi", "თბილისი"}:
+        return TBILISI_DISTRICTS
+    if city in {"batumi", "ბათუმი"}:
+        return BATUMI_DISTRICTS
+    return ()
 
 def realestate_district_keyboard(data=None):
     districts = realestate_districts_for_data(data or {})
@@ -2320,6 +2331,13 @@ def realestate_district_keyboard(data=None):
 
 def ask_realestate_district(chat_id, editing=False):
     listing_data = states.get(chat_id, {}).get("data", {})
+    if not realestate_districts_for_data(listing_data):
+        listing_data.pop("district_key", None)
+        if not editing:
+            ask_description(chat_id)
+        else:
+            preview(chat_id)
+        return
     ask(
         chat_id,
         "edit_district_key" if editing else "district_key",
@@ -2718,7 +2736,7 @@ GEORGIA_CITIES = ["Батуми","Тбилиси","Кутаиси","Рустав
 AUTO_YEAR_OPTIONS = [str(y) for y in range(2026, 1979, -1)]
 AUTO_MILEAGE_MAX = 500000
 
-REALESTATE_ROOM_OPTIONS = ["Студия"] + [str(n) for n in range(1, 11)] + ["10+"]
+REALESTATE_ROOM_OPTIONS = ["Студия"] + [str(n) for n in range(1, 11)] + ["11+"]
 REALESTATE_FLOOR_OPTIONS = [str(n) for n in range(1, 51)] + ["Последний этаж", "Цокольный этаж", "Подвальный этаж", "Не указан"]
 
 def format_grouped_number(value):
@@ -2847,6 +2865,8 @@ def ask_detail(
         elif data.get("category_key") == "realestate" and field_key in {"rooms", "floor"}:
             title = "количество комнат" if field_key == "rooms" else "этаж"
             send_listing_picker(chat_id, f"<b>🏠 Выберите {title}</b>", field_key, index)
+        elif data.get("category_key") == "realestate" and field_key == "area":
+            send_listing_picker(chat_id, "<b>📐 Выберите площадь объекта</b>", "area", index)
         else:
             if data.get("category_key") == "realestate" and field_key == "area":
                 prompt += "Введите только число в м². Например: 70 или 125."
@@ -5245,18 +5265,28 @@ def _handle_update_core(
                     send(chat_id, "Выберите город из списка.")
                     return
                 listing_data["district"] = value
+                city_slug_map = {
+                    "Батуми": "batumi", "Тбилиси": "tbilisi",
+                    "Кутаиси": "kutaisi", "Рустави": "rustavi",
+                    "Гори": "gori", "Поти": "poti", "Зугдиди": "zugdidi",
+                    "Кобулети": "kobuleti", "Телави": "telavi",
+                }
+                listing_data["city_slug"] = city_slug_map.get(value, _normalize_lookup_text(value))
+                if listing_data["city_slug"] not in {"batumi", "tbilisi"}:
+                    listing_data.pop("district_key", None)
                 states[chat_id].pop("listing_picker", None)
                 if is_edit:
                     preview(chat_id)
-                elif listing_data.get("category_key") == "realestate":
+                elif listing_data.get("category_key") == "realestate" and listing_data["city_slug"] in {"batumi", "tbilisi"}:
                     ask_realestate_district(chat_id)
                 else:
+                    listing_data.pop("district_key", None)
                     ask_description(chat_id)
                 return
 
             index = int(picker.get("index", -1))
             fields = category_fields(listing_data)
-            expected = {"make":"make_model","model":"make_model","year":"year","mileage":"mileage","color":"color","drivetrain":"drivetrain","rooms":"rooms","floor":"floor"}.get(kind)
+            expected = {"make":"make_model","model":"make_model","year":"year","mileage":"mileage","color":"color","drivetrain":"drivetrain","rooms":"rooms","floor":"floor","area":"area"}.get(kind)
             if index < 0 or index >= len(fields) or fields[index][0] != expected:
                 send(chat_id, "Шаг объявления изменился. Начните выбор заново.")
                 return
@@ -5307,6 +5337,15 @@ def _handle_update_core(
                     send(chat_id, "Выберите этаж из списка.")
                     return
                 details["floor"] = value
+            elif kind == "area":
+                try:
+                    area = int(value)
+                except (TypeError, ValueError):
+                    area = 0
+                if area < 1 or area > 10000:
+                    send(chat_id, "Выберите площадь от 1 до 10 000 м².")
+                    return
+                details["area"] = str(area)
 
             states[chat_id].pop("listing_picker", None)
             if is_edit:
@@ -12221,7 +12260,7 @@ def mini_app():
 def listing_picker_mini_app():
     kind = str(request.args.get("kind") or "").strip().lower()
     make = str(request.args.get("make") or "").strip()
-    allowed = {"make", "model", "year", "mileage", "city", "color", "drivetrain", "rooms", "floor"}
+    allowed = {"make", "model", "year", "mileage", "city", "color", "drivetrain", "rooms", "floor", "area"}
     if kind not in allowed:
         return "Invalid picker", 400
     if kind == "make":
@@ -12242,6 +12281,8 @@ def listing_picker_mini_app():
         options, title = REALESTATE_ROOM_OPTIONS, "Выберите количество комнат"
     elif kind == "floor":
         options, title = REALESTATE_FLOOR_OPTIONS, "Выберите этаж"
+    elif kind == "area":
+        options, title = [], "Выберите площадь"
     else:
         options, title = [], "Выберите пробег"
     options_json = json.dumps(options, ensure_ascii=False).replace("</", "<\\/")
@@ -12249,8 +12290,8 @@ def listing_picker_mini_app():
     title_json = json.dumps(title, ensure_ascii=False)
     html_page = r'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><script src="https://telegram.org/js/telegram-web-app.js"></script><title>Madloba Market</title><style>
 :root{color-scheme:light;--panel:#fff;--text:#17202b;--muted:#7b8794;--line:#e8edf2;--accent:#70a94b}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:rgba(10,18,28,.35);color:var(--text)}.sheet{position:absolute;left:0;right:0;bottom:0;height:min(88dvh,760px);background:var(--panel);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:10px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px #0002}.handle{width:38px;height:4px;border-radius:9px;background:#d5dbe1;margin:0 auto 15px}.head{font-size:19px;font-weight:750;margin:0 0 13px}.search{height:44px;border:1px solid var(--line);border-radius:12px;padding:0 13px;font-size:16px;outline:none;background:#f7f8fa;width:100%;margin-bottom:8px}.list{overflow-y:auto;overscroll-behavior:contain;flex:1;-webkit-overflow-scrolling:touch}.item{display:flex;align-items:center;min-height:52px;padding:0 10px;border-bottom:1px solid var(--line);font-size:16px;cursor:pointer}.item:active{background:#edf5e8}.foot{font-size:12px;color:var(--muted);padding-top:10px;text-align:center}.value{font-size:30px;font-weight:750;text-align:center;margin:30px 0 20px}.range{width:100%;accent-color:var(--accent);height:42px}.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
-</style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0 км</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span>0 км</span><span>500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать пробег</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
-const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(kind==='mileage'){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue');function fmt(n){return Number(n).toLocaleString('ru-RU')+' км'}range.addEventListener('input',()=>out.textContent=fmt(range.value));document.getElementById('chooseMileage').addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
+</style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span id="rangeMin">0</span><span id="rangeMax">500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
+const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(kind==='mileage'||kind==='area'){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue'),min=document.getElementById('rangeMin'),max=document.getElementById('rangeMax'),button=document.getElementById('chooseMileage');if(kind==='area'){range.min='1';range.max='10000';range.step='1';range.value='70';out.textContent='70 м²';min.textContent='1 м²';max.textContent='10 000 м²';button.textContent='Выбрать площадь'}else{range.min='0';range.max='500000';range.step='1000';range.value='0';out.textContent='0 км';min.textContent='0 км';max.textContent='500 000 км';button.textContent='Выбрать пробег'}function fmt(n){return Number(n).toLocaleString('ru-RU')+(kind==='area'?' м²':' км')}range.addEventListener('input',()=>out.textContent=fmt(range.value));button.addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
 </script></body></html>'''
     html_page = html_page.replace("__OPTIONS__", options_json).replace("__KIND__", kind_json).replace("__TITLE__", title_json)
     return Response(html_page, mimetype="text/html", headers={"Cache-Control":"no-store"})
