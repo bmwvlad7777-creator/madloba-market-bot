@@ -1004,6 +1004,7 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
     metadata["legacy_id"] = data.get("id")
     # address/district remains the exact street or landmark; district_key is a separate stable filter key.
     metadata["district_key"] = str(data.get("district_key") or "").strip().lower() or None
+    metadata["telegram_username"] = str(data.get("telegram_username") or "").strip().lstrip("@")
 
     payload = {
         "user_id": user_id,
@@ -1014,6 +1015,7 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
         "price": _price_number(data.get("price")),
         "currency": data.get("currency", "") or "USD",
         "phone": data.get("contact", "") or "",
+        "telegram": (f"https://t.me/{str(data.get('telegram_username') or '').strip().lstrip('@')}" if data.get("telegram_username") else ""),
         "address": data.get("district", "") or "",
         "status": "published",
         "published_at": _utc_now_iso(),
@@ -2470,6 +2472,10 @@ def blank_listing():
 
         "contact":
             "",
+        "telegram_username":
+            "",
+        "telegram_first_name":
+            "",
     }
 
 
@@ -3013,7 +3019,7 @@ def ask_contact(
         "<b>📞 Контакт для связи</b>\n\n"
         "Телефон укажите в международном формате Грузии: <code>+995XXXXXXXXX</code>.\n"
         "Пример: <code>+995 599 02 47 23</code>.\n\n"
-        "Можно также указать @username в Telegram или ссылку WhatsApp."
+        "Ваш Telegram username будет добавлен автоматически, если он установлен в профиле."
     )
 
 
@@ -3484,27 +3490,16 @@ def build_listing(
     # КОНТАКТ
     # ========================================================
 
-    if data[
-        "contact"
-    ]:
-
-        lines.extend(
-
-            [
-
-                "",
-
-                # Telegram auto-links phone numbers in ordinary/bold text.
-                # A code entity displays the same number without the underline/link popup.
-                f"📞 <code>"
-                f"{esc(data['contact'])}"
-                f"</code>",
-
-                "<i>"
-                "WhatsApp / Telegram"
-                "</i>"
-            ]
-        )
+    contact_lines = []
+    if data.get("contact"):
+        # Keep phone as plain displayed text; it remains available for the call action.
+        contact_lines.append(f"📞 <code>{esc(data['contact'])}</code>")
+    username = str(data.get("telegram_username") or "").strip().lstrip("@")
+    if username:
+        safe_username = esc(username)
+        contact_lines.append(f'💬 <a href="https://t.me/{safe_username}">Написать в Telegram · @{safe_username}</a>')
+    if contact_lines:
+        lines.extend(["", *contact_lines])
 
 
     # ========================================================
@@ -5159,6 +5154,12 @@ def _handle_update_core(
             "chat"
         ]["id"]
 
+        # Store public Telegram username in the active draft; numeric ID stays internal.
+        sender = message.get("from") or {}
+        if chat_id in states and isinstance(states[chat_id].get("data"), dict):
+            states[chat_id]["data"]["telegram_username"] = str(sender.get("username") or "").strip().lstrip("@")
+            states[chat_id]["data"]["telegram_first_name"] = str(sender.get("first_name") or "").strip()
+
         # Result returned by the swipeable Mini App catalog picker.
         web_app_data = message.get("web_app_data")
         if isinstance(web_app_data, dict) and chat_id in states:
@@ -5678,6 +5679,10 @@ def _handle_update_core(
     callback_from_id = callback[
         "from"
     ]["id"]
+    callback_sender = callback.get("from") or {}
+    if chat_id in states and isinstance(states[chat_id].get("data"), dict):
+        states[chat_id]["data"]["telegram_username"] = str(callback_sender.get("username") or "").strip().lstrip("@")
+        states[chat_id]["data"]["telegram_first_name"] = str(callback_sender.get("first_name") or "").strip()
 
 
     # ========================================================
