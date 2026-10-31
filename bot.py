@@ -1512,18 +1512,18 @@ def api(method, data=None):
 # ОТПРАВКА СООБЩЕНИЯ
 # ============================================================
 
-def send_admin_reply_keyboard(chat_id):
-    """Install the administrator shortcut once, not on every /start."""
+def send_admin_reply_keyboard(chat_id, force=False):
+    """Install or restore the administrator shortcut keyboard."""
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
 
     marker = str(chat_id)
     state_key = _runtime_key("admin_reply_keyboard", marker)
-    if marker in ADMIN_REPLY_KEYBOARD_INSTALLED:
+    if not force and marker in ADMIN_REPLY_KEYBOARD_INSTALLED:
         return {"ok": True, "skipped": True}
 
     found, saved, state_ok = runtime_state_load(state_key)
-    if found and isinstance(saved, dict) and saved.get("installed"):
+    if not force and found and isinstance(saved, dict) and saved.get("installed"):
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
         return {"ok": True, "skipped": True}
 
@@ -1583,6 +1583,18 @@ def send(
         "sendMessage",
 
         data
+    )
+
+
+def remove_reply_keyboard(chat_id):
+    """Hide temporary picker keyboards (for example, the city selector)."""
+    return api(
+        "sendMessage",
+        {
+            "chat_id": chat_id,
+            "text": "\u2063",
+            "reply_markup": {"remove_keyboard": True},
+        },
     )
 
 
@@ -4368,6 +4380,12 @@ def submit_for_moderation(
     moderation_requests[request_id]["message_chat_id"] = None
     moderation_requests[request_id]["message_id"] = None
 
+    # A temporary picker keyboard (especially "Выбрать город") must not remain
+    # attached to the home screen after submission. Admins get their own shortcuts back.
+    remove_reply_keyboard(chat_id)
+    if moderator_is_allowed(chat_id):
+        send_admin_reply_keyboard(chat_id, force=True)
+
     send(
 
         chat_id,
@@ -5366,6 +5384,7 @@ def _handle_update_core(
                 if listing_data["city_slug"] not in {"batumi", "tbilisi"}:
                     listing_data.pop("district_key", None)
                 states[chat_id].pop("listing_picker", None)
+                remove_reply_keyboard(chat_id)
                 if is_edit:
                     preview(chat_id)
                 elif listing_data.get("category_key") == "realestate" and listing_data["city_slug"] in {"batumi", "tbilisi"}:
@@ -5716,13 +5735,14 @@ def _handle_update_core(
             # Returning to the main menu clears only the active draft/session.
             # Previously submitted moderation requests must remain available.
             states.pop(chat_id, None)
+            remove_reply_keyboard(chat_id)
 
             if moderator_is_allowed(chat_id):
                 if text.startswith("/start"):
                     # Install the persistent reply keyboard only once, then show
                     # the main menu in the same reusable inline card used by the
                     # moderation queue. Repeated /start must not add new panels.
-                    send_admin_reply_keyboard(chat_id)
+                    send_admin_reply_keyboard(chat_id, force=True)
                     show_admin_main_menu(chat_id)
                     return
 
