@@ -5776,12 +5776,8 @@ def _handle_update_core(
             # ReplyKeyboardRemove, then attach the inline category buttons to
             # that SAME message. This avoids an extra cleanup message and
             # leaves the chat history intact.
-            menu_text = (
-                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\\n\\n"
-                "Главная доска объявлений Батуми.\\n\\n"
-                "Купи · Продай · Сдай · Найди\\n\\n"
-                "<b>Выберите категорию:</b>"
-            )
+            # Reuse the canonical text so newlines render normally (not as literal \n).
+            menu_text = CHANNEL_MENU_TEXT
             menu_result = api(
                 "sendMessage",
                 {
@@ -5804,13 +5800,22 @@ def _handle_update_core(
                         },
                     )
                     if not (isinstance(menu_markup_result, dict) and menu_markup_result.get("ok")):
-                        # Rare fallback if Telegram refuses to edit the newly
-                        # sent menu message: send the inline menu separately.
-                        send(chat_id, menu_text, main_menu())
+                        # Retry by editing the SAME message. Never send a second
+                        # copy of the welcome text on /start.
+                        api(
+                            "editMessageText",
+                            {
+                                "chat_id": chat_id,
+                                "message_id": menu_message_id,
+                                "text": menu_text,
+                                "parse_mode": "HTML",
+                                "reply_markup": {"inline_keyboard": main_menu()},
+                            },
+                        )
             else:
-                # Fallback: keep the category menu usable if Telegram rejects
-                # the keyboard-removal request for any reason.
-                send(chat_id, menu_text, main_menu())
+                # Do not duplicate the welcome message if Telegram rejects the
+                # keyboard-removal request. Report the API failure instead.
+                send(chat_id, "Не удалось обновить главное меню. Попробуйте /start ещё раз.")
             return
 
 
