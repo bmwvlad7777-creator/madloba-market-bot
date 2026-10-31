@@ -5771,12 +5771,11 @@ def _handle_update_core(
                 show_admin_main_menu(chat_id)
                 return
 
-            # Normal users must not keep the temporary city-picker reply keyboard
-            # after returning to the main menu. Send the menu message with
-            # ReplyKeyboardRemove, then attach the inline category buttons to
-            # that SAME message. This avoids an extra cleanup message and
-            # leaves the chat history intact.
-            # Reuse the canonical text so newlines render normally (not as literal \n).
+            # Remove the persistent city-picker reply keyboard with the welcome
+            # message. Telegram cannot attach an inline keyboard and
+            # ReplyKeyboardRemove to the same message, so send the category
+            # buttons as the immediately following menu message. This gives
+            # the user one welcome card followed by a usable category card.
             menu_text = CHANNEL_MENU_TEXT
             menu_result = api(
                 "sendMessage",
@@ -5788,34 +5787,13 @@ def _handle_update_core(
                 },
             )
             if isinstance(menu_result, dict) and menu_result.get("ok"):
-                menu_message = (menu_result.get("result") or {})
-                menu_message_id = menu_message.get("message_id")
-                if menu_message_id:
-                    menu_markup_result = api(
-                        "editMessageReplyMarkup",
-                        {
-                            "chat_id": chat_id,
-                            "message_id": menu_message_id,
-                            "reply_markup": {"inline_keyboard": main_menu()},
-                        },
-                    )
-                    if not (isinstance(menu_markup_result, dict) and menu_markup_result.get("ok")):
-                        # Retry by editing the SAME message. Never send a second
-                        # copy of the welcome text on /start.
-                        api(
-                            "editMessageText",
-                            {
-                                "chat_id": chat_id,
-                                "message_id": menu_message_id,
-                                "text": menu_text,
-                                "parse_mode": "HTML",
-                                "reply_markup": {"inline_keyboard": main_menu()},
-                            },
-                        )
+                send(
+                    chat_id,
+                    "<b>👇 Выберите категорию или разместите объявление:</b>",
+                    main_menu(),
+                )
             else:
-                # Do not duplicate the welcome message if Telegram rejects the
-                # keyboard-removal request. Report the API failure instead.
-                send(chat_id, "Не удалось обновить главное меню. Попробуйте /start ещё раз.")
+                send(chat_id, "Не удалось открыть главное меню. Попробуйте /start ещё раз.")
             return
 
 
