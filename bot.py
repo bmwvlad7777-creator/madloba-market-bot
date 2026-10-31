@@ -10147,6 +10147,552 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
 @media(max-width:390px){#bestRow.best-row,#list.list{gap:8px!important}#bestRow .best-photo,#list .card .photo{height:100px!important;min-height:100px!important;max-height:100px!important}#bestRow .best-body,#list .card .cardbody{padding:8px 8px 9px!important}}
 </style>
 </style>
+
+<style id="madloba-card-system-final-v1">
+/* Single final layout authority for Popular and Fresh listing cards.
+   Fixed media/body geometry prevents different text lengths from changing card height. */
+#bestRow.best-row,
+#list.list {
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-auto-rows:274px!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+  gap:10px!important;
+  overflow:visible!important;
+  padding:0 2px 6px!important;
+}
+#bestRow .best-card,
+#list .card {
+  display:flex!important;
+  flex-direction:column!important;
+  align-self:stretch!important;
+  width:100%!important;
+  height:274px!important;
+  min-width:0!important;
+  min-height:274px!important;
+  max-height:274px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  border:1px solid #e5edf7!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 6px 18px rgba(24,48,80,.07)!important;
+}
+#bestRow .best-photo,
+#list .card .photo {
+  display:flex!important;
+  flex:0 0 108px!important;
+  width:100%!important;
+  height:108px!important;
+  min-height:108px!important;
+  max-height:108px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  margin:0!important;
+  border-radius:0!important;
+  background:#f2f5fa!important;
+}
+#bestRow .best-photo img,
+#list .card .photo img {
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+}
+#bestRow .best-body,
+#list .card .cardbody {
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:0!important;
+  width:100%!important;
+  height:166px!important;
+  min-height:166px!important;
+  max-height:166px!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  padding:8px 10px 8px!important;
+  overflow:hidden!important;
+}
+#bestRow .card-kickers,
+#list .card-kickers {
+  display:flex!important;
+  flex:0 0 23px!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:5px!important;
+  width:100%!important;
+  height:23px!important;
+  min-height:23px!important;
+  max-height:23px!important;
+  min-width:0!important;
+  margin:0 0 4px!important;
+  overflow:hidden!important;
+}
+#bestRow .deal-badge,
+#list .deal-badge {
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  max-width:48%!important;
+  padding:0 8px!important;
+  border-radius:999px!important;
+  color:#fff!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:22px!important;
+  letter-spacing:.2px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .deal-sell,#list .deal-sell{background:#ef5360!important;color:#fff!important}
+#bestRow .deal-buy,#list .deal-buy{background:#287be8!important;color:#fff!important}
+#bestRow .deal-rent,#list .deal-rent{background:#20ad68!important;color:#fff!important}
+#bestRow .deal-seek,#list .deal-seek{background:#e6a51a!important;color:#172033!important}
+#bestRow .deal-give,#list .deal-give{background:#8b5cf6!important;color:#fff!important}
+#bestRow .deal-offer,#list .deal-offer{background:#7652d5!important;color:#fff!important}
+#bestRow .best-tag,
+#list .card .tag {
+  display:inline-flex!important;
+  flex:0 1 auto!important;
+  align-items:center!important;
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  min-width:0!important;
+  max-width:58%!important;
+  margin:0!important;
+  padding:0 8px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:#edf5ff!important;
+  color:#176fc9!important;
+  font-size:9px!important;
+  font-weight:800!important;
+  line-height:22px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-price,
+#list .card .price {
+  display:block!important;
+  flex:0 0 23px!important;
+  height:23px!important;
+  min-height:23px!important;
+  max-height:23px!important;
+  margin:0 0 3px!important;
+  color:#111827!important;
+  font-size:18px!important;
+  font-weight:950!important;
+  line-height:23px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-title,
+#list .card .listing-name {
+  display:-webkit-box!important;
+  flex:0 0 34px!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  line-clamp:2!important;
+  height:34px!important;
+  min-height:34px!important;
+  max-height:34px!important;
+  width:100%!important;
+  margin:0 0 3px!important;
+  overflow:hidden!important;
+  color:#172033!important;
+  font-size:13px!important;
+  font-weight:850!important;
+  line-height:17px!important;
+  overflow-wrap:anywhere!important;
+}
+#bestRow .best-subtitle,
+#list .card .listing-subtitle {
+  display:-webkit-box!important;
+  flex:0 0 28px!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  line-clamp:2!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  width:100%!important;
+  margin:0!important;
+  overflow:hidden!important;
+  color:#68758a!important;
+  font-size:11px!important;
+  font-weight:500!important;
+  line-height:14px!important;
+  overflow-wrap:anywhere!important;
+}
+#bestRow .card-meta,
+#list .card-meta {
+  display:flex!important;
+  flex:0 0 16px!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:5px!important;
+  width:100%!important;
+  min-width:0!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  margin-top:auto!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+#bestRow .best-loc,
+#list .card .loc {
+  display:flex!important;
+  flex:1 1 auto!important;
+  align-items:center!important;
+  gap:4px!important;
+  min-width:0!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  color:#718096!important;
+  font-size:10px!important;
+  line-height:16px!important;
+  white-space:nowrap!important;
+}
+#bestRow .best-loc svg,
+#list .card .loc svg {
+  display:block!important;
+  flex:0 0 13px!important;
+  width:13px!important;
+  height:13px!important;
+  min-width:13px!important;
+  min-height:13px!important;
+  fill:none!important;
+  stroke:#2786f5!important;
+  stroke-width:2!important;
+}
+#bestRow .best-loc span,
+#list .card .loc span {
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#bestRow .card-time,
+#list .card-time {
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  max-width:45%!important;
+  margin:0!important;
+  padding:0!important;
+  color:#8994a5!important;
+  font-size:9px!important;
+  font-weight:600!important;
+  line-height:16px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-card .fav-btn,
+#list .card .fav-btn {
+  top:8px!important;
+  right:8px!important;
+  width:32px!important;
+  height:32px!important;
+}
+@media(max-width:390px) {
+  #bestRow.best-row,#list.list{gap:8px!important}
+  #bestRow .best-body,#list .card .cardbody{padding-left:8px!important;padding-right:8px!important}
+}
+</style>
+
+<style id="madloba-card-system-final-v1">
+/* Single final layout authority for Popular and Fresh listing cards.
+   Fixed media/body geometry prevents different text lengths from changing card height. */
+#bestRow.best-row,
+#list.list {
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-auto-rows:274px!important;
+  align-items:stretch!important;
+  justify-items:stretch!important;
+  gap:10px!important;
+  overflow:visible!important;
+  padding:0 2px 6px!important;
+}
+#bestRow .best-card,
+#list .card {
+  display:flex!important;
+  flex-direction:column!important;
+  align-self:stretch!important;
+  width:100%!important;
+  height:274px!important;
+  min-width:0!important;
+  min-height:274px!important;
+  max-height:274px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  border:1px solid #e5edf7!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 6px 18px rgba(24,48,80,.07)!important;
+}
+#bestRow .best-photo,
+#list .card .photo {
+  display:flex!important;
+  flex:0 0 108px!important;
+  width:100%!important;
+  height:108px!important;
+  min-height:108px!important;
+  max-height:108px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  margin:0!important;
+  border-radius:0!important;
+  background:#f2f5fa!important;
+}
+#bestRow .best-photo img,
+#list .card .photo img {
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+}
+#bestRow .best-body,
+#list .card .cardbody {
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:0!important;
+  width:100%!important;
+  height:166px!important;
+  min-height:166px!important;
+  max-height:166px!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  padding:8px 10px 8px!important;
+  overflow:hidden!important;
+}
+#bestRow .card-kickers,
+#list .card-kickers {
+  display:flex!important;
+  flex:0 0 23px!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:5px!important;
+  width:100%!important;
+  height:23px!important;
+  min-height:23px!important;
+  max-height:23px!important;
+  min-width:0!important;
+  margin:0 0 4px!important;
+  overflow:hidden!important;
+}
+#bestRow .deal-badge,
+#list .deal-badge {
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  max-width:48%!important;
+  padding:0 8px!important;
+  border-radius:999px!important;
+  color:#fff!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:22px!important;
+  letter-spacing:.2px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .deal-sell,#list .deal-sell{background:#ef5360!important;color:#fff!important}
+#bestRow .deal-buy,#list .deal-buy{background:#287be8!important;color:#fff!important}
+#bestRow .deal-rent,#list .deal-rent{background:#20ad68!important;color:#fff!important}
+#bestRow .deal-seek,#list .deal-seek{background:#e6a51a!important;color:#172033!important}
+#bestRow .deal-give,#list .deal-give{background:#8b5cf6!important;color:#fff!important}
+#bestRow .deal-offer,#list .deal-offer{background:#7652d5!important;color:#fff!important}
+#bestRow .best-tag,
+#list .card .tag {
+  display:inline-flex!important;
+  flex:0 1 auto!important;
+  align-items:center!important;
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  min-width:0!important;
+  max-width:58%!important;
+  margin:0!important;
+  padding:0 8px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:#edf5ff!important;
+  color:#176fc9!important;
+  font-size:9px!important;
+  font-weight:800!important;
+  line-height:22px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-price,
+#list .card .price {
+  display:block!important;
+  flex:0 0 23px!important;
+  height:23px!important;
+  min-height:23px!important;
+  max-height:23px!important;
+  margin:0 0 3px!important;
+  color:#111827!important;
+  font-size:18px!important;
+  font-weight:950!important;
+  line-height:23px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-title,
+#list .card .listing-name {
+  display:-webkit-box!important;
+  flex:0 0 34px!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  line-clamp:2!important;
+  height:34px!important;
+  min-height:34px!important;
+  max-height:34px!important;
+  width:100%!important;
+  margin:0 0 3px!important;
+  overflow:hidden!important;
+  color:#172033!important;
+  font-size:13px!important;
+  font-weight:850!important;
+  line-height:17px!important;
+  overflow-wrap:anywhere!important;
+}
+#bestRow .best-subtitle,
+#list .card .listing-subtitle {
+  display:-webkit-box!important;
+  flex:0 0 28px!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+  line-clamp:2!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  width:100%!important;
+  margin:0!important;
+  overflow:hidden!important;
+  color:#68758a!important;
+  font-size:11px!important;
+  font-weight:500!important;
+  line-height:14px!important;
+  overflow-wrap:anywhere!important;
+}
+#bestRow .card-meta,
+#list .card-meta {
+  display:flex!important;
+  flex:0 0 16px!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:5px!important;
+  width:100%!important;
+  min-width:0!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  margin-top:auto!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+#bestRow .best-loc,
+#list .card .loc {
+  display:flex!important;
+  flex:1 1 auto!important;
+  align-items:center!important;
+  gap:4px!important;
+  min-width:0!important;
+  height:16px!important;
+  min-height:16px!important;
+  max-height:16px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  color:#718096!important;
+  font-size:10px!important;
+  line-height:16px!important;
+  white-space:nowrap!important;
+}
+#bestRow .best-loc svg,
+#list .card .loc svg {
+  display:block!important;
+  flex:0 0 13px!important;
+  width:13px!important;
+  height:13px!important;
+  min-width:13px!important;
+  min-height:13px!important;
+  fill:none!important;
+  stroke:#2786f5!important;
+  stroke-width:2!important;
+}
+#bestRow .best-loc span,
+#list .card .loc span {
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#bestRow .card-time,
+#list .card-time {
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  max-width:45%!important;
+  margin:0!important;
+  padding:0!important;
+  color:#8994a5!important;
+  font-size:9px!important;
+  font-weight:600!important;
+  line-height:16px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#bestRow .best-card .fav-btn,
+#list .card .fav-btn {
+  top:8px!important;
+  right:8px!important;
+  width:32px!important;
+  height:32px!important;
+}
+@media(max-width:390px) {
+  #bestRow.best-row,#list.list{gap:8px!important}
+  #bestRow .best-body,#list .card .cardbody{padding-left:8px!important;padding-right:8px!important}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option></select><select class="city" id="citySelect" aria-label="City"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><div class="quick-actions" aria-label="Категории">
@@ -10468,7 +11014,7 @@ function cardText(x){
  const subtitle=candidate&&description&&candidate.toLocaleLowerCase()!==description.toLocaleLowerCase()?description:'';
  return {title,subtitle,location:cardLocation(x)};
 }
-function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}${text.title?`<div class="listing-name">${esc(localizeListingText(text.title))}</div>`:''}${text.subtitle?`<div class="listing-subtitle">${esc(localizeListingText(text.subtitle))}</div>`:''}<div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
+function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'smooth',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}showHome()}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const detailDeal=cardDealLabel(x);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div class="detail-kickers" style="min-width:0;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${detailDeal?`<span class="detail-deal-badge deal-${esc(detailDeal.key)}">${esc(detailDeal.label)}</span>`:''}<div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div>${favButton(x,true)}</div>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
@@ -10496,7 +11042,7 @@ if(photos.length){
 async function toggleFavorite(id,button,x=null){try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}}
 function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if($('bestCityName'))$('bestCityName').textContent=state.city==='all'?(state.lang==='en'?'in all cities':state.lang==='ka'?'ყველა ქალაქში':'во всех городах'):'в '+(cityNames[state.city][state.lang]||state.city)}
-function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}${text.title?`<div class="best-title">${esc(localizeListingText(text.title))}</div>`:''}${text.subtitle?`<div class="best-subtitle">${esc(localizeListingText(text.subtitle))}</div>`:''}<div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
+function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}<div class="best-title">${esc(localizeListingText(text.title||''))}</div><div class="best-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.bestId));document.querySelectorAll('#bestRow [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
