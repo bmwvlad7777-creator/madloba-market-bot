@@ -9218,8 +9218,8 @@ body::before{content:"";position:absolute;z-index:0;pointer-events:none;top:0;le
 @media(max-width:390px){.city#langSelect{width:68px!important;min-width:68px!important}.city#citySelect{min-width:108px!important;max-width:118px!important}}
 </style>
 <style id="targeted-filter-city-polish-v1">
-/* Visual-only: lift the filter control away from the hero's lower edge. */
-.filter-bar{position:relative!important;top:-4px!important;margin-bottom:-4px!important;}
+/* Keep a little more breathing room below the category panel on category pages. */
+.filter-bar{position:relative!important;top:2px!important;margin-bottom:2px!important;}
 /* Use a cleaner system typeface for the city selector and its options. */
 #citySelect{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-weight:750!important;letter-spacing:-.2px!important;color:#1478f5!important;}
 #citySelect option{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;font-size:16px!important;font-weight:600!important;color:#172033!important;background:#fff!important;}
