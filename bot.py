@@ -11584,8 +11584,9 @@ function bindCategoryCarouselArrows(){
   left.setAttribute('aria-hidden',left.disabled?'true':'false');
   right.setAttribute('aria-hidden',right.disabled?'true':'false');
  };
- left.addEventListener('click',()=>row.scrollBy({left:-Math.max(180,row.clientWidth*.72),behavior:'smooth'}));
- right.addEventListener('click',()=>row.scrollBy({left:Math.max(180,row.clientWidth*.72),behavior:'smooth'}));
+ const pageStep=()=>{const first=row.querySelector('.quick-action');if(!first)return row.clientWidth;const gap=parseFloat(getComputedStyle(row).columnGap||getComputedStyle(row).gap)||0;return (first.getBoundingClientRect().width+gap)*4-gap;};
+ left.addEventListener('click',()=>row.scrollBy({left:-pageStep(),behavior:'smooth'}));
+ right.addEventListener('click',()=>row.scrollBy({left:pageStep(),behavior:'smooth'}));
  row.addEventListener('scroll',refresh,{passive:true});
  window.addEventListener('resize',refresh);
  requestAnimationFrame(refresh);
@@ -12476,6 +12477,70 @@ body::before{
   .quick-actions-shell .quick-actions .quick-icon .reference-category-icon,
   .quick-actions-shell .quick-actions .quick-icon svg{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;max-width:38px!important;max-height:38px!important}
   .quick-actions-shell .quick-arrow{width:21px!important;height:21px!important;min-width:21px!important;min-height:21px!important}
+}
+</style>
+
+<style id="madloba-category-four-up-final-v1">
+/* Final carousel geometry: four complete categories in the viewport, with symmetric arrow lanes. */
+.quick-actions-shell{
+  position:relative!important;display:block!important;width:100%!important;min-width:0!important;
+  overflow:hidden!important;box-sizing:border-box!important;
+}
+.quick-actions-shell .quick-actions{
+  display:flex!important;flex-flow:row nowrap!important;justify-content:flex-start!important;align-items:center!important;
+  width:100%!important;min-width:0!important;box-sizing:border-box!important;
+  padding:5px 28px!important;gap:6px!important;margin:9px 0 0!important;
+  overflow-x:auto!important;overflow-y:hidden!important;
+  scroll-padding-left:28px!important;scroll-padding-right:28px!important;
+  scroll-snap-type:x mandatory!important;-webkit-overflow-scrolling:touch!important;
+  scrollbar-width:none!important;touch-action:pan-x!important;
+}
+.quick-actions-shell .quick-actions::-webkit-scrollbar{display:none!important}
+.quick-actions-shell .quick-actions .quick-action{
+  flex:0 0 calc((100% - 18px)/4)!important;
+  width:calc((100% - 18px)/4)!important;min-width:calc((100% - 18px)/4)!important;max-width:calc((100% - 18px)/4)!important;
+  box-sizing:border-box!important;margin:0!important;padding:3px 1px!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  height:78px!important;min-height:78px!important;max-height:78px!important;gap:4px!important;
+  overflow:hidden!important;scroll-snap-align:start!important;
+}
+.quick-actions-shell .quick-actions .quick-icon{
+  flex:0 0 41px!important;width:41px!important;height:41px!important;min-width:41px!important;min-height:41px!important;
+  max-width:41px!important;max-height:41px!important;margin:0 auto!important;
+}
+.quick-actions-shell .quick-actions .quick-icon img,
+.quick-actions-shell .quick-actions .quick-icon .mm-category-3d,
+.quick-actions-shell .quick-actions .quick-icon .reference-category-icon,
+.quick-actions-shell .quick-actions .quick-icon svg{
+  width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;
+  max-width:40px!important;max-height:40px!important;object-fit:contain!important;
+}
+.quick-actions-shell .quick-actions .quick-label{
+  display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important;
+  min-height:21px!important;max-height:21px!important;font-size:9px!important;line-height:1.08!important;
+  font-weight:850!important;text-align:center!important;white-space:normal!important;
+  overflow:hidden!important;text-overflow:clip!important;overflow-wrap:anywhere!important;word-break:normal!important;
+}
+.quick-actions-shell .quick-arrow{
+  position:absolute!important;top:50%!important;z-index:35!important;display:flex!important;
+  align-items:center!important;justify-content:center!important;width:22px!important;height:22px!important;
+  min-width:22px!important;min-height:22px!important;padding:0!important;
+  border:1px solid #d9e7f8!important;border-radius:50%!important;background:rgba(255,255,255,.98)!important;
+  color:#1677ed!important;box-shadow:0 2px 6px rgba(24,74,130,.10)!important;
+  transform:translateY(-50%)!important;
+}
+.quick-actions-shell .quick-arrow-left{left:3px!important;right:auto!important}
+.quick-actions-shell .quick-arrow-right{right:3px!important;left:auto!important}
+.quick-actions-shell .quick-arrow svg{width:12px!important;height:12px!important;fill:none!important;stroke:currentColor!important;
+  stroke-width:2.6!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+.quick-actions-shell .quick-arrow:disabled{opacity:0!important;pointer-events:none!important;transform:translateY(-50%) scale(.86)!important}
+@media(max-width:380px){
+  .quick-actions-shell .quick-actions{padding-left:27px!important;padding-right:27px!important;gap:5px!important}
+  .quick-actions-shell .quick-actions .quick-action{flex-basis:calc((100% - 15px)/4)!important;width:calc((100% - 15px)/4)!important;min-width:calc((100% - 15px)/4)!important;max-width:calc((100% - 15px)/4)!important}
+  .quick-actions-shell .quick-actions .quick-icon{flex-basis:39px!important;width:39px!important;height:39px!important;min-width:39px!important;min-height:39px!important;max-width:39px!important;max-height:39px!important}
+  .quick-actions-shell .quick-actions .quick-icon img,.quick-actions-shell .quick-actions .quick-icon .mm-category-3d,
+  .quick-actions-shell .quick-actions .quick-icon .reference-category-icon,.quick-actions-shell .quick-actions .quick-icon svg{
+    width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;max-width:38px!important;max-height:38px!important}
 }
 </style>
 </body></html>'''
