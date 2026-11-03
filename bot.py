@@ -11805,7 +11805,7 @@ function cardText(x){
 }
 function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
-let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'smooth',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}showHome()}
+let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');document.body.classList.add('mm-detail-open');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'smooth',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){document.body.classList.remove('mm-detail-open');const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}showHome()}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const detailDeal=cardDealLabel(x);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const whatsapp=String(x.whatsapp||'').trim().replace(/[^0-9]/g,'');const telegram=String(x.telegram||'').trim().replace(/^@/,'');const contact=[];if(phoneDigits.length>=5)contact.push(`<button type="button" class="contact-btn" data-contact-call="${esc(phone)}">${t('contact_call')}</button>`);if(whatsapp)contact.push(`<a class="contact-btn" href="https://wa.me/${whatsapp}">${t('contact_whatsapp')}</a>`);if(telegram)contact.push(`<a class="contact-btn secondary" href="https://t.me/${encodeURIComponent(telegram)}">${t('contact_telegram')}</a>`);if(x.channel_post_url)contact.push(`<a class="contact-btn secondary" href="${esc(x.channel_post_url)}" target="_blank">${t('open_channel')}</a>`);$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div class="detail-kickers" style="min-width:0;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${detailDeal?`<span class="detail-deal-badge deal-${esc(detailDeal.key)}">${esc(detailDeal.label)}</span>`:''}<div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div>${favButton(x,true)}</div><h1 class="detail-listing-title">${esc(localizeListingText(cardText(x).title||localizedCategory(x.category_name||x.category||'')))}</h1>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${contact.length?`<div class="contacts">${contact.join('')}</div>`:''}</div>`;
 // Cross-platform contact sheet: show the contact number without a misleading underlined link.
 $('detailContent').querySelectorAll('[data-contact-call]').forEach(btn=>btn.addEventListener('click',function(e){
@@ -12680,6 +12680,32 @@ body::before{
   #detailView #detailContent .detail-price{font-size:29px!important;}
   #detailView #detailContent .contact-btn{min-height:50px!important;font-size:15px!important;}
 }
+<style id="madloba-detail-compact-fit-v1">
+/* Final detail-page fit: free the call action from the floating support control and trim vertical bulk. */
+body.mm-detail-open .mm-support-fab{display:none!important;visibility:hidden!important;pointer-events:none!important}
+#detailView .detail-top{margin-bottom:8px!important}
+#detailView #detailContent .detail-photo{
+  height:clamp(165px,43vw,190px)!important;
+  min-height:165px!important;
+  max-height:190px!important;
+}
+#detailView #detailContent .detail-body{padding:12px 13px 14px!important}
+#detailView #detailContent .detail-listing-title{margin:8px 0 3px!important;line-height:1.14!important}
+#detailView #detailContent .detail-price{margin:7px 0 5px!important;line-height:1.05!important}
+#detailView #detailContent .detail-meta{gap:6px!important;margin:8px 0!important}
+#detailView #detailContent .detail-spec{padding:8px 7px!important}
+#detailView #detailContent .detail-loc{padding:8px 10px!important}
+#detailView #detailContent .detail-description{margin-top:9px!important;padding-top:9px!important}
+#detailView #detailContent .detail-desc{margin-top:4px!important;line-height:1.38!important}
+#detailView #detailContent .contacts{gap:6px!important;margin-top:10px!important}
+#detailView #detailContent .contact-btn{min-height:44px!important;padding:10px 12px!important;border-radius:12px!important;font-size:14px!important}
+@media(max-width:390px){
+  #detailView #detailContent .detail-photo{height:165px!important;min-height:165px!important;max-height:165px!important}
+  #detailView #detailContent .detail-body{padding:11px 12px 13px!important}
+  #detailView #detailContent .detail-spec{padding:7px 6px!important}
+  #detailView #detailContent .contact-btn{min-height:42px!important;padding:9px 10px!important}
+}
+</style>
 </style>
 </body></html>'''
 
