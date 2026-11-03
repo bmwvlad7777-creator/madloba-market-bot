@@ -11485,8 +11485,22 @@ body::before{
 #sellerListings .card:active{transform:scale(.99)!important}
 #sellerProfileContent .seller-profile-stats>div:last-child{cursor:pointer!important;border-radius:12px!important;transition:background .15s ease!important}
 #sellerProfileContent .seller-profile-stats>div:last-child:active{background:#f1f6ff!important}
-.mm-report-open{display:block;width:100%;margin:14px 0 0;padding:12px 14px;border:1px solid #e2eaf5;border-radius:13px;background:#f7faff;color:#58708e;font-size:14px;font-weight:750;text-align:center}.mm-report-overlay{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.5);display:flex;align-items:flex-end;justify-content:center;padding:14px 12px calc(14px + env(safe-area-inset-bottom));backdrop-filter:blur(4px)}.mm-report-sheet{width:min(100%,520px);max-height:86dvh;overflow:auto;background:#fff;border:1px solid #e2eaf5;border-radius:23px;padding:20px;box-shadow:0 20px 60px #14203333;color:#172033}.mm-report-sheet h3{margin:0 0 16px;font-size:20px;font-weight:900}.mm-report-sheet label{display:block;margin:13px 0 0;font-size:13px;font-weight:800;color:#58677c}.mm-report-sheet select,.mm-report-sheet textarea{display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce6f2;border-radius:12px;background:#f8fafc;color:#172033;font:inherit;font-size:15px;box-sizing:border-box}.mm-report-sheet select{min-height:46px}.mm-report-sheet textarea{min-height:100px;resize:vertical}.mm-report-actions{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px;margin-top:17px}.mm-report-actions button{min-height:46px;border:0;border-radius:12px;font-weight:850}.mm-report-actions button:first-child{background:#eef3f9;color:#526176}.mm-report-actions button:last-child{background:#1478f5;color:#fff}.mm-report-actions button:disabled{opacity:.6}@media(min-width:620px){.mm-report-overlay{align-items:center}}
+.mm-report-open{display:flex;align-items:center;justify-content:center;width:fit-content;max-width:100%;min-height:36px;box-sizing:border-box;margin:12px auto 0;padding:8px 12px;border:1px solid #e2eaf5;border-radius:11px;background:#f7faff;color:#64748b;font-size:13px;line-height:1.2;font-weight:750;text-align:center;white-space:normal}.mm-report-overlay{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.5);display:flex;align-items:flex-end;justify-content:center;padding:14px 12px calc(14px + env(safe-area-inset-bottom));backdrop-filter:blur(4px)}.mm-report-sheet{width:min(100%,520px);max-height:86dvh;overflow:auto;background:#fff;border:1px solid #e2eaf5;border-radius:23px;padding:20px;box-shadow:0 20px 60px #14203333;color:#172033}.mm-report-sheet h3{margin:0 0 16px;font-size:20px;font-weight:900}.mm-report-sheet label{display:block;margin:13px 0 0;font-size:13px;font-weight:800;color:#58677c}.mm-report-sheet select,.mm-report-sheet textarea{display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce6f2;border-radius:12px;background:#f8fafc;color:#172033;font:inherit;font-size:15px;box-sizing:border-box}.mm-report-sheet select{min-height:46px}.mm-report-sheet textarea{min-height:100px;resize:vertical}.mm-report-actions{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px;margin-top:17px}.mm-report-actions button{min-height:46px;border:0;border-radius:12px;font-weight:850}.mm-report-actions button:first-child{background:#eef3f9;color:#526176}.mm-report-actions button:last-child{background:#1478f5;color:#fff}.mm-report-actions button:disabled{opacity:.6}@media(min-width:620px){.mm-report-overlay{align-items:center}}
 @media(max-width:390px){#sellerListings.list{gap:8px!important}#sellerListings .card .photo{height:100px!important;min-height:100px!important;max-height:100px!important}#sellerListings .card .cardbody{padding:8px 8px 9px!important}#sellerListings .card .listing-name{font-size:11px!important}#sellerListings .card .listing-subtitle{font-size:9px!important}}
+</style>
+<style id="madloba-detail-top-gap-fix-v1">
+/* Reduce excessive blank space between the category hero and listing detail. */
+#detailView .detail-top{
+  min-height:64px!important;
+  padding-top:20px!important;
+  margin:0 0 12px!important;
+  scroll-margin-top:calc(20px + var(--tg-content-safe-area-inset-top,0px))!important;
+}
+#detailView .detail-top .section-head{top:20px!important;}
+@media(max-width:390px){
+  #detailView .detail-top{min-height:62px!important;padding-top:19px!important;margin-bottom:11px!important;}
+  #detailView .detail-top .section-head{top:19px!important;}
+}
 </style>
 </head>
 <body>
