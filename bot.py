@@ -12564,6 +12564,123 @@ body::before{
     width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;max-width:38px!important;max-height:38px!important}
 }
 </style>
+<style id="madloba-detail-finish-v1">
+/* Final detail-page refinement: preserve the existing layout and behavior. */
+#detailView #detailContent .detail-photo{
+  height:clamp(205px,52vw,300px)!important;
+  min-height:205px!important;
+  max-height:300px!important;
+  background:linear-gradient(180deg,#f2f6fc 0%,#eaf0f8 100%)!important;
+}
+#detailView #detailContent .detail-photo img{
+  width:100%!important;height:100%!important;
+  object-fit:contain!important;object-position:center center!important;
+}
+#detailView #detailContent .detail-body{
+  padding:18px 18px 20px!important;
+}
+#detailView #detailContent .detail-head-row{
+  gap:10px!important;
+}
+#detailView #detailContent .detail-listing-title{
+  margin:12px 0 7px!important;
+  color:#172033!important;
+  font-size:clamp(21px,5.25vw,27px)!important;
+  font-weight:900!important;
+  line-height:1.2!important;
+  letter-spacing:-.45px!important;
+  overflow-wrap:anywhere!important;
+}
+#detailView #detailContent .detail-price{
+  display:block!important;
+  margin:11px 0 14px!important;
+  padding:0!important;
+  background:transparent!important;
+  color:#172033!important;
+  font-size:clamp(29px,6.8vw,34px)!important;
+  font-weight:950!important;
+  line-height:1.1!important;
+  letter-spacing:-.65px!important;
+}
+#detailView #detailContent .detail-meta{
+  gap:9px!important;
+  margin:14px 0 15px!important;
+}
+#detailView #detailContent .detail-spec{
+  padding:11px 10px!important;
+  border:1px solid #e6edf7!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,#fafcff 0%,#f3f7fc 100%)!important;
+}
+#detailView #detailContent .detail-spec-value{
+  color:#172033!important;
+  font-size:clamp(14px,3.7vw,16px)!important;
+  font-weight:900!important;
+  line-height:1.2!important;
+}
+#detailView #detailContent .detail-spec-label{
+  margin-top:4px!important;
+  color:#7b8798!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+#detailView #detailContent .detail-loc{
+  padding:11px 12px!important;
+  border:1px solid #e9eff7!important;
+  border-radius:14px!important;
+  background:#f8fafd!important;
+  color:#58677d!important;
+}
+#detailView #detailContent .detail-description{
+  margin-top:16px!important;
+  padding-top:15px!important;
+  border-top:1px solid #edf1f7!important;
+}
+#detailView #detailContent .detail-description-label{
+  color:#172033!important;
+  font-size:15px!important;
+  font-weight:900!important;
+}
+#detailView #detailContent .detail-desc{
+  margin-top:6px!important;
+  color:#586579!important;
+  font-size:15px!important;
+  line-height:1.55!important;
+}
+#detailView #detailContent .contacts{
+  gap:10px!important;
+  margin-top:19px!important;
+}
+#detailView #detailContent .contact-btn{
+  display:flex!important;
+  min-height:52px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:13px 16px!important;
+  border-radius:15px!important;
+  font-size:16px!important;
+  font-weight:900!important;
+  box-shadow:0 7px 17px rgba(20,111,232,.15)!important;
+  transition:transform .15s ease,filter .15s ease!important;
+}
+#detailView #detailContent .contact-btn.secondary{
+  border:1px solid #e2edfc!important;
+  background:#f0f6ff!important;
+  color:#176fe5!important;
+  box-shadow:none!important;
+}
+#detailView #detailContent .contact-btn:active{transform:scale(.99)!important;filter:brightness(.98)!important;}
+@media(max-width:390px){
+  #detailView #detailContent .detail-photo{height:200px!important;min-height:200px!important;max-height:200px!important;}
+  #detailView #detailContent .detail-body{padding:16px 15px 18px!important;}
+  #detailView #detailContent .detail-meta{gap:7px!important;}
+  #detailView #detailContent .detail-spec{padding:10px 8px!important;border-radius:14px!important;}
+  #detailView #detailContent .detail-spec-value{font-size:14px!important;}
+  #detailView #detailContent .detail-spec-label{font-size:10.5px!important;}
+  #detailView #detailContent .detail-price{font-size:29px!important;}
+  #detailView #detailContent .contact-btn{min-height:50px!important;font-size:15px!important;}
+}
+</style>
 </body></html>'''
 
 
