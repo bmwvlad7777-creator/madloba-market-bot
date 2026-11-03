@@ -10577,6 +10577,9 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .popular-section { position:relative !important; z-index:1 !important; margin-top:14px !important; }
 }
 
+/* Keep the floating support shortcut from covering seller listing cards while browsing a seller profile. */
+body.mm-seller-view-open .mm-support-fab{display:none!important;visibility:hidden!important;pointer-events:none!important}
+
 /* MADLOBA MARKET support entry: compact floating action above the fixed bottom navigation. */
 .mm-support-fab{position:fixed;right:14px;bottom:calc(108px + env(safe-area-inset-bottom));z-index:24;display:flex;align-items:center;justify-content:center;gap:0;width:48px;height:48px;min-width:48px;min-height:48px;padding:0;border-radius:50%;background:linear-gradient(135deg,#1677f8,#0864d8);color:#fff;font-size:0;font-weight:850;box-shadow:0 6px 16px rgba(20,111,232,.24),inset 0 1px 0 rgba(255,255,255,.24);border:1px solid rgba(255,255,255,.78);}
 .mm-support-fab span{display:none!important}
@@ -11571,9 +11574,9 @@ function money(v,c){const m={usd:'$',gel:'₾',eur:'€',USD:'$',GEL:'₾',EUR:'
 function apiFetch(url,options={}){const headers=new Headers(options.headers||{});const init=tgInit();if(init)headers.set('X-Telegram-Init-Data',init);return fetch(url,{...options,headers})}
 function setActiveNav(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));}
 function navTap(button){document.querySelectorAll('.nav').forEach(b=>b.classList.remove('tap'));button.classList.add('tap');setTimeout(()=>button.classList.remove('tap'),180)}
-function hideViews(){['homeView','detailView','favoritesView','mineView','profileView','sellerView'].forEach(id=>$(id).classList.remove('show'));$('homeView').style.display='none'}
+function hideViews(){['homeView','detailView','favoritesView','mineView','profileView','sellerView'].forEach(id=>$(id).classList.remove('show'));document.body.classList.remove('mm-seller-view-open');$('homeView').style.display='none'}
 function showHome(){setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');$('backBtn').classList.toggle('show',!!state.category);resetHomeCarousels();setQuickActive(state.category||'');$('sortSelect').value=state.sort||'new';syncFilterUI();updateFilterVisibility();load(true)}
-function showView(id){hideViews();$(id).classList.add('show')}
+function showView(id){hideViews();$(id).classList.add('show');document.body.classList.toggle('mm-seller-view-open',id==='sellerView')}
 function realEstateFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','rooms','min_area','max_area','district'].includes(k)&&String(v||'').trim()!=='')}
 function autoFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','make','model','min_price','max_price','min_year','max_year','min_mileage','max_mileage'].includes(k)&&String(v||'').trim()!=='')}
 function genericFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','condition','make','model','pet_age','pet_breed','pet_gender'].includes(k)&&String(v||'').trim()!=='')}
