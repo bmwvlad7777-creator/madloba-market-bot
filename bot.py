@@ -748,6 +748,55 @@ def _supabase_user_id(telegram_id):
     return user_id
 
 
+def _sync_supabase_user_profile(telegram_user):
+    """Sync non-empty public Telegram profile fields for an authenticated user."""
+    if not isinstance(telegram_user, dict) or not supabase_enabled():
+        return False
+
+    telegram_id = telegram_user.get("id")
+    user_id = _supabase_user_id(telegram_id)
+    if user_id is None:
+        return False
+
+    profile = {}
+    for field in ("username", "first_name", "last_name"):
+        value = str(telegram_user.get(field) or "").strip()
+        if value:
+            profile[field] = value.lstrip("@") if field == "username" else value
+
+    if not profile:
+        return True
+
+    current = supabase_request(
+        "GET",
+        "users",
+        params={
+            "select": "id,username,first_name,last_name",
+            "id": f"eq.{user_id}",
+            "limit": "1",
+        },
+    )
+    if not current:
+        return False
+
+    existing = current[0]
+    changed = {
+        field: value
+        for field, value in profile.items()
+        if str(existing.get(field) or "").strip() != value
+    }
+    if not changed:
+        return True
+
+    updated = supabase_request(
+        "PATCH",
+        "users",
+        params={"id": f"eq.{user_id}"},
+        payload=changed,
+    )
+    return updated is not None
+
+
 def _strip_public_listing_fields(item):
     """Remove private lifecycle fields while retaining the public publication timestamp for cards."""
     for key in ("status", "expires_at", "reminder_sent_at", "channel_message_id"):
@@ -13259,7 +13308,7 @@ def mini_app_auth():
     if not user:
         return jsonify({"ok":False,"error":"invalid_init_data"}), 401
     if supabase_enabled():
-        _supabase_user_id(user.get("id"))
+        _sync_supabase_user_profile(user)
     _track_mm_event("app_open", user.get("id"))
     return jsonify({"ok":True,"user":user})
 
@@ -13270,7 +13319,7 @@ def mini_app_me():
     if not user:
         return jsonify({"error":"invalid_init_data"}), 401
     if supabase_enabled():
-        _supabase_user_id(user.get("id"))
+        _sync_supabase_user_profile(user)
     response_user = dict(user)
     response_user["is_admin"] = _is_admin_telegram_user(user)
     return jsonify(response_user)
