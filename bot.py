@@ -15659,13 +15659,21 @@ def _archive_expired_listings(now_iso):
         return 0
     archived = 0
     for row in rows:
-        if not _delete_listing_channel_messages(row):
-            # Keep it eligible so the worker retries; catalog/API filters already hide it by expiry.
-            continue
+        # Archive in Supabase even when Telegram refuses to delete an old post.
+        # Keep the message ID on failed cleanup so the purge pass can retry later.
+        channel_cleanup_ok = _delete_listing_channel_messages(row)
+        if not channel_cleanup_ok:
+            print(
+                "LISTING LIFECYCLE: archiving despite Telegram cleanup failure",
+                {"listing_id": row.get("id"), "channel_message_id": row.get("channel_message_id")},
+            )
+        archive_payload = {"status": "archived", "channel_url": ""}
+        if channel_cleanup_ok:
+            archive_payload["channel_message_id"] = None
         updated = supabase_request(
             "PATCH", "listings",
             params={"id":f"eq.{row.get('id')}", "status":"eq.published", "expires_at":f"lte.{now_iso}"},
-            payload={"status":"archived", "channel_url":"", "channel_message_id":None},
+            payload=archive_payload,
         )
         if updated is not None:
             archived += 1
