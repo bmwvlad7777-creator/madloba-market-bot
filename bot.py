@@ -13006,7 +13006,6 @@ def _admin_stats_payload(period_days=7):
                     stats["listings_pending"] += 1
                 else:
                     stats["listings_other"] += 1
-    from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     period_start = (now - timedelta(days=period_days - 1)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
