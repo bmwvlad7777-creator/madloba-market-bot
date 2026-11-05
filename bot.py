@@ -1561,14 +1561,14 @@ ADMIN_REPLY_KEYBOARD_MARKUP = {
 
 
 def send_admin_reply_keyboard(chat_id):
-    """Install and preserve the administrator's persistent reply keyboard."""
+    """Install the persistent admin reply keyboard without leaving a chat message."""
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
 
     marker = str(chat_id)
     state_key = _runtime_key("admin_reply_keyboard", marker)
     found, saved, state_ok = runtime_state_load(state_key)
-    if found and isinstance(saved, dict) and saved.get("installed") is True and saved.get("version") == 5:
+    if found and isinstance(saved, dict) and saved.get("installed") is True and saved.get("version") == 6:
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
         return {"ok": True, "skipped": True}
 
@@ -1576,14 +1576,19 @@ def send_admin_reply_keyboard(chat_id):
         "sendMessage",
         {
             "chat_id": chat_id,
-            "text": "🛡 <b>Панель администратора</b>\nИспользуйте постоянные кнопки внизу чата.",
-            "parse_mode": "HTML",
+            "text": "\u2063",
             "reply_markup": ADMIN_REPLY_KEYBOARD_MARKUP,
         },
     )
     if isinstance(result, dict) and result.get("ok"):
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
-        runtime_state_save(state_key, {"installed": True, "version": 5})
+        runtime_state_save(state_key, {"installed": True, "version": 6})
+        message = result.get("result") or {}
+        message_id = message.get("message_id")
+        if message_id:
+            # Telegram keeps the reply keyboard after deleting the message
+            # that installed it. Remove the temporary invisible message.
+            api("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
     return result
 
 
@@ -4539,12 +4544,37 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
         "services": "🛠", "услуги": "🛠", "pets": "🐾", "животные": "🐾",
     }
     buttons = []
+    category_aliases = {
+        "cars": "auto", "vehicles": "auto", "transport": "auto",
+        "property": "realestate", "real_estate": "realestate",
+        "electronics": "tech", "phones": "tech",
+        "children": "kids", "baby": "kids",
+        "furniture": "home", "jobs": "work",
+        "services": "services", "pets": "pets",
+    }
     for request_id, item in current:
         data = item.get("data") or {}
-        category = str(data.get("category_name") or data.get("category") or "Объявление").strip()
-        icon = category_icons.get(category.lower(), "📌")
-        price = str(data.get("price") or "Договорная").strip()[:14]
-        label = f"#{request_id} {icon} · {price}"
+        raw_category = (
+            data.get("category_name") or data.get("category")
+            or data.get("category_key") or data.get("category_slug")
+            or data.get("category_id") or ""
+        )
+        category = str(raw_category).strip()
+        category_key = category.lower().replace(" ", "_")
+        category_key = category_aliases.get(category_key, category_key)
+        icon = category_icons.get(category.lower(), category_icons.get(category_key, "📌"))
+        category_names = {
+            "auto": "Авто", "авто": "Авто", "realestate": "Недвижимость",
+            "недвижимость": "Недвижимость", "tech": "Техника", "техника": "Техника",
+            "kids": "Детское", "детское": "Детское", "home": "Дом",
+            "work": "Работа", "give": "Отдам", "search": "Ищу",
+            "services": "Услуги", "pets": "Животные",
+        }
+        category_label = category_names.get(category_key, category) if category and category.lower() not in {"none", "null"} else "Объявление"
+        title = str(data.get("title") or data.get("name") or data.get("brand") or "").strip()
+        price = str(data.get("price") or "Договорная").strip()
+        detail = title if title else price
+        label = f"#{request_id} {icon} {category_label} · {detail}"
         buttons.append({"text": label[:42], "callback_data": f"mod_queue_open_{request_id}"})
     keyboard = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
 
