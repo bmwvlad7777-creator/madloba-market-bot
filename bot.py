@@ -4520,7 +4520,31 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     row = []
     for request_id, item in current:
         data = item.get("data") or {}
-        category = str(data.get("category") or "").strip().lower()
+        # Moderation payloads may contain a stable key, a localized category
+        # name, or both. Resolve the icon from either field so we never show a
+        # generic clipboard for a known category.
+        category_candidates = [
+            str(data.get(field) or "").strip().lower()
+            for field in ("category_key", "category", "subcategory_key", "subcategory")
+        ]
+        category_aliases = {
+            "auto": "auto", "авто": "auto", "🚗 авто": "auto", "машины": "auto",
+            "realestate": "realestate", "real_estate": "realestate", "недвижимость": "realestate", "🏠 недвижимость": "realestate",
+            "tech": "tech", "техника": "tech", "📱 техника": "tech", "телефоны": "tech",
+            "home": "home", "дом и мебель": "home", "дом": "home", "🛋 дом и мебель": "home",
+            "kids": "kids", "детское": "kids", "👶 детское": "kids",
+            "work": "work", "работа": "work", "вакансии": "work",
+            "give": "give", "отдам": "give", "🎁 отдам": "give",
+            "search": "search", "ищу": "search", "🔎 ищу": "search",
+            "services": "services", "услуги": "services", "🛠 услуги": "services",
+            "pets": "pets", "животные": "pets", "🐾 животные": "pets",
+        }
+        # Prefer a recognized stable key, but fall through to localized names
+        # if a legacy/unknown key is present in category_key.
+        category = next(
+            (category_aliases[value] for value in category_candidates if value in category_aliases),
+            next((value for value in category_candidates if value), ""),
+        )
         category_icons = {
             "auto": "🚗", "realestate": "🏠", "tech": "📱", "home": "🛋️",
             "kids": "👶", "work": "💼", "give": "🎁", "search": "🔎",
@@ -5768,6 +5792,12 @@ def _handle_update_core(
 
         if text.strip() == "🛡 Модерация":
             if moderator_is_allowed(chat_id):
+                # Keep the chat tidy: remove the user's command after switching
+                # the reusable admin panel in place.
+                try:
+                    api("deleteMessage", {"chat_id": chat_id, "message_id": message.get("message_id")})
+                except Exception:
+                    pass
                 refresh_admin_moderation_queue(0)
             else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
@@ -5837,6 +5867,13 @@ def _handle_update_core(
                     return
 
                 # Restore admin shortcuts if a temporary picker had replaced them.
+                # Delete the tapped reply-keyboard command so repeated navigation
+                # does not leave a trail of "Главное меню" messages in the chat.
+                if text.strip() == "🏠 Главное меню":
+                    try:
+                        api("deleteMessage", {"chat_id": chat_id, "message_id": message.get("message_id")})
+                    except Exception:
+                        pass
                 send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
                 return
@@ -6648,20 +6685,15 @@ def _handle_update_core(
     # ========================================================
 
     if data == "back_main":
-
-        send(
-
-            chat_id,
-
-            "<b>"
-            "🛒 MADLOBA MARKET | БАТУМИ"
-            "</b>\n\n"
-
-            "Выберите категорию:",
-
-            main_menu()
-        )
-
+        if moderator_is_allowed(callback_from_id):
+            answer(callback["id"])
+            show_admin_main_menu(callback_from_id)
+        else:
+            send(
+                chat_id,
+                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\nВыберите категорию:",
+                main_menu()
+            )
         return
 
 
