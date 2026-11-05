@@ -1068,6 +1068,10 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
     metadata = dict(data)
     metadata.pop("_telegram_id", None)
     metadata["telegram_username"] = str(data.get("telegram_username") or "").strip().lstrip("@")
+    metadata["telegram"] = (
+        f"https://t.me/{metadata['telegram_username']}"
+        if metadata["telegram_username"] else ""
+    )
     metadata["legacy_id"] = data.get("id")
     # address/district remains the exact street or landmark; district_key is a separate stable filter key.
     metadata["district_key"] = str(data.get("district_key") or "").strip().lower() or None
@@ -1081,7 +1085,8 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
         "price": _price_number(data.get("price")),
         "currency": data.get("currency", "") or "USD",
         "phone": data.get("contact", "") or "",
-        "telegram": (f"https://t.me/{str(data.get('telegram_username') or '').strip().lstrip('@')}" if data.get("telegram_username") else ""),
+        # public.listings.telegram is BOOLEAN; the username/link belongs in metadata.
+        "telegram": bool(str(data.get("telegram_username") or "").strip().lstrip("@")),
         "address": data.get("district", "") or "",
         "status": "published",
         "published_at": _utc_now_iso(),
