@@ -15695,9 +15695,20 @@ def _purge_expired_listings(purge_cutoff_iso):
         return 0
     deleted_count = 0
     for row in rows:
-        # A previously published Telegram post can remain in metadata as a list of IDs.
-        if not _delete_listing_channel_messages(row):
-            continue
+        # Telegram cleanup is best-effort at the end of the listing lifecycle.
+        # Old channel posts may be impossible to delete (for example, due to Telegram
+        # restrictions or changed channel permissions). That must not retain the
+        # expired listing and its stored photos forever.
+        channel_cleanup_ok = _delete_listing_channel_messages(row)
+        if not channel_cleanup_ok:
+            metadata = row.get("metadata") or {}
+            pending_ids = metadata.get("channel_message_ids", []) if isinstance(metadata, dict) else []
+            if row.get("channel_message_id"):
+                pending_ids = list(pending_ids) + [row.get("channel_message_id")]
+            print(
+                "LISTING LIFECYCLE: purging Supabase listing despite Telegram cleanup failure",
+                {"listing_id": row.get("id"), "channel_message_ids": pending_ids},
+            )
         listing_id = row.get("id")
         photo_rows = supabase_request(
             "GET", "listing_photos",
