@@ -1549,43 +1549,41 @@ def api(method, data=None):
 # ОТПРАВКА СООБЩЕНИЯ
 # ============================================================
 
+ADMIN_REPLY_KEYBOARD_MARKUP = {
+    "keyboard": [
+        [{"text": "🛡 Модерация"}],
+        [{"text": "🏠 Главное меню"}],
+    ],
+    "resize_keyboard": True,
+    "is_persistent": True,
+    "input_field_placeholder": "Выберите действие",
+}
+
+
 def send_admin_reply_keyboard(chat_id):
-    """Remove the legacy reply keyboard once and return its message for reuse."""
+    """Install and preserve the administrator's persistent reply keyboard."""
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
 
     marker = str(chat_id)
     state_key = _runtime_key("admin_reply_keyboard", marker)
     found, saved, state_ok = runtime_state_load(state_key)
-    if found and isinstance(saved, dict) and saved.get("version") == 4:
+    if found and isinstance(saved, dict) and saved.get("installed") is True and saved.get("version") == 5:
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
-        queue_found, queue_saved, _ = runtime_state_load(_runtime_key("admin_queue", "main"))
-        if queue_found and isinstance(queue_saved, dict) and queue_saved.get("message_id"):
-            return {"ok": True, "skipped": True, "message_id": queue_saved.get("message_id")}
         return {"ok": True, "skipped": True}
 
-    # Telegram can remove a ReplyKeyboard only by sending a message. The caller
-    # immediately edits this very message into the queue/main menu, avoiding
-    # the extra standalone "Панель администратора" message.
     result = api(
         "sendMessage",
         {
             "chat_id": chat_id,
-            "text": "🛡 <b>ОЧЕРЕДЬ МОДЕРАЦИИ</b>",
+            "text": "🛡 <b>Панель администратора</b>\nИспользуйте постоянные кнопки внизу чата.",
             "parse_mode": "HTML",
-            "reply_markup": {"remove_keyboard": True},
+            "reply_markup": ADMIN_REPLY_KEYBOARD_MARKUP,
         },
     )
     if isinstance(result, dict) and result.get("ok"):
-        message = result.get("result") or {}
-        message_id = message.get("message_id")
-        if message_id:
-            runtime_state_save(_runtime_key("admin_queue", "main"), {
-                "chat_id": chat_id, "message_id": message_id
-            })
-            result["message_id"] = message_id
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
-        runtime_state_save(state_key, {"installed": True, "version": 4})
+        runtime_state_save(state_key, {"installed": True, "version": 5})
     return result
 
 
@@ -4558,10 +4556,6 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     if nav:
         keyboard.append(nav)
     keyboard.append([{"text": "🔄 Обновить очередь", "callback_data": f"mod_queue_page_{page}"}])
-    keyboard.append([
-        {"text": "🛡 Модерация", "callback_data": "admin_open_moderation"},
-        {"text": "🏠 Главное меню", "callback_data": "admin_open_main"},
-    ])
     if message_id:
         return edit_moderation_message(admin_chat_id, message_id, text, keyboard)
     return send(admin_chat_id, text, keyboard)
@@ -4610,10 +4604,7 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
                 "message_id": message_id,
                 "text": text,
                 "parse_mode": "HTML",
-                "reply_markup": {"inline_keyboard": main_menu() + [[
-                    {"text": "🛡 Модерация", "callback_data": "admin_open_moderation"},
-                    {"text": "🏠 Главное меню", "callback_data": "admin_open_main"},
-                ]]},
+                "reply_markup": {"inline_keyboard": main_menu()},
             },
         )
         if isinstance(result, dict) and result.get("ok"):
@@ -4622,10 +4613,7 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
         if "message is not modified" in description:
             return result
 
-    result = send(admin_chat_id, text, main_menu() + [[
-        {"text": "🛡 Модерация", "callback_data": "admin_open_moderation"},
-        {"text": "🏠 Главное меню", "callback_data": "admin_open_main"},
-    ]])
+    result = send(admin_chat_id, text, main_menu())
     if isinstance(result, dict) and result.get("ok"):
         message = result.get("result") or {}
         if message.get("message_id"):
@@ -5803,9 +5791,8 @@ def _handle_update_core(
             if moderator_is_allowed(chat_id):
                 # Remove the legacy reply keyboard on first use and switch the
                 # same reusable admin card to the moderation queue.
-                keyboard_result = send_admin_reply_keyboard(chat_id)
-                reusable_id = keyboard_result.get("message_id") if isinstance(keyboard_result, dict) else None
-                refresh_admin_moderation_queue(0, message_id=reusable_id)
+                send_admin_reply_keyboard(chat_id)
+                refresh_admin_moderation_queue(0)
             else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
             return
@@ -5853,9 +5840,8 @@ def _handle_update_core(
 
         if text.strip() == "/admin":
             if moderator_is_allowed(chat_id):
-                keyboard_result = send_admin_reply_keyboard(chat_id)
-                reusable_id = keyboard_result.get("message_id") if isinstance(keyboard_result, dict) else None
-                show_admin_main_menu(chat_id, message_id=reusable_id)
+                send_admin_reply_keyboard(chat_id)
+                show_admin_main_menu(chat_id)
             else:
                 send(chat_id, "⛔ Эта команда доступна только администратору.")
             return
@@ -5870,15 +5856,13 @@ def _handle_update_core(
                     # Install the persistent reply keyboard only once, then show
                     # the main menu in the same reusable inline card used by the
                     # moderation queue. Repeated /start must not add new panels.
-                    keyboard_result = send_admin_reply_keyboard(chat_id)
-                    reusable_id = keyboard_result.get("message_id") if isinstance(keyboard_result, dict) else None
-                    show_admin_main_menu(chat_id, message_id=reusable_id)
+                    send_admin_reply_keyboard(chat_id)
+                    show_admin_main_menu(chat_id)
                     return
 
                 # Restore admin shortcuts if a temporary picker had replaced them.
-                keyboard_result = send_admin_reply_keyboard(chat_id)
-                reusable_id = keyboard_result.get("message_id") if isinstance(keyboard_result, dict) else None
-                show_admin_main_menu(chat_id, message_id=reusable_id)
+                send_admin_reply_keyboard(chat_id)
+                show_admin_main_menu(chat_id)
                 return
 
             # Remove the persistent city-picker reply keyboard with the welcome
@@ -6120,10 +6104,11 @@ def _handle_update_core(
             answer(callback["id"], "Недостаточно прав.", True)
             return
         answer(callback["id"])
+        tapped_message_id = callback.get("message", {}).get("message_id")
         if data == "admin_open_moderation":
-            refresh_admin_moderation_queue(0)
+            refresh_admin_moderation_queue(0, message_id=tapped_message_id)
         else:
-            show_admin_main_menu(chat_id)
+            show_admin_main_menu(chat_id, message_id=tapped_message_id)
         return
 
     if chat_id in states and isinstance(states[chat_id].get("data"), dict):
