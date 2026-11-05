@@ -1571,12 +1571,17 @@ def send_admin_reply_keyboard(chat_id):
         "sendMessage",
         {
             "chat_id": chat_id,
-            "text": "\\u2063",
+            "text": "\u2063",
             "reply_markup": ADMIN_REPLY_KEYBOARD_MARKUP,
         },
     )
     if isinstance(result, dict) and result.get("ok"):
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(str(chat_id))
+        anchor = (result.get("result") or {}).get("message_id")
+        if anchor:
+            deleted = api("deleteMessage", {"chat_id": chat_id, "message_id": anchor})
+            if not isinstance(deleted, dict) or not deleted.get("ok"):
+                print("ADMIN KEYBOARD ANCHOR DELETE ERROR:", str(deleted)[:300])
     else:
         print("ADMIN REPLY KEYBOARD INSTALL ERROR:", str(result)[:400])
     return result
@@ -5834,7 +5839,6 @@ def _handle_update_core(
         if text.strip() == "🛡 Модерация":
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
-                send_admin_reply_keyboard(chat_id)
                 refresh_admin_moderation_queue(0)
             else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
@@ -5897,7 +5901,6 @@ def _handle_update_core(
 
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
-                send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
                 return
 
