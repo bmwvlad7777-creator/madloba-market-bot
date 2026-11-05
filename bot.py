@@ -1550,10 +1550,10 @@ def api(method, data=None):
 # ============================================================
 
 ADMIN_REPLY_KEYBOARD_MARKUP = {
-    "keyboard": [
-        [{"text": "🛡 Модерация"}],
-        [{"text": "🏠 Главное меню"}],
-    ],
+    "keyboard": [[
+        {"text": "🛡 Модерация"},
+        {"text": "🏠 Главное меню"},
+    ]],
     "resize_keyboard": True,
     "is_persistent": True,
     "input_field_placeholder": "Выберите действие",
@@ -1561,35 +1561,36 @@ ADMIN_REPLY_KEYBOARD_MARKUP = {
 
 
 def send_admin_reply_keyboard(chat_id):
-    """Install the persistent admin reply keyboard without leaving a chat message."""
+    """Re-assert the persistent admin keyboard on every admin entry/action."""
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
 
-    marker = str(chat_id)
-    state_key = _runtime_key("admin_reply_keyboard", marker)
-    found, saved, state_ok = runtime_state_load(state_key)
-    if found and isinstance(saved, dict) and saved.get("installed") is True and saved.get("version") == 6:
-        ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
-        return {"ok": True, "skipped": True}
-
+    # Telegram displays ReplyKeyboardMarkup after sendMessage. Use an
+    # invisible non-empty anchor so no extra visible panel message is added.
     result = api(
         "sendMessage",
         {
             "chat_id": chat_id,
-            "text": "\u2063",
+            "text": "\\u2063",
             "reply_markup": ADMIN_REPLY_KEYBOARD_MARKUP,
         },
     )
     if isinstance(result, dict) and result.get("ok"):
-        ADMIN_REPLY_KEYBOARD_INSTALLED.add(marker)
-        runtime_state_save(state_key, {"installed": True, "version": 6})
-        message = result.get("result") or {}
-        message_id = message.get("message_id")
-        if message_id:
-            # Telegram keeps the reply keyboard after deleting the message
-            # that installed it. Remove the temporary invisible message.
-            api("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
+        ADMIN_REPLY_KEYBOARD_INSTALLED.add(str(chat_id))
+    else:
+        print("ADMIN REPLY KEYBOARD INSTALL ERROR:", str(result)[:400])
     return result
+
+
+def delete_admin_button_message(chat_id, message):
+    """Delete the user's tapped reply-keyboard text to prevent chat clutter."""
+    if not moderator_is_allowed(chat_id) or not isinstance(message, dict):
+        return
+    message_id = message.get("message_id")
+    if message_id:
+        result = api("deleteMessage", {"chat_id": chat_id, "message_id": message_id})
+        if not isinstance(result, dict) or not result.get("ok"):
+            print("ADMIN BUTTON MESSAGE DELETE ERROR:", str(result)[:300])
 
 
 def send(
@@ -4573,9 +4574,22 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
         category_label = category_names.get(category_key, category) if category and category.lower() not in {"none", "null"} else "Объявление"
         title = str(data.get("title") or data.get("name") or data.get("brand") or "").strip()
         price = str(data.get("price") or "Договорная").strip()
-        detail = title if title else price
-        label = f"#{request_id} {icon} {category_label} · {detail}"
-        buttons.append({"text": label[:42], "callback_data": f"mod_queue_open_{request_id}"})
+        raw_price = price.replace(",", "").replace(" ", "")
+        try:
+            numeric_price = float(raw_price)
+            if numeric_price.is_integer():
+                compact_price = f"{int(numeric_price):,}".replace(",", " ")
+            else:
+                compact_price = f"{numeric_price:g}"
+        except (TypeError, ValueError):
+            compact_price = price[:12]
+        short_category = {
+            "Недвижимость": "Недв.", "Детское": "Дет.",
+            "Техника": "Техн.", "Дом": "Дом", "Работа": "Раб.",
+            "Животные": "Жив.", "Услуги": "Усл.",
+        }.get(category_label, category_label[:7])
+        label = f"#{request_id} {icon} {short_category} · {compact_price}"
+        buttons.append({"text": label[:32], "callback_data": f"mod_queue_open_{request_id}"})
     keyboard = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
 
     nav = []
@@ -5819,8 +5833,7 @@ def _handle_update_core(
 
         if text.strip() == "🛡 Модерация":
             if moderator_is_allowed(chat_id):
-                # Remove the legacy reply keyboard on first use and switch the
-                # same reusable admin card to the moderation queue.
+                delete_admin_button_message(chat_id, message)
                 send_admin_reply_keyboard(chat_id)
                 refresh_admin_moderation_queue(0)
             else:
@@ -5870,6 +5883,7 @@ def _handle_update_core(
 
         if text.strip() == "/admin":
             if moderator_is_allowed(chat_id):
+                delete_admin_button_message(chat_id, message)
                 send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
             else:
@@ -5882,15 +5896,7 @@ def _handle_update_core(
             states.pop(chat_id, None)
 
             if moderator_is_allowed(chat_id):
-                if text.startswith("/start"):
-                    # Install the persistent reply keyboard only once, then show
-                    # the main menu in the same reusable inline card used by the
-                    # moderation queue. Repeated /start must not add new panels.
-                    send_admin_reply_keyboard(chat_id)
-                    show_admin_main_menu(chat_id)
-                    return
-
-                # Restore admin shortcuts if a temporary picker had replaced them.
+                delete_admin_button_message(chat_id, message)
                 send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
                 return
