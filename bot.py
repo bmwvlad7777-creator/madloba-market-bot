@@ -640,7 +640,7 @@ _SUPABASE_ID_CACHE_LOCK = threading.Lock()
 
 
 def _supabase_city_id(slug_value):
-    slug_value = str(slug_value or "").strip().lower()
+    slug_value = _canonical_city_slug(slug_value)
     with _SUPABASE_ID_CACHE_LOCK:
         cached_id = _SUPABASE_CITY_ID_CACHE.get(slug_value)
     if cached_id is not None:
@@ -1030,20 +1030,26 @@ def load_supabase_catalog_page(key, sub, page=0, per_page=20):
     return _attach_catalog_photos(page_rows), has_next
 
 def save_listing_to_supabase(data, publish_result, user_chat_id=None):
-    """Создаёт опубликованное объявление и его фотографии в Supabase."""
+    """Создаёт объявление в Supabase; любая ошибка означает отказ публикации в каталоге."""
 
+    global LAST_SUPABASE_ERROR
+    LAST_SUPABASE_ERROR = ""
     if not supabase_enabled():
+        LAST_SUPABASE_ERROR = "Supabase is not configured"
+        print("SUPABASE: publication blocked — Supabase is not configured")
         return None
 
-    city_slug = str(data.get("city_slug") or DEFAULT_CITY_SLUG).strip().lower()
+    city_slug = _canonical_city_slug(data.get("city_slug") or DEFAULT_CITY_SLUG)
     city_id = _supabase_city_id(city_slug)
     category_id = _supabase_category_id(data.get("category_key", ""))
 
     if not city_id:
-        print("SUPABASE: city not found:", city_slug)
+        LAST_SUPABASE_ERROR = f"City is not registered in Supabase: {city_slug}"
+        print("SUPABASE: publication blocked — city not found:", city_slug)
         return None
     if not category_id:
-        print("SUPABASE: category not found:", data.get("category_key"))
+        LAST_SUPABASE_ERROR = f"Category is not registered in Supabase: {data.get('category_key')}"
+        print("SUPABASE: publication blocked — category not found:", data.get("category_key"))
         return None
 
     user_id = _supabase_user_id(user_chat_id)
@@ -1075,9 +1081,7 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
         "price": _price_number(data.get("price")),
         "currency": data.get("currency", "") or "USD",
         "phone": data.get("contact", "") or "",
-        # public.listings.telegram is a BOOLEAN column. Keep the actual
-        # Telegram username/link in metadata; store only its presence flag here.
-        "telegram": bool(str(data.get("telegram_username") or "").strip().lstrip("@")),
+        "telegram": (f"https://t.me/{str(data.get('telegram_username') or '').strip().lstrip('@')}" if data.get("telegram_username") else ""),
         "address": data.get("district", "") or "",
         "status": "published",
         "published_at": _utc_now_iso(),
@@ -1090,6 +1094,8 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
 
     created = supabase_request("POST", "listings", payload=payload)
     if not created:
+        LAST_SUPABASE_ERROR = LAST_SUPABASE_ERROR or "Supabase did not return the created listing row"
+        print("SUPABASE: publication blocked — listing insert failed:", LAST_SUPABASE_ERROR)
         return None
 
     row = created[0]
@@ -1111,57 +1117,32 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
             "listing_photos",
             payload=photos,
         )
-        if inserted_photos is None:
-            print("SUPABASE: listing created, but photos were not saved")
+        if not inserted_photos:
+            LAST_SUPABASE_ERROR = LAST_SUPABASE_ERROR or "Supabase did not save listing photos"
+            print("SUPABASE: photo insert failed; rolling back listing", listing_id, LAST_SUPABASE_ERROR)
+            supabase_request("DELETE", "listings", params={"id": f"eq.{listing_id}"})
+            return None
 
     return _row_to_listing({**row, "listing_photos": photos})
 
 
 def register_published_listing(data, publish_result, user_chat_id=None):
-    global next_listing_id
+    """Сохраняет публикацию в Supabase. Локальный JSON не считается успехом каталога."""
+    global published_listings
 
-    item = dict(data)
-    item["details"] = dict(data.get("details", {}))
-    item["photos"] = list(data.get("photos", []))
-    item["status"] = "published"
-
-    result = publish_result.get("result") if isinstance(publish_result, dict) else None
-    message_id = None
-    if isinstance(result, list) and result:
-        message_id = result[0].get("message_id")
-    elif isinstance(result, dict):
-        message_id = result.get("message_id")
-
-    item["channel_message_id"] = message_id
-    if CHANNEL_USERNAME.startswith("@"):
-        item["channel_post_url"] = (
-            f"https://t.me/{CHANNEL_USERNAME[1:]}/{message_id}"
-            if message_id else ""
-        )
-    else:
-        item["channel_post_url"] = ""
-
-    # Сначала пытаемся сохранить в Supabase.
     supabase_item = save_listing_to_supabase(
         data,
         publish_result,
         user_chat_id=user_chat_id,
     )
+    if not supabase_item:
+        print("SUPABASE: listing was NOT registered; moderation request must remain pending")
+        return None
 
-    if supabase_item:
-        item = supabase_item
-        # Обновляем память из БД, чтобы каталог сразу видел новое объявление.
-        if not load_supabase_published_listings():
-            published_listings.insert(0, item)
-    else:
-        # Резервный режим — старый listings.json.
-        item["id"] = next_listing_id
-        next_listing_id += 1
-        published_listings.insert(0, item)
-        save_local_published_listings()
-        print("SUPABASE: fallback to local listings.json")
-
-    return item
+    # Обновляем память из БД, чтобы каталог сразу видел новое объявление.
+    if not load_supabase_published_listings():
+        published_listings.insert(0, supabase_item)
+    return supabase_item
 
 
 def load_published_listings():
@@ -2883,6 +2864,43 @@ def auto_model_options(make):
 
 
 GEORGIA_CITIES = ["Батуми","Тбилиси","Кутаиси","Рустави","Гори","Поти","Зугдиди","Кобулети","Телави","Боржоми","Ахалцихе","Озургети","Сенаки","Самтредиа","Зестафони","Марнеули","Хашури","Чиатура","Цхалтубо","Сагареджо","Гардабани","Болниси","Каспи","Хони","Ланчхути","Мцхета","Ахалкалаки","Ниноцминда","Дедоплисцкаро","Лагодехи","Кварели","Гурджаани","Сигнахи","Цнори","Абаша","Мартвили","Хоби","Цаленджиха","Чхороцку","Вани","Багдати","Тержола","Сачхере","Амбролаури","Они","Цагери","Местиа","Хелвачаури","Кеда","Шуахеви","Хуло"]
+
+# Stable Supabase slugs for every city exposed by the Telegram city picker.
+GEORGIA_CITY_SLUGS = {
+    "Батуми": "batumi", "Тбилиси": "tbilisi", "Кутаиси": "kutaisi",
+    "Рустави": "rustavi", "Гори": "gori", "Поти": "poti",
+    "Зугдиди": "zugdidi", "Кобулети": "kobuleti", "Телави": "telavi",
+    "Боржоми": "borjomi", "Ахалцихе": "akhaltsikhe", "Озургети": "ozurgeti",
+    "Сенаки": "senaki", "Самтредиа": "samtredia", "Зестафони": "zestafoni",
+    "Марнеули": "marneuli", "Хашури": "khashuri", "Чиатура": "chiatura",
+    "Цхалтубо": "tskaltubo", "Сагареджо": "sagarejo", "Гардабани": "gardabani",
+    "Болниси": "bolnisi", "Каспи": "kaspi", "Хони": "khoni",
+    "Ланчхути": "lanchkhuti", "Мцхета": "mtskheta", "Ахалкалаки": "akhalkalaki",
+    "Ниноцминда": "ninotsminda", "Дедоплисцкаро": "dedoplistskaro",
+    "Лагодехи": "lagodekhi", "Кварели": "kvareli", "Гурджаани": "gurjaani",
+    "Сигнахи": "sighnaghi", "Цнори": "tsnori", "Абаша": "abasha",
+    "Мартвили": "martvili", "Хоби": "khobi", "Цаленджиха": "tsalenjikha",
+    "Чхороцку": "chkhorotsku", "Вани": "vani", "Багдати": "baghdati",
+    "Тержола": "terjola", "Сачхере": "sachkhere", "Амбролаури": "ambrolauri",
+    "Они": "oni", "Цагери": "tsageri", "Местиа": "mestia",
+    "Хелвачаури": "khelvachauri", "Кеда": "keda", "Шуахеви": "shuakhevi",
+    "Хуло": "khulo",
+}
+
+def _canonical_city_slug(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return DEFAULT_CITY_SLUG
+    if raw in GEORGIA_CITY_SLUGS:
+        return GEORGIA_CITY_SLUGS[raw]
+    normalized = raw.casefold()
+    for city_name, slug in GEORGIA_CITY_SLUGS.items():
+        if normalized == city_name.casefold():
+            return slug
+    # Already-canonical slugs remain unchanged. Unknown values are not
+    # silently transliterated: the DB lookup must fail closed instead.
+    return raw.lower()
+
 AUTO_YEAR_OPTIONS = [str(y) for y in range(2026, 1979, -1)]
 AUTO_MILEAGE_MAX = 500000
 
@@ -4517,56 +4535,11 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     current = items[start:start + page_size]
     text = f"<b>🛡 ОЧЕРЕДЬ МОДЕРАЦИИ</b>\n\nОжидают решения: <b>{len(items)}</b>\nСтраница: {page + 1}/{pages}"
     keyboard = []
-    # Two compact buttons per row make the moderation queue much shorter
-    # on mobile while preserving the existing callback/action flow.
-    row = []
     for request_id, item in current:
         data = item.get("data") or {}
-        # Moderation payloads may contain a stable key, a localized category
-        # name, or both. Resolve the icon from either field so we never show a
-        # generic clipboard for a known category.
-        category_candidates = [
-            str(data.get(field) or "").strip().lower()
-            for field in ("category_key", "category", "subcategory_key", "subcategory")
-        ]
-        category_aliases = {
-            "auto": "auto", "авто": "auto", "🚗 авто": "auto", "машины": "auto",
-            "realestate": "realestate", "real_estate": "realestate", "недвижимость": "realestate", "🏠 недвижимость": "realestate",
-            "tech": "tech", "техника": "tech", "📱 техника": "tech", "телефоны": "tech",
-            "home": "home", "дом и мебель": "home", "дом": "home", "🛋 дом и мебель": "home",
-            "kids": "kids", "детское": "kids", "👶 детское": "kids",
-            "work": "work", "работа": "work", "вакансии": "work",
-            "give": "give", "отдам": "give", "🎁 отдам": "give",
-            "search": "search", "ищу": "search", "🔎 ищу": "search",
-            "services": "services", "услуги": "services", "🛠 услуги": "services",
-            "pets": "pets", "животные": "pets", "🐾 животные": "pets",
-        }
-        # Prefer a recognized stable key, but fall through to localized names
-        # if a legacy/unknown key is present in category_key.
-        category = next(
-            (category_aliases[value] for value in category_candidates if value in category_aliases),
-            next((value for value in category_candidates if value), ""),
-        )
-        category_icons = {
-            "auto": "🚗", "realestate": "🏠", "tech": "📱", "home": "🛋️",
-            "kids": "👶", "work": "💼", "give": "🎁", "search": "🔎",
-            "services": "🛠️", "pets": "🐾",
-        }
-        category_icon = category_icons.get(category, "📋")
-        price = str(data.get("price") or "—").strip()
-        currency = str(data.get("currency") or "").strip().upper()
-        # Keep the two-column button label short enough for narrow phones.
-        # Full listing details remain available after opening the request.
-        price_label = f"{price} {currency}".strip()
-        if len(price_label) > 12:
-            price_label = price_label[:11] + "…"
-        label = f"#{request_id} {category_icon} · {price_label}"
-        row.append({"text": label[:32], "callback_data": f"mod_queue_open_{request_id}"})
-        if len(row) == 2:
-            keyboard.append(row)
-            row = []
-    if row:
-        keyboard.append(row)
+        title = str(data.get("title") or data.get("category") or "Объявление").strip()[:34]
+        price = str(data.get("price") or "без цены")[:16]
+        keyboard.append([{"text": f"#{request_id} · {title} · {price}", "callback_data": f"mod_queue_open_{request_id}"}])
     nav = []
     if page > 0:
         nav.append({"text": "← Назад", "callback_data": f"mod_queue_page_{page - 1}"})
@@ -4574,7 +4547,7 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
         nav.append({"text": "Дальше →", "callback_data": f"mod_queue_page_{page + 1}"})
     if nav:
         keyboard.append(nav)
-    keyboard.append([{"text": "↻ Обновить очередь", "callback_data": f"mod_queue_page_{page}"}])
+    keyboard.append([{"text": "🔄 Обновить", "callback_data": f"mod_queue_page_{page}"}])
     if message_id:
         return edit_moderation_message(admin_chat_id, message_id, text, keyboard)
     return send(admin_chat_id, text, keyboard)
@@ -4905,9 +4878,14 @@ def moderate_publish(
         answer(callback_id, "Заявка не содержит сохранённых данных. Откройте её заново.", True)
         return
 
-    result = publish_listing(
-        data
-    )
+    # If Telegram already accepted this post but Supabase failed, retry only
+    # the database save. Never send the same channel post a second time.
+    result = item.get("_telegram_publish_result")
+    if not isinstance(result, dict):
+        result = publish_listing(data)
+        if result.get("ok"):
+            item["_telegram_publish_result"] = result
+            runtime_state_save(_runtime_key("moderation", request_id), item)
 
     if not result.get(
         "ok"
@@ -4938,12 +4916,25 @@ def moderate_publish(
         return
 
     # Сохраняем объявление в каталоге ДО очистки states.
-    register_published_listing(
+    registered_item = register_published_listing(
         data,
         result,
         user_chat_id=user_chat_id
     )
+    if not registered_item:
+        error_detail = LAST_SUPABASE_ERROR or "Unknown Supabase error"
+        print("MODERATION: Telegram post exists, but Supabase save failed; request retained", request_id, error_detail)
+        answer(callback_id, "⚠️ В Telegram отправлено, но каталог не сохранил объявление. Заявка оставлена; повторное нажатие не отправит пост ещё раз.", True)
+        send(
+            admin_user_id,
+            "<b>⚠️ Объявление отправлено в канал, но НЕ сохранено в каталоге.</b>\n\n"
+            "Заявка оставлена в очереди. Исправьте ошибку Supabase и нажмите публикацию повторно — повторной отправки в канал не будет.\n\n"
+            f"<code>{html.escape(str(error_detail)[:700])}</code>"
+        )
+        refresh_admin_moderation_queue(0)
+        return
 
+    item.pop("_telegram_publish_result", None)
     moderation_requests.pop(request_id, None)
     runtime_state_delete(_runtime_key("moderation", request_id))
 
@@ -5484,13 +5475,7 @@ def _handle_update_core(
                     send(chat_id, "Выберите город из списка.")
                     return
                 listing_data["district"] = value
-                city_slug_map = {
-                    "Батуми": "batumi", "Тбилиси": "tbilisi",
-                    "Кутаиси": "kutaisi", "Рустави": "rustavi",
-                    "Гори": "gori", "Поти": "poti", "Зугдиди": "zugdidi",
-                    "Кобулети": "kobuleti", "Телави": "telavi",
-                }
-                listing_data["city_slug"] = city_slug_map.get(value, _normalize_lookup_text(value))
+                listing_data["city_slug"] = _canonical_city_slug(value)
                 if listing_data["city_slug"] not in {"batumi", "tbilisi"}:
                     listing_data.pop("district_key", None)
                 states[chat_id].pop("listing_picker", None)
@@ -5794,12 +5779,6 @@ def _handle_update_core(
 
         if text.strip() == "🛡 Модерация":
             if moderator_is_allowed(chat_id):
-                # Keep the chat tidy: remove the user's command after switching
-                # the reusable admin panel in place.
-                try:
-                    api("deleteMessage", {"chat_id": chat_id, "message_id": message.get("message_id")})
-                except Exception:
-                    pass
                 refresh_admin_moderation_queue(0)
             else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
@@ -5869,13 +5848,6 @@ def _handle_update_core(
                     return
 
                 # Restore admin shortcuts if a temporary picker had replaced them.
-                # Delete the tapped reply-keyboard command so repeated navigation
-                # does not leave a trail of "Главное меню" messages in the chat.
-                if text.strip() == "🏠 Главное меню":
-                    try:
-                        api("deleteMessage", {"chat_id": chat_id, "message_id": message.get("message_id")})
-                    except Exception:
-                        pass
                 send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
                 return
@@ -6687,15 +6659,20 @@ def _handle_update_core(
     # ========================================================
 
     if data == "back_main":
-        if moderator_is_allowed(callback_from_id):
-            answer(callback["id"])
-            show_admin_main_menu(callback_from_id)
-        else:
-            send(
-                chat_id,
-                "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\nВыберите категорию:",
-                main_menu()
-            )
+
+        send(
+
+            chat_id,
+
+            "<b>"
+            "🛒 MADLOBA MARKET | БАТУМИ"
+            "</b>\n\n"
+
+            "Выберите категорию:",
+
+            main_menu()
+        )
+
         return
 
 
@@ -7552,7 +7529,7 @@ MINI_APP_HTML = r'''<!doctype html>
 :root{--blue:#146fe8;--blue2:#2f8cff;--ink:#111a2b;--muted:#69778a;--bg:#eef3f9;--card:#fff;--line:#dfe7f1;--soft:#edf5ff;--shadow:0 12px 30px rgba(31,55,88,.07)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif}body{min-height:100vh;padding-bottom:96px}button,input,select,textarea{font:inherit}button{border:0;cursor:pointer}.wrap{max-width:760px;margin:auto;padding:calc(82px + var(--tg-content-safe-area-inset-top,0px)) 14px 26px}.top{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;margin:4px 2px 15px}.brand{font-weight:950;font-size:20px;letter-spacing:-.75px;white-space:nowrap;min-width:0}.brand span{color:var(--blue)}.top>div:last-child{display:contents}.city{display:flex;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:999px;padding:8px 9px;font-weight:850;font-size:14px;white-space:nowrap;box-shadow:0 3px 12px rgba(15,23,42,.04);height:48px}.city#langSelect{width:68px;padding-left:6px;padding-right:6px}.city#cityBtn{min-width:104px;padding-left:10px;padding-right:10px}.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#0b73f6 0%,#2789ff 60%,#4c9dff 100%);border-radius:28px;padding:22px 18px 17px;color:#fff;box-shadow:0 18px 38px rgba(11,115,246,.22);margin-bottom:19px}.hero:after{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-65px;top:-65px;background:rgba(255,255,255,.09);pointer-events:none}.hero h1{position:relative;z-index:1;font-size:27px;line-height:1.04;margin:0 0 7px;font-weight:950;letter-spacing:-.7px}.hero p{position:relative;z-index:1;margin:0 0 16px;opacity:.92;font-size:14px;line-height:1.4;max-width:520px}.search{position:relative;z-index:2;display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.98);border:1.5px solid rgba(48,139,255,.72);border-radius:19px;padding:0 12px;height:58px;color:#111;box-shadow:0 0 0 3px rgba(48,139,255,.11),0 10px 26px rgba(15,23,42,.12),inset 0 1px 0 rgba(255,255,255,.9);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}.search:focus-within{border-color:rgba(24,126,255,.98);box-shadow:0 0 0 4px rgba(48,139,255,.14),0 12px 30px rgba(15,23,42,.14);transform:translateY(-1px)}.search-icon{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#f5faff,#eaf4ff);border:1px solid rgba(48,139,255,.24);color:#1478f5;box-shadow:inset 0 0 0 1px rgba(255,255,255,.8)}.search-icon svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;stroke-linecap:round}.search input{border:0;outline:0;width:100%;background:transparent;font-size:16px;color:#111;min-width:0}.search input::placeholder{color:#9aa3b1}.quick-actions{position:relative;z-index:2;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:11px}.quick-action{min-width:0;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:13px;padding:8px 5px;font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(8px)}.quick-action:active{transform:scale(.97);background:rgba(255,255,255,.24)}.filter-bar{display:none;margin-top:9px}.filter-bar.show{display:block}.filter-btn{width:100%;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:11px 14px;color:var(--blue);font-weight:900;text-align:left;box-shadow:0 4px 14px rgba(15,23,42,.04)}.filter-btn .filter-btn-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex:0 0 28px;background:#f0f6ff;border-radius:9px}.filter-btn .filter-btn-icon svg{width:17px;height:17px}.filter-btn .filter-chevron{margin-left:auto;font-size:22px;line-height:1;color:#8b98aa;transition:transform .18s ease}.filter-btn.open .filter-chevron{transform:rotate(90deg)}.filter-panel{display:none;background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:6px;box-shadow:0 10px 24px rgba(15,23,42,.08)}.filter-panel.show{display:block}.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.filter-field{display:flex;flex-direction:column;gap:5px}.filter-field.full{grid-column:1/-1}.filter-field label{font-size:12px;color:var(--muted);font-weight:800}.filter-field input,.filter-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 10px;outline:0;color:var(--ink);min-height:46px}.filter-field select:disabled{color:#9aa3b1;background:#f1f4f8}.filter-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.filter-actions button{min-height:48px}.filter-apply{background:var(--blue);color:#fff;border-radius:12px;padding:11px;font-weight:900}.filter-reset{background:#eef2f7;color:#475569;border-radius:12px;padding:11px;font-weight:900}.filter-active{font-size:11px;color:var(--muted);margin-top:6px;padding-left:2px}.section-head{display:flex;align-items:center;justify-content:space-between;margin:19px 2px 10px}.section-head h2{font-size:21px;margin:0;font-weight:950;letter-spacing:-.45px}.section-head small{color:var(--muted);font-weight:700}.cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cat{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:15px 14px 14px;text-align:left;min-height:104px;box-shadow:var(--shadow);transition:transform .15s ease,box-shadow .15s ease}.cat:after{content:'›';position:absolute;right:13px;bottom:11px;color:#b2bccb;font-size:21px;font-weight:500}.cat:active{transform:scale(.985);box-shadow:0 4px 14px rgba(15,23,42,.05)}.cat .ico{width:42px;height:42px;border-radius:14px;background:#f0f6ff;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:9px}.cat b{display:block;font-size:15px;color:var(--blue);letter-spacing:-.15px}.cat small{display:block;color:var(--muted);margin-top:4px;font-size:12px;line-height:1.25;padding-right:15px}.results-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:20px}.results-head .section-head{margin:0;flex:1}.sort-select{display:none;border:1px solid #dfe6ef;border-radius:12px;background:#fff;color:var(--blue);padding:9px 10px;font-weight:800;max-width:165px}.list{display:grid;gap:13px}.card{position:relative;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.055)}.fav-btn{position:absolute;z-index:3;top:11px;right:11px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.96);border:1px solid rgba(232,237,245,.95);box-shadow:0 6px 16px rgba(15,23,42,.13);font-size:23px;line-height:42px;padding:0;color:#596579}.fav-btn.active{color:#ef4444}.photo{height:190px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);display:flex;align-items:center;justify-content:center;font-size:38px;color:#9bb8df;overflow:hidden}.photo img{width:100%;height:100%;object-fit:cover;display:block}.photo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#9bb8df}.photo-empty span{font-size:34px}.photo-empty small{font-size:12px;color:#94a3b8}.cardbody{padding:15px 15px 16px}.tag{display:inline-flex;background:#eef5ff;color:var(--blue);border-radius:999px;padding:5px 8px;font-size:11px;font-weight:850;margin-bottom:8px}.title{font-size:18px;font-weight:950;line-height:1.2;margin-bottom:6px;letter-spacing:-.2px}.desc{font-size:13px;color:#566174;line-height:1.4}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:12px}.spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:13px;padding:9px 8px;min-width:0}.spec-value{font-size:14px;font-weight:900;color:#111827;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spec-label{font-size:10px;color:#7b8494;margin-top:3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.price{margin-top:13px;font-size:21px;font-weight:950;letter-spacing:-.35px}.loc{color:#64748b;font-size:12px;margin-top:6px}.more{text-align:center;margin:17px 0}.more button{background:#fff;border:1px solid #dfe6ef;border-radius:14px;padding:12px 20px;font-weight:850;color:var(--blue);box-shadow:0 4px 14px rgba(15,23,42,.04)}.empty{text-align:center;padding:38px 15px;color:var(--muted)}
 /* Empty category state: span the full listings grid and sit centrally in the open area. */
-.list>.empty{grid-column:1/-1;min-height:260px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-align:center;padding:24px;line-height:1.5;width:100%}.detail{display:none}.detail.show{display:block}.detail-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}.detail-back{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 12px;color:var(--blue);font-weight:850}.detail-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.detail-fav{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:#f7f9fc;border:1px solid #e8edf5;font-size:25px}.detail-fav.active{color:#ef4444;background:#fff1f2;border-color:#ffe0e5}.detail-photo{height:300px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);border-radius:22px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}.detail-photo img{width:100%;height:100%;object-fit:cover}.detail-photo .photo-empty{height:100%;width:100%}.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(17,24,39,.58);color:#fff;font-size:22px}.gallery-btn.prev{left:12px}.gallery-btn.next{right:12px}.gallery-count{position:absolute;right:12px;bottom:12px;background:rgba(17,24,39,.65);color:#fff;border-radius:999px;padding:5px 9px;font-size:12px}.detail-body{background:#fff;border:1px solid var(--line);border-radius:22px;margin-top:12px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.055)}.detail-tag{display:inline-flex;background:#eef5ff;color:var(--blue);border-radius:999px;padding:5px 8px;font-size:12px;font-weight:850;margin-bottom:8px}.detail-deal-badge{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:7px 12px;border-radius:999px;background:#eaf2ff;color:#176fe5;font-size:12px;font-weight:900;letter-spacing:.45px;line-height:1;white-space:nowrap}.detail-deal-badge.deal-sell{background:#ffe7eb;color:#d93650}.detail-deal-badge.deal-buy{background:#e8f1ff;color:#176fe5}.detail-deal-badge.deal-rent{background:#e2f8ed;color:#15945d}.detail-deal-badge.deal-seek{background:#fff4dc;color:#a86a00}.detail-deal-badge.deal-give{background:#f0eaff;color:#7548c8}.detail-deal-badge.deal-offer{background:#efe8ff;color:#7046c8}.detail-title{font-size:25px;line-height:1.15;font-weight:950;margin-bottom:10px;letter-spacing:-.4px}.detail-price{font-size:27px;font-weight:950;margin:12px 0}.detail-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.detail-spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:15px;padding:11px 10px;min-width:0}.detail-spec-value{font-size:17px;font-weight:900;line-height:1.15;word-break:break-word}.detail-spec-label{font-size:11px;color:#7b8494;margin-top:4px;line-height:1.15}.detail-desc{font-size:15px;line-height:1.55;color:#374151;white-space:pre-wrap;margin-top:14px}.detail-loc{font-size:14px;color:#64748b;margin-top:10px}.contacts{display:grid;gap:9px;margin-top:18px}.contact-btn{display:block;text-align:center;text-decoration:none;background:var(--blue);color:#fff;border-radius:14px;padding:14px;font-weight:900;box-shadow:0 8px 18px rgba(11,115,246,.18)}.contact-btn.secondary{background:#eef5ff;color:var(--blue);box-shadow:none}.view{display:none}.view.show{display:block}.account-head{display:flex;align-items:center;gap:12px;margin:8px 0 16px}.account-avatar{width:54px;height:54px;border-radius:18px;background:#eaf3ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900}.account-name{font-size:20px;font-weight:900}.account-sub{font-size:13px;color:var(--muted);margin-top:3px}.view-title{font-size:25px;font-weight:950;margin:4px 0 16px;letter-spacing:-.4px}.view-back{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 12px;color:var(--blue);font-weight:850;margin-bottom:14px}.mine-list{display:grid;gap:10px}.mine-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.mine-card.reminder-target{border:2px solid var(--blue);box-shadow:0 0 0 4px rgba(11,115,246,.10);scroll-margin-top:18px}.mine-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:11px}.mine-action{background:#f4f7fb;color:#334155;border:1px solid #e6ebf3;border-radius:11px;padding:9px 8px;font-size:12px;font-weight:800}.mine-action.primary{background:#eef5ff;color:var(--blue);border-color:#dceaff}.mine-action.danger{background:#fff1f2;color:#be123c;border-color:#ffe0e5}.mine-action.warn{background:#fff8e8;color:#a16207;border-color:#fce8b2}.mine-row{display:flex;gap:12px;align-items:center}.mine-thumb{width:76px;height:76px;border-radius:14px;background:#eef5ff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 76px}.mine-thumb img{width:100%;height:100%;object-fit:cover}.mine-info{min-width:0;flex:1}.mine-title{font-weight:900;font-size:15px;line-height:1.2}.mine-price{font-weight:900;font-size:16px;margin-top:5px}.status{display:inline-flex;align-items:center;margin-top:6px;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef5ff;color:var(--blue)}.mine-expiry{margin-top:7px;font-size:12px;font-weight:800;color:#475569;line-height:1.3}.mine-expiry.missing{color:#b45309}.edit-panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}.edit-title{font-size:20px;font-weight:900;margin-bottom:12px}.edit-field{margin-bottom:11px}.edit-field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:5px}.edit-field input,.edit-field textarea,.edit-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 12px;outline:0}.edit-field textarea{min-height:110px;resize:vertical}.edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.edit-save{background:var(--blue);color:#fff;border-radius:12px;padding:12px;font-weight:900}.edit-cancel{background:#eef2f7;color:#475569;border-radius:12px;padding:12px;font-weight:900}.profile-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow)}.profile-item{padding:12px 0;border-bottom:1px solid var(--line)}.profile-item:last-child{border-bottom:0}.profile-label{font-size:12px;color:var(--muted);margin-bottom:4px}.profile-value{font-size:16px;font-weight:800;word-break:break-word}.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-top:1px solid rgba(219,225,235,.9);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);box-shadow:0 -10px 30px rgba(15,23,42,.07)}.nav{position:relative;background:transparent;color:#7a8494;font-size:10px;font-weight:850;padding:5px 2px}.nav .ni{display:flex;align-items:center;justify-content:center;width:38px;height:30px;margin:0 auto 2px;border-radius:12px;font-size:22px;line-height:22px}.nav.active{color:var(--blue)}.nav.active .ni{background:#eef5ff}.nav:active{transform:scale(.96)}.nav:active .ni{background:#e4efff;color:var(--blue)}.nav.tap .ni{background:#e4efff;color:var(--blue);box-shadow:0 0 0 3px rgba(11,115,246,.10)}.nav.tap{color:var(--blue)}.nav[data-nav="add"] .ni{width:48px;height:38px;margin-top:-13px;border-radius:16px;background:var(--blue);color:#fff;font-size:27px;box-shadow:0 8px 18px rgba(11,115,246,.28);border:4px solid #f5f7fb}.toast{position:fixed;z-index:50;left:50%;bottom:105px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1}.back{display:none;margin-bottom:12px;background:transparent;color:var(--blue);font-weight:800;padding:0}.back.show{display:block}.fav-card{position:relative}.fav-remove{position:absolute;right:12px;top:12px;width:38px;height:38px;border-radius:50%;background:#fff1f2;color:#ef4444;border:1px solid #ffe0e5;font-size:20px}.fav-empty{padding:50px 18px;text-align:center}.fav-empty .heart{font-size:46px;display:block;margin-bottom:10px}.fav-empty b{display:block;font-size:18px;margin-bottom:6px}.fav-empty span{color:var(--muted);font-size:14px}@media(max-width:480px){.hero h1{font-size:26px}.quick-action{font-size:10px}.cats{gap:9px}.cat{min-height:102px;padding:14px 12px}.cat .ico{width:40px;height:40px}.photo{height:185px}.filter-actions{grid-template-columns:1fr 1fr}.filter-reset,.filter-apply{font-size:15px}}@media(min-width:620px){.cats{grid-template-columns:repeat(4,minmax(0,1fr))}.photo{height:220px}.wrap{padding-left:20px;padding-right:20px}}
+.list>.empty{grid-column:1/-1;min-height:260px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-align:center;padding:24px;line-height:1.5;width:100%}.detail{display:none}.detail.show{display:block}.detail-top{display:flex;align-items:center;gap:10px;margin:4px 0 14px}.detail-back{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 12px;color:var(--blue);font-weight:850}.detail-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.detail-fav{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:#f7f9fc;border:1px solid #e8edf5;font-size:25px}.detail-fav.active{color:#ef4444;background:#fff1f2;border-color:#ffe0e5}.detail-photo{height:300px;background:linear-gradient(135deg,#eaf3ff,#f7f9fc);border-radius:22px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}.detail-photo img{width:100%;height:100%;object-fit:cover}.detail-photo .photo-empty{height:100%;width:100%}.gallery-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(17,24,39,.58);color:#fff;font-size:22px}.gallery-btn.prev{left:12px}.gallery-btn.next{right:12px}.gallery-count{position:absolute;right:12px;bottom:12px;background:rgba(17,24,39,.65);color:#fff;border-radius:999px;padding:5px 9px;font-size:12px}.detail-body{background:#fff;border:1px solid var(--line);border-radius:22px;margin-top:12px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.055)}.detail-tag{display:inline-flex;background:#eef5ff;color:var(--blue);border-radius:999px;padding:5px 8px;font-size:12px;font-weight:850;margin-bottom:8px}.detail-deal-badge{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:7px 12px;border-radius:999px;background:#eaf2ff;color:#176fe5;font-size:12px;font-weight:900;letter-spacing:.45px;line-height:1;white-space:nowrap}.detail-deal-badge.deal-sell{background:#ffe7eb;color:#d93650}.detail-deal-badge.deal-buy{background:#e8f1ff;color:#176fe5}.detail-deal-badge.deal-rent{background:#e2f8ed;color:#15945d}.detail-deal-badge.deal-seek{background:#fff4dc;color:#a86a00}.detail-deal-badge.deal-give{background:#f0eaff;color:#7548c8}.detail-deal-badge.deal-offer{background:#efe8ff;color:#7046c8}.detail-title{font-size:25px;line-height:1.15;font-weight:950;margin-bottom:10px;letter-spacing:-.4px}.detail-price{font-size:27px;font-weight:950;margin:12px 0}.detail-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.detail-spec{background:#f7f9fc;border:1px solid #edf1f7;border-radius:15px;padding:11px 10px;min-width:0}.detail-spec-value{font-size:17px;font-weight:900;line-height:1.15;word-break:break-word}.detail-spec-label{font-size:11px;color:#7b8494;margin-top:4px;line-height:1.15}.detail-desc{font-size:15px;line-height:1.55;color:#374151;white-space:pre-wrap;margin-top:14px}.detail-loc{font-size:14px;color:#64748b;margin-top:10px}.contacts{display:grid;gap:9px;margin-top:18px}.contact-btn{display:block;text-align:center;text-decoration:none;background:var(--blue);color:#fff;border-radius:14px;padding:14px;font-weight:900;box-shadow:0 8px 18px rgba(11,115,246,.18)}.contact-btn.secondary{background:#eef5ff;color:var(--blue);box-shadow:none}.view{display:none}.view.show{display:block}.account-head{display:flex;align-items:center;gap:12px;margin:8px 0 16px}.account-avatar{width:54px;height:54px;border-radius:18px;background:#eaf3ff;color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:900}.account-name{font-size:20px;font-weight:900}.account-sub{font-size:13px;color:var(--muted);margin-top:3px}.view-title{font-size:25px;font-weight:950;margin:4px 0 16px;letter-spacing:-.4px}.view-back{background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 12px;color:var(--blue);font-weight:850;margin-bottom:14px}.mine-list{display:grid;gap:10px}.mine-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px}.mine-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:11px}.mine-action{background:#f4f7fb;color:#334155;border:1px solid #e6ebf3;border-radius:11px;padding:9px 8px;font-size:12px;font-weight:800}.mine-action.primary{background:#eef5ff;color:var(--blue);border-color:#dceaff}.mine-action.danger{background:#fff1f2;color:#be123c;border-color:#ffe0e5}.mine-action.warn{background:#fff8e8;color:#a16207;border-color:#fce8b2}.mine-row{display:flex;gap:12px;align-items:center}.mine-thumb{width:76px;height:76px;border-radius:14px;background:#eef5ff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 76px}.mine-thumb img{width:100%;height:100%;object-fit:cover}.mine-info{min-width:0;flex:1}.mine-title{font-weight:900;font-size:15px;line-height:1.2}.mine-price{font-weight:900;font-size:16px;margin-top:5px}.status{display:inline-flex;align-items:center;margin-top:6px;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#eef5ff;color:var(--blue)}.mine-expiry{margin-top:7px;font-size:12px;font-weight:800;color:#475569;line-height:1.3}.mine-expiry.missing{color:#b45309}.edit-panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}.edit-title{font-size:20px;font-weight:900;margin-bottom:12px}.edit-field{margin-bottom:11px}.edit-field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:5px}.edit-field input,.edit-field textarea,.edit-field select{width:100%;border:1px solid #dfe6ef;border-radius:12px;background:#f8fafc;padding:11px 12px;outline:0}.edit-field textarea{min-height:110px;resize:vertical}.edit-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.edit-save{background:var(--blue);color:#fff;border-radius:12px;padding:12px;font-weight:900}.edit-cancel{background:#eef2f7;color:#475569;border-radius:12px;padding:12px;font-weight:900}.profile-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow)}.profile-item{padding:12px 0;border-bottom:1px solid var(--line)}.profile-item:last-child{border-bottom:0}.profile-label{font-size:12px;color:var(--muted);margin-bottom:4px}.profile-value{font-size:16px;font-weight:800;word-break:break-word}.bottom{position:fixed;z-index:20;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);backdrop-filter:blur(18px);border-top:1px solid rgba(219,225,235,.9);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);box-shadow:0 -10px 30px rgba(15,23,42,.07)}.nav{position:relative;background:transparent;color:#7a8494;font-size:10px;font-weight:850;padding:5px 2px}.nav .ni{display:flex;align-items:center;justify-content:center;width:38px;height:30px;margin:0 auto 2px;border-radius:12px;font-size:22px;line-height:22px}.nav.active{color:var(--blue)}.nav.active .ni{background:#eef5ff}.nav:active{transform:scale(.96)}.nav:active .ni{background:#e4efff;color:var(--blue)}.nav.tap .ni{background:#e4efff;color:var(--blue);box-shadow:0 0 0 3px rgba(11,115,246,.10)}.nav.tap{color:var(--blue)}.nav[data-nav="add"] .ni{width:48px;height:38px;margin-top:-13px;border-radius:16px;background:var(--blue);color:#fff;font-size:27px;box-shadow:0 8px 18px rgba(11,115,246,.28);border:4px solid #f5f7fb}.toast{position:fixed;z-index:50;left:50%;bottom:105px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center}.toast.show{opacity:1}.back{display:none;margin-bottom:12px;background:transparent;color:var(--blue);font-weight:800;padding:0}.back.show{display:block}.fav-card{position:relative}.fav-remove{position:absolute;right:12px;top:12px;width:38px;height:38px;border-radius:50%;background:#fff1f2;color:#ef4444;border:1px solid #ffe0e5;font-size:20px}.fav-empty{padding:50px 18px;text-align:center}.fav-empty .heart{font-size:46px;display:block;margin-bottom:10px}.fav-empty b{display:block;font-size:18px;margin-bottom:6px}.fav-empty span{color:var(--muted);font-size:14px}@media(max-width:480px){.hero h1{font-size:26px}.quick-action{font-size:10px}.cats{gap:9px}.cat{min-height:102px;padding:14px 12px}.cat .ico{width:40px;height:40px}.photo{height:185px}.filter-actions{grid-template-columns:1fr 1fr}.filter-reset,.filter-apply{font-size:15px}}@media(min-width:620px){.cats{grid-template-columns:repeat(4,minmax(0,1fr))}.photo{height:220px}.wrap{padding-left:20px;padding-right:20px}}
 
 /* MADLOBA MARKET premium home design — visual layer only. Existing JS/functionality untouched. */
 .hero{
@@ -12053,7 +12030,7 @@ async function loadFavorites(){setActiveNav('favorites');showView('favoritesView
 async function load(reset=true){if(reset){state.page=0;state.cursorIds=[null];$('list').innerHTML=''}const requestId=state.loadRequestId=(state.loadRequestId||0)+1;const requestCategory=state.category;const requestPage=state.page;const requestCity=state.city;const requestSort=state.sort;const requestQ=state.q;const requestFilters={...state.filters};state.loading=true;const p=new URLSearchParams({city:requestCity,page:requestPage,per_page:20,sort:requestSort,cursor_mode:1});const requestCursor=state.cursorIds[requestPage];if(requestCursor!==null&&requestCursor!==undefined)p.set('cursor_id',String(requestCursor));/* Search stays within the selected category and keeps its active filters. */if(requestCategory)p.set('category',requestCategory);if(requestQ)p.set('q',requestQ);if(requestCategory){Object.entries(requestFilters).forEach(([k,v])=>{if(String(v||'').trim())p.set(k,String(v).trim())})}try{const r=await apiFetch('/api/listings?'+p);if(requestId!==state.loadRequestId)return;if(!r.ok)throw 0;const data=await r.json();if(requestId!==state.loadRequestId)return;if(data.cursor_mode){state.cursorIds[requestPage+1]=data.next_cursor_id??null;state.cursorIds.length=requestPage+2}$('list').innerHTML=(data.items||[]).map(card).join('');bindCards();if(reset)renderBestListings(data.items||[]);$('pager').style.display=(requestPage>0||data.has_next)?'flex':'none';$('prevBtn').disabled=requestPage<=0;$('nextBtn').disabled=!data.has_next;$('pageLabel').textContent=String(requestPage+1);$('pageLabel').setAttribute('aria-label','Страница '+(requestPage+1));$('resultsCount').textContent=data.items&&data.items.length?String(data.items.length):'0';if(!data.items?.length){$('list').innerHTML=`<div class="empty">${t('empty_list')}</div>`;renderBestListings([]);$('pager').style.display=requestPage>0?'flex':'none'}}catch(e){if(requestId===state.loadRequestId&&reset)$('list').innerHTML=`<div class="empty">${t('search_again')}</div>`}finally{if(requestId===state.loadRequestId)state.loading=false}}
 function statusText(status){const map={published:'published',pending:'pending',rejected:'rejected',draft:'draft',archived:'archived'};return t(map[String(status||'').toLowerCase()]||'no_listing')}
 function mineCard(x){const photo=(x.photos||[])[0];const st=String(x.status||'').toLowerCase();const open=st==='published'?`<button class="mine-action primary" data-action="open">👁 ${t('open')}</button>`:'';const edit=`<button class="mine-action" data-action="edit">✏️ ${t('edit')}</button>`;const hide=st==='published'?`<button class="mine-action warn" data-action="unpublish">⏸ ${t('hide')}</button>`:'';const renew=st==='published'?`<button class="mine-action primary" data-action="renew">↻ ${t('renew_10_days')}</button>`:'';const expired=!!x.expires_at&&Date.parse(x.expires_at)<=Date.now();const inGrace=expired&&Date.parse(x.expires_at)>Date.now()-2*86400000;const republish=st==='archived'&&(inGrace||!expired)?`<button class="mine-action primary" data-action="republish">${inGrace?`↻ ${t('renew_10_days')}`:`📣 ${t('republish')}`}</button>`:'';const del=`<button class="mine-action danger" data-action="delete">🗑 ${t('delete')}</button>`;const expiryLabel=state.lang==='en'?'Expires: ':state.lang==='ka'?'ვადა იწურება: ':state.lang==='uk'?'Закінчується: ':'Истекает: ';const expiryDate=x.expires_at?new Date(x.expires_at).toLocaleDateString(state.lang==='en'?'en-GB':state.lang==='ka'?'ka-GE':state.lang==='uk'?'uk-UA':'ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';const expiryTs=x.expires_at?Date.parse(x.expires_at):NaN;const daysLeft=Number.isFinite(expiryTs)?Math.ceil((expiryTs-Date.now())/86400000):null;const daysPast=Number.isFinite(expiryTs)?Math.max(0,Math.ceil((Date.now()-expiryTs)/86400000)):null;const countdown=st==='published'&&daysLeft!==null?(state.lang==='en'?(daysLeft>0?` · ${daysLeft} day(s) left`:' · expires today'):state.lang==='ka'?(daysLeft>0?` · დარჩა ${daysLeft} დღე`:' · დღეს იწურება'):state.lang==='uk'?(daysLeft>0?` · залишилось ${daysLeft} дн.`:' · спливає сьогодні'):(daysLeft>0?` · осталось ${daysLeft} дн.`:' · истекает сегодня')):st==='archived'&&daysPast!==null&&daysPast<=2?(state.lang==='en'?` · ${Math.max(0,2-daysPast)} day(s) until deletion`:state.lang==='ka'?` · წაშლამდე ${Math.max(0,2-daysPast)} დღე` :state.lang==='uk'?` · до видалення ${Math.max(0,2-daysPast)} дн.`:` · до удаления ${Math.max(0,2-daysPast)} дн.`):'';const expiry=expiryDate?`<div class="mine-expiry ${st==='archived'?'missing':''}">📅 ${st==='published'?expiryLabel: (state.lang==='en'?'Expired: ':state.lang==='ka'?'ვადა გავიდა: ':state.lang==='uk'?'Термін минув: ':'Срок истёк: ')}${esc(expiryDate)}${esc(countdown||'')}</div>`:(st==='published'?`<div class="mine-expiry missing">📅 ${state.lang==='en'?'Expiry date not set':state.lang==='ka'?'ვადის თარიღი მითითებული არ არის':state.lang==='uk'?'Дату завершення не вказано':'Дата окончания не указана'}</div>`:'');return `<div class="mine-card" data-id="${esc(x.id)}"><div class="mine-row"><div class="mine-thumb">${photo&&st==='published'?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy">`:'📷'}</div><div class="mine-info"><div class="mine-title">${esc(x.title||t('no_listing'))}</div>${x.price?`<div class="mine-price">${money(x.price,x.currency)}</div>`:''}<span class="status">${esc(statusText(x.status))}</span>${expiry}</div></div><div class="mine-actions">${open}${edit}${renew}${hide}${republish}${del}</div></div>`}
-async function loadMine(focusIds=[]){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})});const wanted=new Set((Array.isArray(focusIds)?focusIds:[]).map(String));if(wanted.size){const targets=[...document.querySelectorAll('#mineList .mine-card')].filter(card=>wanted.has(String(card.dataset.id)));targets.forEach(card=>card.classList.add('reminder-target'));if(targets.length){requestAnimationFrame(()=>targets[0].scrollIntoView({behavior:'smooth',block:'center'}));toast(targets.length===1?'Вот объявление, которому нужно продлить срок':'Ваши объявления из напоминания выделены')}else{toast('Объявление из напоминания не найдено среди ваших объявлений')}}}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
+async function loadMine(){setActiveNav('mine');showView('mineView');$('mineList').innerHTML='<div class="empty">'+t('my_loading')+'</div>';try{const r=await apiFetch('/api/my-listings');if(r.status===401){$('mineList').innerHTML=`<div class="empty">${t('login_telegram')}</div>`;return}if(!r.ok)throw 0;const data=await r.json();if(!data.items?.length){$('mineList').innerHTML=`<div class="empty">${t('my_empty')}<br><br>${t('post_hint')}</div>`;return}$('mineList').innerHTML=data.items.map(mineCard).join('');document.querySelectorAll('#mineList .mine-card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();const a=btn.dataset.action;if(a==='open')openDetail(id);if(a==='edit')openEdit(id);if(a==='renew')renewMine(id);if(a==='unpublish')unpublishMine(id);if(a==='republish')republishMine(id);if(a==='delete')deleteMine(id)})})}catch(e){$('mineList').innerHTML=`<div class="empty">${t('my_fail')}</div>`}}
 async function openEdit(id){try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();const districtChoices=(String(x.city_slug||'batumi').toLowerCase()==='tbilisi'?[['vake','Ваке'],['saburtalo','Сабуртало'],['vera','Вера'],['mtatsminda','Мтацминда'],['didube','Дидубе'],['gldani','Глдани'],['isani','Исани'],['samgori','Самгори'],['dighomi','Дигоми']]:[['old_batumi','Старый Батуми'],['new_boulevard','Новый Бульвар'],['khimshiashvili','Химшиашвили'],['bagrationi','Багратиони'],['angisa','Ангиса'],['airport','Аэропорт'],['gonio','Гонио'],['kvariati','Квариати'],['makhinjauri','Махинджаури']]);showView('mineView');$('mineList').innerHTML=`<div class="edit-panel"><div class="edit-title">✏️ ${t('edit')}</div><div class="edit-field"><label>${t('description')}</label><textarea id="editDescription">${esc(x.description||'')}</textarea></div><div class="edit-field"><label>${t('price')}</label><input id="editPrice" inputmode="decimal" value="${esc(x.price||'')}"></div><div class="edit-field"><label>${t('currency')}</label><select id="editCurrency"><option value="USD" ${String(x.currency).toUpperCase()==='USD'?'selected':''}>USD ($)</option><option value="GEL" ${String(x.currency).toUpperCase()==='GEL'?'selected':''}>GEL (₾)</option><option value="EUR" ${String(x.currency).toUpperCase()==='EUR'?'selected':''}>EUR (€)</option></select></div><div class="edit-field"><label>${t('address')}</label><input id="editAddress" value="${esc(x.address||'')}"></div>${x.category_key==='realestate'?`<div class="edit-field"><label>${t('district')}</label><select id="editDistrictKey"><option value="">Не указывать район</option>${districtChoices.map(([v,l])=>`<option value="${v}" ${String(x.district_key||'')===v?'selected':''}>${l}</option>`).join('')}</select></div>`:''}<div class="edit-field"><label>${t('phone')}</label><input id="editPhone" inputmode="tel" autocomplete="tel" placeholder="+995 599 02 47 23" value="${esc(x.phone||'')}"><small style="display:block;color:#778197;margin-top:6px">Формат Грузии: +995 и 9 цифр. Пример: +995 599 02 47 23</small></div><div class="edit-field"><label>${t('whatsapp')}</label><input id="editWhatsapp" value="${esc(x.whatsapp||'')}"></div><div class="edit-field"><label>${t('telegram')}</label><input id="editTelegram" value="${esc(x.telegram||'')}"></div><div class="edit-actions"><button class="edit-cancel" id="editCancel">${t('cancel')}</button><button class="edit-save" id="editSave">${t('save')}</button></div></div>`;$('editCancel').onclick=loadMine;$('editSave').onclick=async()=>{const rawPhone=String($('editPhone').value||'').trim();if(rawPhone){const compactPhone=rawPhone.replace(/[\s()\-]/g,'');if(!/^\+9955\d{8}$/.test(compactPhone)){toast('Телефон: формат +995 и 9 цифр. Пример: +995 599 02 47 23');return;}$('editPhone').value=compactPhone;}const payload={description:$('editDescription').value,price:$('editPrice').value,currency:$('editCurrency').value,address:$('editAddress').value,phone:$('editPhone').value,whatsapp:$('editWhatsapp').value,telegram:$('editTelegram').value,...(document.getElementById('editDistrictKey')?{district_key:$('editDistrictKey').value}:{})};$('editSave').disabled=true;$('editSave').textContent=t('loading');try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.detail||er.error||'save_failed')}toast(t('save_ok'));await loadMine()}catch(e){toast(e.message && e.message!=='save_failed'?e.message:t('save_fail'));$('editSave').disabled=false;$('editSave').textContent=t('save')}}}catch(e){toast(t('edit_fail'))}}
 async function unpublishMine(id){if(!confirm(t('hide_confirm')))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST'});if(!r.ok)throw 0;toast(t('hide_ok'));await loadMine()}catch(e){toast(t('hide_fail'))}}
 async function renewMine(id){if(!confirm('Продлить объявление на 10 дней?'))return;try{const r=await apiFetch('/api/my-listing/'+encodeURIComponent(id)+'/republish',{method:'POST'});if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'renew_failed')}const data=await r.json();toast(data.renewed?'Объявление продлено на 10 дней':'Объявление снова опубликовано');await loadMine()}catch(e){toast('Не удалось продлить объявление: '+(e.message||'ошибка'))}}
@@ -12141,7 +12118,7 @@ if(homeHero){
 
 // Support form: sends the authenticated Telegram user's message to configured admins.
 (()=>{const overlay=$('mmSupportOverlay'),form=$('mmSupportForm'),message=$('mmSupportMessage'),send=$('mmSupportSend');if(!overlay||!form)return;const close=()=>{overlay.classList.remove('show');};$('mmSupportOpen').addEventListener('click',()=>{overlay.classList.add('show');setTimeout(()=>message.focus(),80)});$('mmSupportCancel').addEventListener('click',close);overlay.addEventListener('click',e=>{if(e.target===overlay)close()});document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});form.addEventListener('submit',async e=>{e.preventDefault();const text=String(message.value||'').trim();if(!text){toast(t('support_empty'));message.focus();return}send.disabled=true;send.textContent=t('loading');try{const r=await apiFetch('/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:$('mmSupportTopic').value,message:text,city:state.city,lang:state.lang})});const data=await r.json().catch(()=>({}));if(r.status===401){toast(t('login_telegram'));return}if(!r.ok||!data.ok)throw new Error(data.error||'support_failed');message.value='';close();toast(t('support_sent'))}catch(err){toast(t('support_failed'))}finally{send.disabled=false;send.textContent=t('support_send')}})})();
-apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const launchParams=new URLSearchParams(window.location.search);const renewParam=launchParams.get('renew');const launchTab=launchParams.get('tab');const reminderListingIds=(launchParams.get('listing_ids')||'').split(',').map(x=>x.trim()).filter(x=>/^\d+$/.test(x));if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else if(launchTab==='my'){loadMine(reminderListingIds);history.replaceState({},'',window.location.pathname)}else{load(true)}
+apiFetch('/api/auth',{method:'POST'}).catch(()=>{});applyLang();const renewParam=new URLSearchParams(window.location.search).get('renew');if(renewParam&&/^\d+$/.test(renewParam)){(async()=>{try{const rr=await apiFetch('/api/my-listing/'+encodeURIComponent(renewParam)+'/republish',{method:'POST'});if(!rr.ok){const er=await rr.json().catch(()=>({}));throw new Error(er.error||'republish_failed')}history.replaceState({},'',window.location.pathname);toast(t('renew_10_days'));await loadMine()}catch(e){history.replaceState({},'',window.location.pathname);loadMine();toast(e.message==='renewal_window_closed'?t('republish_fail'):t('republish_fail'))}})()}else{load(true)}
 // About Madloba Market: localized modal opened from the bottom of the home catalog.
 (()=>{
  const modal=$('mmAboutModal'),open=$('mmAboutOpen'),close=$('mmAboutClose'),x=$('mmAboutX');
@@ -13036,10 +13013,7 @@ def _admin_stats_payload(period_days=7):
     active_count = None
     pending_count = None
     if listings_count is not None:
-        active_count = _supabase_exact_count("listings", {
-            "status":"in.(published,active)",
-            "or":f"(expires_at.is.null,expires_at.gt.{datetime.now(timezone.utc).isoformat()})",
-        })
+        active_count = _supabase_exact_count("listings", {"status":"in.(published,active)"})
         if active_count is not None:
             pending_count = _supabase_exact_count(
                 "listings", {"status":"in.(pending,pending_moderation,moderation,review)"}
@@ -13049,28 +13023,6 @@ def _admin_stats_payload(period_days=7):
         stats["listings_active"] = active_count
         stats["listings_pending"] = pending_count
         stats["listings_other"] = max(0, listings_count - active_count - pending_count)
-        # Exact per-status counts keep the dashboard useful without downloading
-        # the listings table. Unknown statuses remain visible in the residual.
-        status_labels = {
-            "archived": "В архиве",
-            "rejected": "Отклонено",
-            "draft": "Черновики",
-            "deleted": "Удалено",
-            "blocked": "Заблокировано",
-            "hidden": "Снято с публикации",
-            "expired": "Истёк срок",
-        }
-        breakdown = []
-        known_other_total = 0
-        for status_value, status_label in status_labels.items():
-            status_count = _supabase_exact_count("listings", {"status":f"eq.{status_value}"})
-            if status_count is not None and status_count:
-                breakdown.append({"status":status_value,"label":status_label,"count":status_count})
-                known_other_total += status_count
-        unknown_other = max(0, stats["listings_other"] - known_other_total)
-        if unknown_other:
-            breakdown.append({"status":"other","label":"Прочие статусы","count":unknown_other})
-        stats["listings_status_breakdown"] = breakdown
     else:
         listings = _supabase_fetch_all_bounded("listings", params={"select":"id,status"})
         if isinstance(listings, list):
@@ -13083,6 +13035,7 @@ def _admin_stats_payload(period_days=7):
                     stats["listings_pending"] += 1
                 else:
                     stats["listings_other"] += 1
+    from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     period_start = (now - timedelta(days=period_days - 1)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -13160,42 +13113,6 @@ def _admin_stats_payload(period_days=7):
                         stats["top_listings"] = [dict(by_id.get(key, {"id": key, "title": "Объявление"}), views=top_counts[key]) for key in top_ids]
                 except Exception as error:
                     print("MADLOBA TOP LISTINGS ERROR:", repr(error))
-    # The analytics RPC/fallback may contain historical views for archived or
-    # moderation listings. The public-facing Top-10 must contain only currently
-    # published, non-expired listings. Preserve the analytics order and counts.
-    raw_top = stats.get("top_listings") if isinstance(stats.get("top_listings"), list) else []
-    top_ids = []
-    top_by_id = {}
-    for entry in raw_top:
-        if not isinstance(entry, dict) or entry.get("id") is None:
-            continue
-        key = str(entry.get("id"))
-        if key not in top_by_id:
-            top_ids.append(key)
-            top_by_id[key] = entry
-    if top_ids:
-        try:
-            top_rows = supabase_request("GET", "listings", params={
-                "select":"id,title,status,price,currency,expires_at",
-                "id":f"in.({','.join(top_ids)})",
-                "status":"eq.published",
-                "or":f"(expires_at.is.null,expires_at.gt.{now.isoformat()})",
-                "limit":str(len(top_ids)),
-            })
-            if isinstance(top_rows, list):
-                eligible = {str(row.get("id")): row for row in top_rows if isinstance(row, dict)}
-                stats["top_listings"] = [
-                    dict(eligible[key], views=top_by_id[key].get("views", 0))
-                    for key in top_ids if key in eligible
-                ][:10]
-            else:
-                stats["top_listings"] = []
-        except Exception as error:
-            print("MADLOBA TOP LISTINGS FILTER ERROR:", repr(error))
-            stats["top_listings"] = []
-    else:
-        stats["top_listings"] = []
-
     orders_count = _supabase_exact_count("mm_orders")
     pending_orders_count = None
     paid_orders_count = None
@@ -13436,15 +13353,15 @@ body::before{height:390px!important;min-height:0!important;max-height:none!impor
 .admin-detail-loading{padding:20px 0;color:#718198}
 @media(max-width:520px){#detailModal{padding-left:12px!important;padding-right:12px!important}#detailModal>div{padding:15px!important;border-radius:17px!important}.admin-detail-top{padding-right:72px;gap:7px}#detailContent h2{font-size:22px}.admin-detail-value{font-size:15px}.admin-detail-price{font-size:22px}}
 </style>
-</head><body><main class="wrap"><div class="head"><h1>MADLOBA MARKET</h1><div class="muted">Административная панель · статистика</div></div><div id="status" class="status">Проверяем доступ…</div><div id="content" hidden><div class="section">Пользователи и объявления</div><div class="grid" id="mainStats"></div><div class="section">Посещения за период</div><div class="grid" id="visitStats"></div><div class="section">Активность за период</div><div class="card"><label for="analyticsPeriod" class="muted">Период статистики</label><select id="analyticsPeriod" style="display:block;width:100%;margin:8px 0 14px;padding:12px;border:1px solid #dce5f0;border-radius:10px;background:white;color:#142033;font-size:15px"><option value="7">Последние 7 дней</option><option value="30">Последние 30 дней</option><option value="90">Последние 90 дней</option></select><div class="muted" style="margin-bottom:12px">Открытия приложения и просмотры объявлений по дням (данные из аналитики)</div><div id="activityChart" role="img" aria-label="График активности за выбранный период"></div><div class="muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px"><span>🔵 Открытия приложения</span><span>🟩 Просмотры объявлений</span></div></div><div class="section">Топ-10 объявлений по просмотрам</div><div class="muted" style="margin:-7px 0 10px">Рейтинг только среди активных опубликованных объявлений</div><div id="topListings" class="card">Загружаем рейтинг…</div><div class="section">Будущие платные услуги</div><div class="grid" id="orderStats"></div><div class="muted">Оплата не подключена. Заказы здесь только учитываются, автоматическое списание средств отсутствует.</div><div class="section">Последние пользователи</div><div id="adminUsers" class="card">Загружаем пользователей…</div><div class="section">Последние объявления</div><div id="adminListings" class="card">Загружаем объявления…</div><div class="section">Жалобы на объявления</div><div id="adminReports" class="card">Загружаем жалобы…</div><div id="detailModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:101;padding:18px;overflow:auto"><div style="max-width:680px;margin:6vh auto;background:white;border-radius:18px;padding:18px"><button id="closeDetail" style="float:right;border:0;border-radius:10px;padding:9px 12px;background:#eef3f9;font-weight:700">Закрыть ✕</button><div id="detailContent" style="padding-top:30px;overflow-wrap:anywhere"></div></div></div><div id="adminBrowseModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:100;padding:12px;overflow:auto"><div class="admin-browser"><div class="admin-browser-head"><h2 id="adminBrowseTitle">Список</h2><button type="button" id="closeAdminBrowse">Закрыть ✕</button></div><div class="admin-browser-search"><input id="adminBrowseQuery" type="search" autocomplete="off" placeholder="Поиск по ID, имени или названию"><button type="button" id="adminBrowseSearch">Найти</button></div><div id="adminBrowseMeta" class="muted" style="margin:10px 0">Загрузка…</div><div id="adminBrowseItems" class="admin-browser-items">Загрузка…</div><div class="admin-browser-pager"><button type="button" id="adminBrowsePrev">← Назад</button><span id="adminBrowsePage">Страница 1</span><button type="button" id="adminBrowseNext">Далее →</button></div></div></div><button class="refresh" onclick="loadStats()">Обновить статистику</button></div></main><script>const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();async function loadStats(){const status=document.getElementById('status');status.textContent='Загружаем статистику…';const initData=tg?.initData||'';try{const period=document.getElementById('analyticsPeriod')?.value||'7';const r=await fetch('/api/admin/stats?days='+encodeURIComponent(period),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(r.status===401||r.status===403){status.textContent='Доступ закрыт. Открой эту страницу внутри Telegram под аккаунтом администратора.';return}if(!r.ok)throw new Error(d.error||'Ошибка загрузки');status.hidden=true;document.getElementById('content').hidden=false;const metric=(label,value)=>`<div class="metric"><span>${label}</span><b>${Number(value||0).toLocaleString('ru-RU')}</b></div>`;document.getElementById('mainStats').innerHTML=metric('Всего пользователей',d.users_total)+metric('Всего объявлений',d.listings_total)+metric('Активные объявления',d.listings_active)+metric('На модерации',d.listings_pending)+metric('Другие статусы',d.listings_other);const breakdown=Array.isArray(d.listings_status_breakdown)?d.listings_status_breakdown:[];if(breakdown.length){const detail=document.createElement('div');detail.className='card';detail.style.gridColumn='1 / -1';detail.innerHTML='<b style="display:block;margin-bottom:9px">Разбивка остальных статусов</b>'+breakdown.map(x=>'<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #e7edf5"><span>'+esc(x.label)+'</span><b>'+Number(x.count||0).toLocaleString('ru-RU')+'</b></div>').join('');document.getElementById('mainStats').appendChild(detail)}document.getElementById('visitStats').innerHTML=metric('Открытия сегодня',d.opens_today)+metric('Открытия за '+(d.period_days||7)+' дней',d.opens_period)+metric('Уникальные за '+(d.period_days||7)+' дней',d.unique_visitors_period)+metric('Просмотры сегодня',d.listing_views_today)+metric('Просмотры за '+(d.period_days||7)+' дней',d.listing_views_period);const chart=document.getElementById('activityChart');const rawDays=Array.isArray(d.activity_by_day)?d.activity_by_day:[];const selectedPeriod=Number(d.period_days||period);const bucketSize=selectedPeriod===90?10:(selectedPeriod===30?5:1);const days=[];for(let i=0;i<rawDays.length;i+=bucketSize){const chunk=rawDays.slice(i,i+bucketSize);if(!chunk.length)continue;days.push({date:chunk[0]?.date||'',endDate:chunk[chunk.length-1]?.date||chunk[0]?.date||'',opens:chunk.reduce((s,x)=>s+Number(x.opens||0),0),views:chunk.reduce((s,x)=>s+Number(x.views||0),0)});}const max=Math.max(1,...days.flatMap(x=>[Number(x.opens||0),Number(x.views||0)]));const dateLabel=(value)=>{if(!value)return '';const dt=new Date(value+'T12:00:00Z');return Number.isNaN(dt.getTime())?'':dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',timeZone:'UTC'});};chart.innerHTML=days.length?`<div style="width:100%;overflow:hidden"><div style="display:grid;grid-template-columns:repeat(${days.length},minmax(0,1fr));gap:${selectedPeriod===7?8:4}px;align-items:end;height:205px;padding:4px 0 0">${days.map((day,i)=>{const a=Number(day.opens||0),v=Number(day.views||0);const ah=a?Math.max(3,Math.round(a/max*112)):0,vh=v?Math.max(3,Math.round(v/max*112)):0;const label=bucketSize===1?dateLabel(day.date):(dateLabel(day.date)+'–'+dateLabel(day.endDate));return `<div style="display:flex;flex-direction:column;justify-content:end;align-items:center;height:100%;min-width:0"><div style="font-size:10px;color:#68788d;margin-bottom:4px;text-align:center;min-height:12px">${a+v||''}</div><div style="height:116px;width:100%;display:flex;align-items:end;justify-content:center;gap:2px"><div title="${label} · Открытия приложения: ${a}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${ah}px;max-height:112px;border-radius:4px 4px 0 0;background:#1478f5"></div><div title="${label} · Просмотры объявлений: ${v}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${vh}px;max-height:112px;border-radius:4px 4px 0 0;background:#16a36a"></div></div><div style="font-size:${selectedPeriod===90?'9px':'10px'};line-height:1.2;color:#68788d;margin-top:7px;text-align:center;overflow-wrap:anywhere;min-height:24px">${label}</div></div>`}).join('')}</div></div>`:'<div class="muted">Пока нет данных за этот период</div>';const topBox=document.getElementById('topListings');const top=Array.isArray(d.top_listings)?d.top_listings:[];topBox.innerHTML=top.length?top.map((x,i)=>`<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>${i+1}. #${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">${Number(x.views||0).toLocaleString('ru-RU')} просмотров · ${esc(adminDetailStatus(x.status))} · ${esc(x.price||'')} ${esc(x.currency||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`).join(''):'<div class="muted">Пока нет просмотров объявлений за выбранный период</div>';topBox.querySelectorAll('[data-admin-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.adminListing,initData)));document.getElementById('orderStats').innerHTML=metric('Всего заказов',d.orders_total)+metric('Ожидают оплаты',d.orders_pending)+metric('Отмечены оплаченными',d.orders_paid);if(!d.analytics_available){const n=document.createElement('div');n.className='status';n.textContent='Таблица статистики пока недоступна. Проверь, что SQL выполнен в том же проекте Supabase.';document.getElementById('content').prepend(n)} await loadAdminLists(initData); await loadAdminReports(initData); }catch(e){status.textContent='Не удалось загрузить данные. Проверь соединение с Supabase и открой панель внутри Telegram.'}}async function loadAdminReports(initData){const box=document.getElementById('adminReports');if(!box)return;try{const r=await fetch('/api/admin/data?kind=reports',{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok)throw new Error(d.error||'reports');const labels={scam:'Мошенничество',false_information:'Неверная информация',spam:'Спам / дубликат',prohibited_item:'Запрещённый товар',other:'Другое'};const rows=Array.isArray(d.items)?d.items:[];const reportStatuses={new:'Новая жалоба',reviewing:'В работе',dismissed:'Отклонена',resolved:'Решена'};const reportDate=(value)=>{if(!value)return 'Дата не указана';const dt=new Date(value);return Number.isNaN(dt.getTime())?'Дата не указана':dt.toLocaleString('ru-RU',{timeZone:'Asia/Tbilisi',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})};box.innerHTML=rows.length?rows.map(x=>`<div style="padding:12px 0;border-bottom:1px solid #e7edf5"><b>Жалоба #${esc(x.id)} · Объявление #${esc(x.listing_id||'—')}</b><div style="font-weight:700;margin-top:5px">${esc(x.listing_title||'Объявление')}</div><div class="muted">Причина: ${esc(labels[x.reason]||x.reason||'—')}</div><div class="muted">Статус: ${esc(reportStatuses[x.status]||x.status||'Новая жалоба')} · ${esc(reportDate(x.created_at))} (Батуми)</div>${x.details?`<div style="white-space:pre-wrap;margin-top:7px"><b>Комментарий:</b> ${esc(x.details)}</div>`:''}<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">${x.status==='new'?`<button type="button" data-report-action="review" data-report-id="${esc(x.id)}">В работу</button>`:''}${x.status==='new'||x.status==='reviewing'?`<button type="button" data-report-action="dismiss" data-report-id="${esc(x.id)}">Отклонить жалобу</button>${x.listing_id?`<button type="button" data-report-action="hide" data-report-id="${esc(x.id)}">Снять объявление</button>`:''}`:''}</div></div>`).join(''):'Жалоб пока нет';box.querySelectorAll('[data-report-action]').forEach(b=>b.addEventListener('click',async()=>{const action=b.dataset.reportAction;const id=b.dataset.reportId;if(action==='hide'&&!confirm('Снять объявление с публикации? Оно исчезнет из каталога.'))return;b.disabled=true;try{const rr=await fetch('/api/admin/report/'+encodeURIComponent(id)+'/action',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({action})});const result=await rr.json().catch(()=>({}));if(!rr.ok)throw new Error(result.error||'action_failed');await loadAdminReports(initData);if(action==='hide')await loadAdminLists(initData)}catch(e){b.disabled=false;b.textContent='Ошибка · повторить'}}));}catch(e){box.textContent='Не удалось загрузить жалобы. Проверь таблицу mm_listing_reports в Supabase.'}}let adminBrowseState={kind:'users',page:0,q:'',initData:'',perPage:20,total:null};
+</head><body><main class="wrap"><div class="head"><h1>MADLOBA MARKET</h1><div class="muted">Административная панель · статистика</div></div><div id="status" class="status">Проверяем доступ…</div><div id="content" hidden><div class="section">Пользователи и объявления</div><div class="grid" id="mainStats"></div><div class="section">Посещения за период</div><div class="grid" id="visitStats"></div><div class="section">Активность за период</div><div class="card"><label for="analyticsPeriod" class="muted">Период статистики</label><select id="analyticsPeriod" style="display:block;width:100%;margin:8px 0 14px;padding:12px;border:1px solid #dce5f0;border-radius:10px;background:white;color:#142033;font-size:15px"><option value="7">Последние 7 дней</option><option value="30">Последние 30 дней</option><option value="90">Последние 90 дней</option></select><div class="muted" style="margin-bottom:12px">Открытия приложения и просмотры объявлений по дням (данные из аналитики)</div><div id="activityChart" role="img" aria-label="График активности за выбранный период"></div><div class="muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px"><span>🔵 Открытия приложения</span><span>🟩 Просмотры объявлений</span></div></div><div class="section">Топ-10 объявлений по просмотрам</div><div id="topListings" class="card">Загружаем рейтинг…</div><div class="section">Будущие платные услуги</div><div class="grid" id="orderStats"></div><div class="muted">Оплата не подключена. Заказы здесь только учитываются, автоматическое списание средств отсутствует.</div><div class="section">Последние пользователи</div><div id="adminUsers" class="card">Загружаем пользователей…</div><div class="section">Последние объявления</div><div id="adminListings" class="card">Загружаем объявления…</div><div class="section">Жалобы на объявления</div><div id="adminReports" class="card">Загружаем жалобы…</div><div id="detailModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:101;padding:18px;overflow:auto"><div style="max-width:680px;margin:6vh auto;background:white;border-radius:18px;padding:18px"><button id="closeDetail" style="float:right;border:0;border-radius:10px;padding:9px 12px;background:#eef3f9;font-weight:700">Закрыть ✕</button><div id="detailContent" style="padding-top:30px;overflow-wrap:anywhere"></div></div></div><div id="adminBrowseModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:100;padding:12px;overflow:auto"><div class="admin-browser"><div class="admin-browser-head"><h2 id="adminBrowseTitle">Список</h2><button type="button" id="closeAdminBrowse">Закрыть ✕</button></div><div class="admin-browser-search"><input id="adminBrowseQuery" type="search" autocomplete="off" placeholder="Поиск по ID, имени или названию"><button type="button" id="adminBrowseSearch">Найти</button></div><div id="adminBrowseMeta" class="muted" style="margin:10px 0">Загрузка…</div><div id="adminBrowseItems" class="admin-browser-items">Загрузка…</div><div class="admin-browser-pager"><button type="button" id="adminBrowsePrev">← Назад</button><span id="adminBrowsePage">Страница 1</span><button type="button" id="adminBrowseNext">Далее →</button></div></div></div><button class="refresh" onclick="loadStats()">Обновить статистику</button></div></main><script>const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();async function loadStats(){const status=document.getElementById('status');status.textContent='Загружаем статистику…';const initData=tg?.initData||'';try{const period=document.getElementById('analyticsPeriod')?.value||'7';const r=await fetch('/api/admin/stats?days='+encodeURIComponent(period),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(r.status===401||r.status===403){status.textContent='Доступ закрыт. Открой эту страницу внутри Telegram под аккаунтом администратора.';return}if(!r.ok)throw new Error(d.error||'Ошибка загрузки');status.hidden=true;document.getElementById('content').hidden=false;const metric=(label,value)=>`<div class="metric"><span>${label}</span><b>${Number(value||0).toLocaleString('ru-RU')}</b></div>`;document.getElementById('mainStats').innerHTML=metric('Всего пользователей',d.users_total)+metric('Всего объявлений',d.listings_total)+metric('Активные объявления',d.listings_active)+metric('На модерации',d.listings_pending)+metric('Другие статусы',d.listings_other);document.getElementById('visitStats').innerHTML=metric('Открытия сегодня',d.opens_today)+metric('Открытия за '+(d.period_days||7)+' дней',d.opens_period)+metric('Уникальные за '+(d.period_days||7)+' дней',d.unique_visitors_period)+metric('Просмотры сегодня',d.listing_views_today)+metric('Просмотры за '+(d.period_days||7)+' дней',d.listing_views_period);const chart=document.getElementById('activityChart');const rawDays=Array.isArray(d.activity_by_day)?d.activity_by_day:[];const selectedPeriod=Number(d.period_days||period);const bucketSize=selectedPeriod===90?10:(selectedPeriod===30?5:1);const days=[];for(let i=0;i<rawDays.length;i+=bucketSize){const chunk=rawDays.slice(i,i+bucketSize);if(!chunk.length)continue;days.push({date:chunk[0]?.date||'',endDate:chunk[chunk.length-1]?.date||chunk[0]?.date||'',opens:chunk.reduce((s,x)=>s+Number(x.opens||0),0),views:chunk.reduce((s,x)=>s+Number(x.views||0),0)});}const max=Math.max(1,...days.flatMap(x=>[Number(x.opens||0),Number(x.views||0)]));const dateLabel=(value)=>{if(!value)return '';const dt=new Date(value+'T12:00:00Z');return Number.isNaN(dt.getTime())?'':dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',timeZone:'UTC'});};chart.innerHTML=days.length?`<div style="width:100%;overflow:hidden"><div style="display:grid;grid-template-columns:repeat(${days.length},minmax(0,1fr));gap:${selectedPeriod===7?8:4}px;align-items:end;height:205px;padding:4px 0 0">${days.map((day,i)=>{const a=Number(day.opens||0),v=Number(day.views||0);const ah=a?Math.max(3,Math.round(a/max*112)):0,vh=v?Math.max(3,Math.round(v/max*112)):0;const label=bucketSize===1?dateLabel(day.date):(dateLabel(day.date)+'–'+dateLabel(day.endDate));return `<div style="display:flex;flex-direction:column;justify-content:end;align-items:center;height:100%;min-width:0"><div style="font-size:10px;color:#68788d;margin-bottom:4px;text-align:center;min-height:12px">${a+v||''}</div><div style="height:116px;width:100%;display:flex;align-items:end;justify-content:center;gap:2px"><div title="${label} · Открытия приложения: ${a}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${ah}px;max-height:112px;border-radius:4px 4px 0 0;background:#1478f5"></div><div title="${label} · Просмотры объявлений: ${v}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${vh}px;max-height:112px;border-radius:4px 4px 0 0;background:#16a36a"></div></div><div style="font-size:${selectedPeriod===90?'9px':'10px'};line-height:1.2;color:#68788d;margin-top:7px;text-align:center;overflow-wrap:anywhere;min-height:24px">${label}</div></div>`}).join('')}</div></div>`:'<div class="muted">Пока нет данных за этот период</div>';const topBox=document.getElementById('topListings');const top=Array.isArray(d.top_listings)?d.top_listings:[];topBox.innerHTML=top.length?top.map((x,i)=>`<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>${i+1}. #${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">${Number(x.views||0).toLocaleString('ru-RU')} просмотров · ${esc(x.status||'—')} · ${esc(x.price||'')} ${esc(x.currency||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`).join(''):'<div class="muted">Пока нет просмотров объявлений за выбранный период</div>';topBox.querySelectorAll('[data-admin-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.adminListing,initData)));document.getElementById('orderStats').innerHTML=metric('Всего заказов',d.orders_total)+metric('Ожидают оплаты',d.orders_pending)+metric('Отмечены оплаченными',d.orders_paid);if(!d.analytics_available){const n=document.createElement('div');n.className='status';n.textContent='Таблица статистики пока недоступна. Проверь, что SQL выполнен в том же проекте Supabase.';document.getElementById('content').prepend(n)} await loadAdminLists(initData); await loadAdminReports(initData); }catch(e){status.textContent='Не удалось загрузить данные. Проверь соединение с Supabase и открой панель внутри Telegram.'}}async function loadAdminReports(initData){const box=document.getElementById('adminReports');if(!box)return;try{const r=await fetch('/api/admin/data?kind=reports',{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok)throw new Error(d.error||'reports');const labels={scam:'Мошенничество',false_information:'Неверная информация',spam:'Спам / дубликат',prohibited_item:'Запрещённый товар',other:'Другое'};const rows=Array.isArray(d.items)?d.items:[];box.innerHTML=rows.length?rows.map(x=>`<div style="padding:12px 0;border-bottom:1px solid #e7edf5"><b>Жалоба #${esc(x.id)} · Объявление #${esc(x.listing_id||'—')}</b><div style="font-weight:700;margin-top:5px">${esc(x.listing_title||'Объявление')}</div><div class="muted">${esc(labels[x.reason]||x.reason||'—')} · ${esc(x.status||'new')} · ${esc(x.created_at||'')}</div>${x.details?`<div style="white-space:pre-wrap;margin-top:7px">${esc(x.details)}</div>`:''}<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">${x.status==='new'?`<button type="button" data-report-action="review" data-report-id="${esc(x.id)}">В работу</button>`:''}${x.status==='new'||x.status==='reviewing'?`<button type="button" data-report-action="dismiss" data-report-id="${esc(x.id)}">Отклонить жалобу</button>${x.listing_id?`<button type="button" data-report-action="hide" data-report-id="${esc(x.id)}">Снять объявление</button>`:''}`:''}</div></div>`).join(''):'Жалоб пока нет';box.querySelectorAll('[data-report-action]').forEach(b=>b.addEventListener('click',async()=>{const action=b.dataset.reportAction;const id=b.dataset.reportId;if(action==='hide'&&!confirm('Снять объявление с публикации? Оно исчезнет из каталога.'))return;b.disabled=true;try{const rr=await fetch('/api/admin/report/'+encodeURIComponent(id)+'/action',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({action})});const result=await rr.json().catch(()=>({}));if(!rr.ok)throw new Error(result.error||'action_failed');await loadAdminReports(initData);if(action==='hide')await loadAdminLists(initData)}catch(e){b.disabled=false;b.textContent='Ошибка · повторить'}}));}catch(e){box.textContent='Не удалось загрузить жалобы. Проверь таблицу mm_listing_reports в Supabase.'}}let adminBrowseState={kind:'users',page:0,q:'',initData:'',perPage:20,total:null};
 function adminUserRow(x,initData){return `<button type="button" data-admin-user="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>${esc([x.first_name,x.last_name].filter(Boolean).join(' ')||x.username||('Пользователь #'+x.id))}</b><div class="muted">Telegram ID: ${esc(x.telegram_id||'—')} · ID: ${esc(x.id||'—')} · Подробности ↗</div></button>`}
-function adminListingRow(x){return `<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>#${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">Статус: ${esc(adminDetailStatus(x.status))} · Владелец: ${esc(x.telegram_id||'не указан')}</div><div class="muted">${esc(x.price||'Цена не указана')} ${esc(x.currency||'')} · ${esc(x.address||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`}
+function adminListingRow(x){return `<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>#${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">Статус: ${esc(x.status||'—')} · Владелец: ${esc(x.telegram_id||'не указан')}</div><div class="muted">${esc(x.price||'Цена не указана')} ${esc(x.currency||'')} · ${esc(x.address||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`}
 function bindAdminRows(box,kind,initData){box.querySelectorAll(kind==='users'?'[data-admin-user]':'[data-admin-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail(kind==='users'?'user':'listing',kind==='users'?b.dataset.adminUser:b.dataset.adminListing,initData)))}
 async function loadAdminLists(initData){const headers={'X-Telegram-Init-Data':initData};const usersBox=document.getElementById('adminUsers'),listingsBox=document.getElementById('adminListings');try{const r=await fetch('/api/admin/data?kind=users&limit=5',{headers});const d=await r.json();if(!r.ok)throw new Error('users');const rows=d.items||[];usersBox.innerHTML=(rows.length?rows.map(x=>adminUserRow(x,initData)).join(''):'Пользователей пока нет')+`<button type="button" class="admin-open-list" data-open-admin-list="users">Все пользователи${d.total!==null&&d.total!==undefined?' · '+Number(d.total).toLocaleString('ru-RU'):''} →</button>`;bindAdminRows(usersBox,'users',initData);usersBox.querySelector('[data-open-admin-list]')?.addEventListener('click',()=>openAdminBrowser('users',initData));}catch(e){usersBox.textContent='Не удалось загрузить пользователей'}try{const r=await fetch('/api/admin/data?kind=listings&limit=5',{headers});const d=await r.json();if(!r.ok)throw new Error('listings');const rows=d.items||[];listingsBox.innerHTML=(rows.length?rows.map(adminListingRow).join(''):'Объявлений пока нет')+`<button type="button" class="admin-open-list" data-open-admin-list="listings">Все объявления${d.total!==null&&d.total!==undefined?' · '+Number(d.total).toLocaleString('ru-RU'):''} →</button>`;bindAdminRows(listingsBox,'listings',initData);listingsBox.querySelector('[data-open-admin-list]')?.addEventListener('click',()=>openAdminBrowser('listings',initData));}catch(e){listingsBox.textContent='Не удалось загрузить объявления'}}
 function openAdminBrowser(kind,initData){adminBrowseState={kind,page:0,q:'',initData,perPage:20,total:null};document.getElementById('adminBrowseTitle').textContent=kind==='users'?'Все пользователи':'Все объявления';document.getElementById('adminBrowseQuery').value='';document.getElementById('adminBrowseModal').style.display='block';loadAdminBrowserPage()}
 async function loadAdminBrowserPage(){const st=adminBrowseState;const box=document.getElementById('adminBrowseItems');box.textContent='Загружаем…';const params=new URLSearchParams({kind:st.kind,page:String(st.page),per_page:String(st.perPage)});if(st.q)params.set('q',st.q);try{const r=await fetch('/api/admin/data?'+params.toString(),{headers:{'X-Telegram-Init-Data':st.initData}});const d=await r.json();if(!r.ok)throw new Error(d.error||'load_failed');const rows=d.items||[];st.total=typeof d.total==='number'?d.total:null;box.innerHTML=rows.length?(st.kind==='users'?rows.map(x=>adminUserRow(x,st.initData)).join(''):rows.map(adminListingRow).join('')):'Ничего не найдено';bindAdminRows(box,st.kind,st.initData);const first=st.total===null?st.page*st.perPage+1:(st.total?st.page*st.perPage+1:0);const last=st.page*st.perPage+rows.length;document.getElementById('adminBrowseMeta').textContent=st.total===null?`Показано ${first}–${last}`:`Показано ${first}–${last} из ${st.total.toLocaleString('ru-RU')}`;document.getElementById('adminBrowsePage').textContent='Страница '+(st.page+1);document.getElementById('adminBrowsePrev').disabled=st.page===0;document.getElementById('adminBrowseNext').disabled=st.total!==null?last>=st.total:rows.length<st.perPage;}catch(e){box.textContent='Не удалось загрузить список. Попробуй обновить страницу.'}}
 document.getElementById('adminBrowseSearch').addEventListener('click',()=>{adminBrowseState.q=document.getElementById('adminBrowseQuery').value.trim();adminBrowseState.page=0;loadAdminBrowserPage()});document.getElementById('adminBrowseQuery').addEventListener('keydown',e=>{if(e.key==='Enter'){adminBrowseState.q=e.currentTarget.value.trim();adminBrowseState.page=0;loadAdminBrowserPage()}});document.getElementById('adminBrowsePrev').addEventListener('click',()=>{if(adminBrowseState.page>0){adminBrowseState.page--;loadAdminBrowserPage()}});document.getElementById('adminBrowseNext').addEventListener('click',()=>{adminBrowseState.page++;loadAdminBrowserPage()});document.getElementById('closeAdminBrowse').addEventListener('click',()=>document.getElementById('adminBrowseModal').style.display='none');document.getElementById('adminBrowseModal').addEventListener('click',e=>{if(e.target.id==='adminBrowseModal')e.currentTarget.style.display='none'});function adminDetailDate(value){if(!value)return '—';const dt=new Date(value);return Number.isNaN(dt.getTime())?String(value):dt.toLocaleString('ru-RU',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Tbilisi'})}
-function adminDetailStatus(value){return ({published:'Опубликовано',active:'Опубликовано',pending:'На модерации',pending_moderation:'На модерации',moderation:'На модерации',review:'На модерации',draft:'Черновик',archived:'В архиве',deleted:'Удалено',rejected:'Отклонено',blocked:'Заблокировано',hidden:'Снято с публикации'})[String(value||'').toLowerCase()]||String(value||'Не указан')}
+function adminDetailStatus(value){return ({published:'Опубликовано',pending:'На модерации',draft:'Черновик',archived:'В архиве',deleted:'Удалено',rejected:'Отклонено',active:'Активен',blocked:'Заблокирован'})[String(value||'').toLowerCase()]||String(value||'Не указан')}
 function adminDetailField(label,value){if(value===null||value===undefined||value==='')return '';return `<div class="admin-detail-field"><div class="admin-detail-label">${esc(label)}</div><div class="admin-detail-value">${esc(value)}</div></div>`}
 async function showAdminDetail(kind,id,initData){const modal=document.getElementById('detailModal'),box=document.getElementById('detailContent');modal.style.display='block';box.innerHTML='<div class="admin-detail-loading">Загружаем подробности…</div>';try{const r=await fetch('/api/admin/data?kind='+encodeURIComponent(kind==='user'?'user':'listing')+'&id='+encodeURIComponent(id),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Не удалось загрузить');const x=d.item||{};let html='';
 if(kind==='listing'){
@@ -13459,7 +13376,7 @@ if(kind==='listing'){
  <section class="admin-detail-section"><h3>Основная информация</h3><div class="admin-detail-price">${esc(price)}</div>${adminDetailField('Название',title)}${adminDetailField('Категория',x.category_name||x.category_title||x.category||'')}${adminDetailField('Подкатегория',x.subcategory||'')}${adminDetailField('Адрес',x.address||'')}${adminDetailField('Тип сделки',x.deal_type||'')}${adminDetailField('Создано',created)}${adminDetailField('Последнее обновление',updated)}</section>
  ${x.description?`<section class="admin-detail-section"><h3>Описание</h3><div class="admin-detail-description">${esc(x.description)}</div></section>`:''}
  <section class="admin-detail-section"><h3>Продавец и активность</h3>${adminDetailField('Telegram ID владельца',x.telegram_id||'')}${adminDetailField('Телефон',x.phone||'')}${adminDetailField('Просмотры',views)}${adminDetailField('Опубликовано в Telegram',(x.telegram===true||x.telegram==='true'||x.channel_message_id||x.channel_url)?'Да':'Нет')}${published!=='—'?adminDetailField('Дата публикации',published):''}</section>
- <section class="admin-detail-actions">${x.phone?`<button type="button" id="copyAdminPhone" class="admin-detail-primary">Скопировать телефон</button>`:''}${x.channel_url&&/^https:\/\/(t\.me|telegram\.me)\//i.test(String(x.channel_url))?`<a class="admin-detail-secondary" href="${esc(x.channel_url)}" target="_blank" rel="noopener">Открыть публикацию в Telegram ↗</a>`:''}${String(x.status||'').toLowerCase()==='published'?`<button type="button" id="adminUnpublishListing" class="admin-detail-secondary" style="border:1px solid #e2a2a2;color:#a52d2d;background:#fff7f7">Снять с публикации</button>`:''}</section>
+ <section class="admin-detail-actions">${x.phone?`<button type="button" id="copyAdminPhone" class="admin-detail-primary">Скопировать телефон</button>`:''}${x.channel_url&&/^https:\/\/(t\.me|telegram\.me)\//i.test(String(x.channel_url))?`<a class="admin-detail-secondary" href="${esc(x.channel_url)}" target="_blank" rel="noopener">Открыть публикацию в Telegram ↗</a>`:''}</section>
  <details class="admin-detail-technical"><summary>Дополнительная техническая информация</summary><div class="admin-detail-tech-grid">${[['ID объявления',x.id],['ID пользователя',x.user_id],['ID категории',x.category_id],['ID города',x.city_id],['ID сообщения в канале',x.channel_message_id],['Валюта',x.currency],['Цена в USD',x.price_usd],['Срок размещения до',x.expires_at],['WhatsApp',x.whatsapp===true||x.whatsapp==='true'?'Да':(x.whatsapp===false||x.whatsapp==='false'?'Нет':'')]].filter(([,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>adminDetailField(k,v)).join('')}</div></details>`;
 } else {
  const fullName=[x.first_name,x.last_name].filter(Boolean).join(' ').trim()||x.username||('Пользователь #'+id);
@@ -13472,7 +13389,6 @@ if(kind==='listing'){
 }
 box.innerHTML=html;
 const copyPhone=document.getElementById('copyAdminPhone');if(copyPhone)copyPhone.addEventListener('click',async()=>{try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(String(x.phone||''));copyPhone.textContent='Телефон скопирован'}else{copyPhone.textContent=String(x.phone||'Не удалось скопировать')}}catch(e){copyPhone.textContent='Не удалось скопировать'}});
-const adminUnpublish=document.getElementById('adminUnpublishListing');if(adminUnpublish)adminUnpublish.addEventListener('click',async()=>{if(!confirm('Снять объявление #'+id+' с публикации? Бот удалит его сообщение из Telegram-канала и переместит объявление в архив.'))return;adminUnpublish.disabled=true;adminUnpublish.textContent='Снимаем с публикации…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Не удалось снять объявление');await showAdminDetail('listing',id,initData);await loadStats();}catch(error){adminUnpublish.disabled=false;adminUnpublish.textContent='Ошибка · повторить';alert(error.message==='channel_cleanup_failed'?'Не удалось удалить публикацию из Telegram. Объявление оставлено опубликованным; можно безопасно повторить действие после проверки канала.':'Не удалось снять объявление: '+error.message);}});
 box.querySelectorAll('[data-user-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.userListing,initData)));
 }catch(e){box.textContent='Не удалось загрузить подробности. Проверь логи Render.'}}
 document.getElementById('closeDetail').addEventListener('click',()=>document.getElementById('detailModal').style.display='none');document.getElementById('detailModal').addEventListener('click',e=>{if(e.target.id==='detailModal')e.currentTarget.style.display='none'});function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}document.getElementById('analyticsPeriod')?.addEventListener('change',loadStats);loadStats();</script><style id="madloba-card-title-location-fix-v1">
@@ -13609,9 +13525,6 @@ def mini_app_admin_data():
         if kind == "listings":
             # Main admin browser is an operational queue: current publications and moderation only.
             filters["status"] = "in.(published,pending,pending_moderation,moderation,review)"
-            # Exclude already-expired publications even if the lifecycle worker
-            # has not archived them yet; moderation items remain visible.
-            filters["and"] = f"(or(expires_at.is.null,expires_at.gt.{datetime.now(timezone.utc).isoformat()}))"
         if query:
             safe = query.replace("\\", "")
             if kind == "users":
@@ -13742,48 +13655,6 @@ def mini_app_admin_report_action(report_id):
     if not isinstance(updated, list) or not updated:
         return jsonify({"ok":False,"error":"report_update_failed"}), 503
     return jsonify({"ok":True,"action":action})
-
-
-@app.post("/api/admin/listing/<int:listing_id>/unpublish")
-def mini_app_admin_unpublish_listing(listing_id):
-    """Снимает опубликованное объявление через админку: сначала чистит Telegram, затем архивирует запись."""
-    admin = _mini_app_authenticated_user()
-    if not admin:
-        return jsonify({"ok":False,"error":"invalid_init_data"}), 401
-    if not _is_admin_telegram_user(admin):
-        return jsonify({"ok":False,"error":"admin_only"}), 403
-    if not supabase_enabled():
-        return jsonify({"ok":False,"error":"db_unavailable"}), 503
-
-    rows = supabase_request("GET", "listings", params={
-        "select":"*", "id":f"eq.{int(listing_id)}", "limit":"1"
-    })
-    if not isinstance(rows, list) or not rows:
-        return jsonify({"ok":False,"error":"listing_not_found"}), 404
-    row = rows[0]
-    status = str(row.get("status") or "").strip().lower()
-    if status != "published":
-        return jsonify({"ok":False,"error":"listing_not_published","status":status}), 409
-
-    # Не архивируем запись, пока Telegram не подтвердил удаление всех известных публикаций.
-    # Повторный вызов безопасен: helper считает уже удалённые сообщения успешно очищенными.
-    if not _delete_listing_channel_messages(row):
-        return jsonify({"ok":False,"error":"channel_cleanup_failed"}), 502
-
-    updated = supabase_request("PATCH", "listings", params={
-        "id":f"eq.{int(listing_id)}", "status":"eq.published"
-    }, payload={
-        "status":"archived",
-        "channel_url":"",
-        "channel_message_id":None,
-        "updated_at":_utc_now_iso(),
-    })
-    if not isinstance(updated, list) or not updated:
-        print("MADLOBA ADMIN UNPUBLISH: Telegram cleaned but DB archive update failed", int(listing_id), str(LAST_SUPABASE_ERROR)[:300])
-        return jsonify({"ok":False,"error":"db_update_failed_after_channel_cleanup"}), 503
-
-    print("MADLOBA ADMIN: listing unpublished and archived", int(listing_id), "by", admin.get("id"))
-    return jsonify({"ok":True,"listing_id":int(listing_id),"status":"archived"})
 
 
 @app.get("/app")
@@ -15713,21 +15584,18 @@ def _remind_listings_due_soon(now_iso, reminder_cutoff_iso):
             lines = [f"• {html.escape(str(row.get('title') or 'Ваше объявление'))}" for row in claimed_rows[:10]]
             if len(claimed_rows) > 10:
                 lines.append(f"И ещё {len(claimed_rows) - 10} объявлений.")
-            reminder_ids = ",".join(str(row.get("id")) for row in claimed_rows if str(row.get("id", "")).isdigit())
-            app_url = MINI_APP_URL + ("&" if "?" in MINI_APP_URL else "?") + "tab=my" + ("&listing_ids=" + urllib.parse.quote(reminder_ids, safe=",") if reminder_ids else "")
+            app_url = MINI_APP_URL + ("&" if "?" in MINI_APP_URL else "?") + "tab=my"
             text_value = (
                 f"⏳ <b>До окончания публикации осталось {days_left} {'дня' if days_left in (2,3) else 'день'}!</b>\n\n"
                 + "\n".join(lines)
-                + "\n\nНажмите кнопку ниже — откроется список ваших объявлений, "
-                  "а объявления из этого напоминания будут выделены. "
-                  "Нажмите «Продлить на 10 дней», если объявление ещё актуально. "
-                  "После окончания срока оно будет снято с публикации, "
+                + "\n\nПродлите объявление на 10 дней во вкладке «Мои объявления», "
+                  "если оно ещё актуально. После окончания срока оно будет снято с публикации, "
                   "а через 2 дня удалено окончательно."
             )
             result = api("sendMessage", {
                 "chat_id":owner_telegram_id, "text":text_value, "parse_mode":"HTML",
                 "disable_web_page_preview":True,
-                "reply_markup":{"inline_keyboard":[[{"text":"📋 Открыть мои объявления", "web_app":{"url":app_url}}]]},
+                "reply_markup":{"inline_keyboard":[[{"text":"📋 Мои объявления", "web_app":{"url":app_url}}]]},
             })
             if isinstance(result, dict) and result.get("ok"):
                 sent_count += 1
@@ -15757,21 +15625,13 @@ def _archive_expired_listings(now_iso):
         return 0
     archived = 0
     for row in rows:
-        # Archive in Supabase even when Telegram refuses to delete an old post.
-        # Keep the message ID on failed cleanup so the purge pass can retry later.
-        channel_cleanup_ok = _delete_listing_channel_messages(row)
-        if not channel_cleanup_ok:
-            print(
-                "LISTING LIFECYCLE: archiving despite Telegram cleanup failure",
-                {"listing_id": row.get("id"), "channel_message_id": row.get("channel_message_id")},
-            )
-        archive_payload = {"status": "archived", "channel_url": ""}
-        if channel_cleanup_ok:
-            archive_payload["channel_message_id"] = None
+        if not _delete_listing_channel_messages(row):
+            # Keep it eligible so the worker retries; catalog/API filters already hide it by expiry.
+            continue
         updated = supabase_request(
             "PATCH", "listings",
             params={"id":f"eq.{row.get('id')}", "status":"eq.published", "expires_at":f"lte.{now_iso}"},
-            payload=archive_payload,
+            payload={"status":"archived", "channel_url":"", "channel_message_id":None},
         )
         if updated is not None:
             archived += 1
@@ -15793,20 +15653,9 @@ def _purge_expired_listings(purge_cutoff_iso):
         return 0
     deleted_count = 0
     for row in rows:
-        # Telegram cleanup is best-effort at the end of the listing lifecycle.
-        # Old channel posts may be impossible to delete (for example, due to Telegram
-        # restrictions or changed channel permissions). That must not retain the
-        # expired listing and its stored photos forever.
-        channel_cleanup_ok = _delete_listing_channel_messages(row)
-        if not channel_cleanup_ok:
-            metadata = row.get("metadata") or {}
-            pending_ids = metadata.get("channel_message_ids", []) if isinstance(metadata, dict) else []
-            if row.get("channel_message_id"):
-                pending_ids = list(pending_ids) + [row.get("channel_message_id")]
-            print(
-                "LISTING LIFECYCLE: purging Supabase listing despite Telegram cleanup failure",
-                {"listing_id": row.get("id"), "channel_message_ids": pending_ids},
-            )
+        # A previously published Telegram post can remain in metadata as a list of IDs.
+        if not _delete_listing_channel_messages(row):
+            continue
         listing_id = row.get("id")
         photo_rows = supabase_request(
             "GET", "listing_photos",
