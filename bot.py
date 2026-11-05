@@ -4520,11 +4520,22 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     row = []
     for request_id, item in current:
         data = item.get("data") or {}
-        title = str(data.get("title") or data.get("category") or "Объявление").strip()
-        title = re.sub(r"\s+", " ", title)[:22]
-        price = str(data.get("price") or "без цены").strip()[:10]
-        label = f"#{request_id} · {title} · {price}"
-        row.append({"text": label[:60], "callback_data": f"mod_queue_open_{request_id}"})
+        category = str(data.get("category") or "").strip().lower()
+        category_icons = {
+            "auto": "🚗", "realestate": "🏠", "tech": "📱", "home": "🛋️",
+            "kids": "👶", "work": "💼", "give": "🎁", "search": "🔎",
+            "services": "🛠️", "pets": "🐾",
+        }
+        category_icon = category_icons.get(category, "📋")
+        price = str(data.get("price") or "—").strip()
+        currency = str(data.get("currency") or "").strip().upper()
+        # Keep the two-column button label short enough for narrow phones.
+        # Full listing details remain available after opening the request.
+        price_label = f"{price} {currency}".strip()
+        if len(price_label) > 12:
+            price_label = price_label[:11] + "…"
+        label = f"#{request_id} {category_icon} · {price_label}"
+        row.append({"text": label[:32], "callback_data": f"mod_queue_open_{request_id}"})
         if len(row) == 2:
             keyboard.append(row)
             row = []
