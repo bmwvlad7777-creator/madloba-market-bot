@@ -13457,7 +13457,7 @@ if(kind==='listing'){
  <section class="admin-detail-section"><h3>Основная информация</h3><div class="admin-detail-price">${esc(price)}</div>${adminDetailField('Название',title)}${adminDetailField('Категория',x.category_name||x.category_title||x.category||'')}${adminDetailField('Подкатегория',x.subcategory||'')}${adminDetailField('Адрес',x.address||'')}${adminDetailField('Тип сделки',x.deal_type||'')}${adminDetailField('Создано',created)}${adminDetailField('Последнее обновление',updated)}</section>
  ${x.description?`<section class="admin-detail-section"><h3>Описание</h3><div class="admin-detail-description">${esc(x.description)}</div></section>`:''}
  <section class="admin-detail-section"><h3>Продавец и активность</h3>${adminDetailField('Telegram ID владельца',x.telegram_id||'')}${adminDetailField('Телефон',x.phone||'')}${adminDetailField('Просмотры',views)}${adminDetailField('Опубликовано в Telegram',(x.telegram===true||x.telegram==='true'||x.channel_message_id||x.channel_url)?'Да':'Нет')}${published!=='—'?adminDetailField('Дата публикации',published):''}</section>
- <section class="admin-detail-actions">${x.phone?`<button type="button" id="copyAdminPhone" class="admin-detail-primary">Скопировать телефон</button>`:''}${x.channel_url&&/^https:\/\/(t\.me|telegram\.me)\//i.test(String(x.channel_url))?`<a class="admin-detail-secondary" href="${esc(x.channel_url)}" target="_blank" rel="noopener">Открыть публикацию в Telegram ↗</a>`:''}</section>
+ <section class="admin-detail-actions">${x.phone?`<button type="button" id="copyAdminPhone" class="admin-detail-primary">Скопировать телефон</button>`:''}${x.channel_url&&/^https:\/\/(t\.me|telegram\.me)\//i.test(String(x.channel_url))?`<a class="admin-detail-secondary" href="${esc(x.channel_url)}" target="_blank" rel="noopener">Открыть публикацию в Telegram ↗</a>`:''}${String(x.status||'').toLowerCase()==='published'?`<button type="button" id="adminUnpublishListing" class="admin-detail-secondary" style="border:1px solid #e2a2a2;color:#a52d2d;background:#fff7f7">Снять с публикации</button>`:''}</section>
  <details class="admin-detail-technical"><summary>Дополнительная техническая информация</summary><div class="admin-detail-tech-grid">${[['ID объявления',x.id],['ID пользователя',x.user_id],['ID категории',x.category_id],['ID города',x.city_id],['ID сообщения в канале',x.channel_message_id],['Валюта',x.currency],['Цена в USD',x.price_usd],['Срок размещения до',x.expires_at],['WhatsApp',x.whatsapp===true||x.whatsapp==='true'?'Да':(x.whatsapp===false||x.whatsapp==='false'?'Нет':'')]].filter(([,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>adminDetailField(k,v)).join('')}</div></details>`;
 } else {
  const fullName=[x.first_name,x.last_name].filter(Boolean).join(' ').trim()||x.username||('Пользователь #'+id);
@@ -13470,6 +13470,7 @@ if(kind==='listing'){
 }
 box.innerHTML=html;
 const copyPhone=document.getElementById('copyAdminPhone');if(copyPhone)copyPhone.addEventListener('click',async()=>{try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(String(x.phone||''));copyPhone.textContent='Телефон скопирован'}else{copyPhone.textContent=String(x.phone||'Не удалось скопировать')}}catch(e){copyPhone.textContent='Не удалось скопировать'}});
+const adminUnpublish=document.getElementById('adminUnpublishListing');if(adminUnpublish)adminUnpublish.addEventListener('click',async()=>{if(!confirm('Снять объявление #'+id+' с публикации? Бот удалит его сообщение из Telegram-канала и переместит объявление в архив.'))return;adminUnpublish.disabled=true;adminUnpublish.textContent='Снимаем с публикации…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Не удалось снять объявление');await showAdminDetail('listing',id,initData);await loadStats();}catch(error){adminUnpublish.disabled=false;adminUnpublish.textContent='Ошибка · повторить';alert(error.message==='channel_cleanup_failed'?'Не удалось удалить публикацию из Telegram. Объявление оставлено опубликованным; можно безопасно повторить действие после проверки канала.':'Не удалось снять объявление: '+error.message);}});
 box.querySelectorAll('[data-user-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.userListing,initData)));
 }catch(e){box.textContent='Не удалось загрузить подробности. Проверь логи Render.'}}
 document.getElementById('closeDetail').addEventListener('click',()=>document.getElementById('detailModal').style.display='none');document.getElementById('detailModal').addEventListener('click',e=>{if(e.target.id==='detailModal')e.currentTarget.style.display='none'});function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}document.getElementById('analyticsPeriod')?.addEventListener('change',loadStats);loadStats();</script><style id="madloba-card-title-location-fix-v1">
@@ -13739,6 +13740,48 @@ def mini_app_admin_report_action(report_id):
     if not isinstance(updated, list) or not updated:
         return jsonify({"ok":False,"error":"report_update_failed"}), 503
     return jsonify({"ok":True,"action":action})
+
+
+@app.post("/api/admin/listing/<int:listing_id>/unpublish")
+def mini_app_admin_unpublish_listing(listing_id):
+    """Снимает опубликованное объявление через админку: сначала чистит Telegram, затем архивирует запись."""
+    admin = _mini_app_authenticated_user()
+    if not admin:
+        return jsonify({"ok":False,"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(admin):
+        return jsonify({"ok":False,"error":"admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"ok":False,"error":"db_unavailable"}), 503
+
+    rows = supabase_request("GET", "listings", params={
+        "select":"*", "id":f"eq.{int(listing_id)}", "limit":"1"
+    })
+    if not isinstance(rows, list) or not rows:
+        return jsonify({"ok":False,"error":"listing_not_found"}), 404
+    row = rows[0]
+    status = str(row.get("status") or "").strip().lower()
+    if status != "published":
+        return jsonify({"ok":False,"error":"listing_not_published","status":status}), 409
+
+    # Не архивируем запись, пока Telegram не подтвердил удаление всех известных публикаций.
+    # Повторный вызов безопасен: helper считает уже удалённые сообщения успешно очищенными.
+    if not _delete_listing_channel_messages(row):
+        return jsonify({"ok":False,"error":"channel_cleanup_failed"}), 502
+
+    updated = supabase_request("PATCH", "listings", params={
+        "id":f"eq.{int(listing_id)}", "status":"eq.published"
+    }, payload={
+        "status":"archived",
+        "channel_url":"",
+        "channel_message_id":None,
+        "updated_at":_utc_now_iso(),
+    })
+    if not isinstance(updated, list) or not updated:
+        print("MADLOBA ADMIN UNPUBLISH: Telegram cleaned but DB archive update failed", int(listing_id), str(LAST_SUPABASE_ERROR)[:300])
+        return jsonify({"ok":False,"error":"db_update_failed_after_channel_cleanup"}), 503
+
+    print("MADLOBA ADMIN: listing unpublished and archived", int(listing_id), "by", admin.get("id"))
+    return jsonify({"ok":True,"listing_id":int(listing_id),"status":"archived"})
 
 
 @app.get("/app")
