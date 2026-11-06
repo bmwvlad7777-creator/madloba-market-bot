@@ -13590,16 +13590,16 @@ async function loadAdminModerationQueue(initData,page=adminModerationPage){
    const meta=[item.category,item.type,item.subcategory,item.district].filter(Boolean).map(esc).join(' · ');
    const date=item.created_at?new Date(item.created_at).toLocaleString('ru-RU',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Tbilisi'}):'Дата не указана';
    return `<article class="admin-moderation-item" style="padding:14px 0;border-bottom:1px solid #e7edf5">
-    <button type="button" data-moderation-open="${esc(item.request_id)}" style="display:block;width:100%;text-align:left;padding:0;border:0;background:transparent;color:inherit;cursor:pointer">
+    <div style="display:block;width:100%;text-align:left;padding:0;color:inherit">
      <b style="font-size:17px">Заявка #${esc(item.request_id)} · ${esc(item.title||'Объявление')}</b>
      <div class="muted">Автор Telegram ID: ${esc(item.user_chat_id||'—')} · ${esc(date)}</div>
      ${meta?`<div class="muted">${meta}</div>`:''}
      ${item.price?`<div style="font-weight:800;margin-top:7px">💰 ${esc(moderationPrice(item.price))}</div>`:''}
      ${item.description?`<div style="font-size:14px;line-height:1.45;color:#52647b;margin-top:6px;white-space:pre-wrap">${esc(item.description)}</div>`:''}
-     <div class="muted" style="margin-top:7px">Фотографий: ${Number(item.photos_count||0)} · Открыть подробности ↗</div>
-    </button>
+     <div class="muted" style="margin-top:7px">Фотографий: ${Number(item.photos_count||0)}</div>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-     <button type="button" data-moderation-open="${esc(item.request_id)}" class="admin-open-list">Посмотреть заявку</button>
+     <button type="button" data-moderation-open="${esc(item.request_id)}" class="admin-open-list">Открыть заявку</button>
     </div>
    </article>`;
   }).join(''):'<div class="admin-detail-empty">Ожидающих заявок нет</div>';
@@ -14016,12 +14016,28 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
             timeout=(5, 25),
         )
         image_response.raise_for_status()
-        content_type = image_response.headers.get("Content-Type", "image/jpeg").split(";")[0].strip().lower()
-        if not content_type.startswith("image/"):
-            print("ADMIN MODERATION INVALID PHOTO CONTENT TYPE:", content_type)
-            return jsonify({"error":"invalid_photo_type"}), 502
+        # Telegram's file endpoint may label valid photo bytes as
+        # application/octet-stream. Trust the actual image signature, not only
+        # the HTTP Content-Type header.
+        image_bytes = image_response.content
+        if image_bytes.startswith(b"\\xff\\xd8\\xff"):
+            content_type = "image/jpeg"
+        elif image_bytes.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+            content_type = "image/png"
+        elif image_bytes.startswith((b"GIF87a", b"GIF89a")):
+            content_type = "image/gif"
+        elif len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+            content_type = "image/webp"
+        else:
+            reported_type = image_response.headers.get("Content-Type", "unknown")
+            print(
+                "ADMIN MODERATION INVALID PHOTO:",
+                request_id, photo_index, reported_type,
+                image_bytes[:16].hex(),
+            )
+            return jsonify({"error":"invalid_photo_type","message":"Telegram вернул файл, который не распознан как изображение."}), 502
         return Response(
-            image_response.content,
+            image_bytes,
             status=200,
             mimetype=content_type,
             headers={
