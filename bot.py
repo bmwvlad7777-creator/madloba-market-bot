@@ -14337,10 +14337,56 @@ def mini_app_admin_report_action(report_id):
         listing_id = report.get("listing_id")
         if not listing_id:
             return jsonify({"ok":False,"error":"listing_already_missing"}), 409
-        hidden = supabase_request("PATCH", "listings", params={"id":f"eq.{listing_id}","status":"eq.published"}, payload={"status":"archived","updated_at":_utc_now_iso()})
-        if not isinstance(hidden, list) or not hidden:
-            return jsonify({"ok":False,"error":"listing_hide_failed"}), 503
-        updated = supabase_request("PATCH", "mm_listing_reports", params={"id":f"eq.{report_id}"}, payload={"status":"resolved","updated_at":_utc_now_iso()})
+
+        # Use the same Telegram cleanup rule as the dedicated admin unpublish
+        # action. Never archive a published listing while its channel post may
+        # still be visible. An already archived listing is safe to finalize.
+        listing_rows = supabase_request("GET", "listings", params={
+            "select":"id,status,metadata,channel_url,channel_message_id",
+            "id":f"eq.{listing_id}", "limit":"1"
+        })
+        if listing_rows is None:
+            return jsonify({"ok":False,"error":"listing_lookup_failed"}), 503
+        if not listing_rows:
+            return jsonify({"ok":False,"error":"listing_already_missing"}), 409
+        listing = listing_rows[0]
+        listing_status = str(listing.get("status") or "").strip().lower()
+
+        if listing_status == "published":
+            metadata = listing.get("metadata") if isinstance(listing.get("metadata"), dict) else {}
+            known_ids = metadata.get("channel_message_ids") or []
+            has_message_ids = bool(
+                listing.get("channel_message_id")
+                or (isinstance(known_ids, list) and known_ids)
+            )
+            if listing.get("channel_url") and not has_message_ids:
+                return jsonify({
+                    "ok":False,
+                    "error":"channel_message_ids_missing",
+                    "message":"У объявления есть ссылка на Telegram, но нет ID сообщения. Статус не изменён."
+                }), 409
+            if not _delete_listing_channel_messages(listing):
+                return jsonify({
+                    "ok":False,
+                    "error":"channel_cleanup_failed",
+                    "message":"Не удалось подтвердить удаление публикации из Telegram. Объявление не изменено; можно повторить попытку."
+                }), 502
+            hidden = supabase_request(
+                "PATCH", "listings",
+                params={"id":f"eq.{listing_id}","status":"eq.published"},
+                payload={"status":"archived","updated_at":_utc_now_iso(),"channel_url":"","channel_message_id":None}
+            )
+            if not isinstance(hidden, list) or not hidden:
+                return jsonify({"ok":False,"error":"listing_hide_failed","message":"Публикация удалена из Telegram, но статус объявления не обновлён. Повтори действие."}), 503
+        elif listing_status != "archived":
+            return jsonify({"ok":False,"error":"listing_not_published","status":listing_status}), 409
+
+        # Resolve the complaint only after the listing is confirmed archived.
+        updated = supabase_request(
+            "PATCH", "mm_listing_reports",
+            params={"id":f"eq.{report_id}"},
+            payload={"status":"resolved","updated_at":_utc_now_iso()}
+        )
     else:
         return jsonify({"ok":False,"error":"invalid_action"}), 400
     if not isinstance(updated, list) or not updated:
