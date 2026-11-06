@@ -13058,6 +13058,31 @@ body.mm-detail-open .mm-support-fab{display:none!important;visibility:hidden!imp
   #detailView .detail-top .section-head h2{font-size:20px!important;line-height:1.1!important}
 }
 </style>
+<style id="madloba-detail-header-spacing-final-v14">
+/* Previous v13 reserved 104px inside #detailView on top of Telegram's own top safe area.
+   Keep native Telegram controls clear while removing the excessive blank band. */
+body.mm-detail-open{padding-top:0!important;}
+#detailView{
+  box-sizing:border-box!important;
+  padding-top:max(72px,calc(var(--tg-content-safe-area-inset-top,0px) + 12px),calc(var(--tg-safe-area-inset-top,0px) + 12px),calc(env(safe-area-inset-top,0px) + 12px))!important;
+  scroll-margin-top:0!important;
+}
+#detailView .detail-top{
+  display:flex!important;align-items:center!important;gap:10px!important;
+  min-height:42px!important;height:auto!important;
+  margin:0 0 10px!important;padding:0!important;
+}
+#detailView .detail-top .detail-back{
+  position:relative!important;transform:none!important;
+  flex:0 0 auto!important;min-height:40px!important;
+  margin:0!important;padding:8px 12px!important;
+}
+#detailView .detail-top .section-head{
+  position:static!important;inset:auto!important;transform:none!important;
+  min-width:0!important;margin:0!important;
+}
+#detailView #detailContent{margin-top:0!important;}
+</style>
 </body></html>'''
 
 
