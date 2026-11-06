@@ -14024,9 +14024,9 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
         # application/octet-stream. Trust the actual image signature, not only
         # the HTTP Content-Type header.
         image_bytes = image_response.content
-        if image_bytes.startswith(b"\\xff\\xd8\\xff"):
+        if image_bytes.startswith(b"\xff\xd8\xff"):
             content_type = "image/jpeg"
-        elif image_bytes.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+        elif image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
             content_type = "image/png"
         elif image_bytes.startswith((b"GIF87a", b"GIF89a")):
             content_type = "image/gif"
