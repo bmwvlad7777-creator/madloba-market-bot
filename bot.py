@@ -13139,6 +13139,21 @@ body.mm-detail-open{padding-top:0!important;}
   #detailView #detailContent .detail-photo{height:155px!important;min-height:155px!important;max-height:155px!important;}
   #detailView #detailContent .detail-body{padding:9px 12px 11px!important;}
 }
+
+/* Final detail-page clearance above the fixed bottom navigation.
+   Keep the listing card fully scrollable without changing its visual content. */
+body.mm-detail-open #detailView{
+  padding-bottom:calc(156px + env(safe-area-inset-bottom,0px) + var(--tg-content-safe-area-inset-bottom,0px))!important;
+  scroll-padding-bottom:calc(156px + env(safe-area-inset-bottom,0px) + var(--tg-content-safe-area-inset-bottom,0px))!important;
+}
+body.mm-detail-open #detailView #detailContent{
+  margin-bottom:10px!important;
+}
+@media(max-width:390px){
+  body.mm-detail-open #detailView{
+    padding-bottom:calc(164px + env(safe-area-inset-bottom,0px) + var(--tg-content-safe-area-inset-bottom,0px))!important;
+  }
+}
 </style>
 </body></html>'''
 
