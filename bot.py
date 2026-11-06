@@ -4871,6 +4871,12 @@ def process_moderator_text(admin_chat_id, text):
     show_updated_moderation(admin_chat_id, request_id)
     return True
 
+def _moderation_callback_answer(callback_id, *args):
+    if callback_id:
+        return answer(callback_id, *args)
+    return None
+
+
 def moderate_publish(
     request_id,
     admin_user_id,
@@ -4887,7 +4893,7 @@ def moderate_publish(
             ADMIN_CHAT_ID
         ):
 
-            answer(
+            _moderation_callback_answer(
 
                 callback_id,
 
@@ -4900,7 +4906,7 @@ def moderate_publish(
 
     except Exception:
 
-        answer(
+        _moderation_callback_answer(
 
             callback_id,
 
@@ -4917,7 +4923,7 @@ def moderate_publish(
 
     if not item:
 
-        answer(
+        _moderation_callback_answer(
 
             callback_id,
 
@@ -4934,7 +4940,7 @@ def moderate_publish(
 
     data = item.get("data")
     if not isinstance(data, dict):
-        answer(callback_id, "Заявка не содержит сохранённых данных. Откройте её заново.", True)
+        _moderation_callback_answer(callback_id, "Заявка не содержит сохранённых данных. Откройте её заново.", True)
         return
 
     # If Telegram already accepted this post but Supabase failed, retry only
@@ -4950,7 +4956,7 @@ def moderate_publish(
         "ok"
     ):
 
-        answer(
+        _moderation_callback_answer(
 
             callback_id,
 
@@ -4983,7 +4989,7 @@ def moderate_publish(
     if not registered_item:
         error_detail = LAST_SUPABASE_ERROR or "Unknown Supabase error"
         print("MODERATION: Telegram post exists, but Supabase save failed; request retained", request_id, error_detail)
-        answer(callback_id, "⚠️ В Telegram отправлено, но каталог не сохранил объявление. Заявка оставлена; повторное нажатие не отправит пост ещё раз.", True)
+        _moderation_callback_answer(callback_id, "⚠️ В Telegram отправлено, но каталог не сохранил объявление. Заявка оставлена; повторное нажатие не отправит пост ещё раз.", True)
         send(
             admin_user_id,
             "<b>⚠️ Объявление отправлено в канал, но НЕ сохранено в каталоге.</b>\n\n"
@@ -5001,7 +5007,7 @@ def moderate_publish(
 
     # Do not clear the author's current state: it may be a newer draft.
 
-    answer(
+    _moderation_callback_answer(
 
         callback_id,
 
@@ -5051,7 +5057,7 @@ def moderate_reject(
             ADMIN_CHAT_ID
         ):
 
-            answer(
+            _moderation_callback_answer(
 
                 callback_id,
 
@@ -5064,7 +5070,7 @@ def moderate_reject(
 
     except Exception:
 
-        answer(
+        _moderation_callback_answer(
 
             callback_id,
 
@@ -5081,7 +5087,7 @@ def moderate_reject(
 
     if not item:
 
-        answer(
+        _moderation_callback_answer(
 
             callback_id,
 
@@ -5125,7 +5131,7 @@ def moderate_reject(
             None if moderator_is_allowed(user_chat_id) else main_menu(),
         )
 
-    answer(
+    _moderation_callback_answer(
 
         callback_id,
 
@@ -13571,42 +13577,79 @@ body{padding-top:calc(20px + env(safe-area-inset-top,0px) + var(--tg-content-saf
 @media(max-width:520px){.head{padding:16px!important}.head h1{font-size:clamp(22px,6vw,30px)}.admin-return-app{min-height:32px;font-size:12px;padding:0 10px}}
 </style>
 </head><body><main class="wrap"><div class="head"><h1>MADLOBA MARKET</h1><div class="muted">Административная панель · статистика</div><button type="button" class="admin-return-app" id="adminReturnToApp">← В приложение</button></div><div id="status" class="status">Проверяем доступ…</div><div id="content" hidden><div class="section">Пользователи и объявления</div><div class="grid" id="mainStats"></div><div class="section">Посещения за период</div><div class="grid" id="visitStats"></div><div class="section">Активность за период</div><div class="card"><label for="analyticsPeriod" class="muted">Период статистики</label><select id="analyticsPeriod" style="display:block;width:100%;margin:8px 0 14px;padding:12px;border:1px solid #dce5f0;border-radius:10px;background:white;color:#142033;font-size:15px"><option value="7">Последние 7 дней</option><option value="30">Последние 30 дней</option><option value="90">Последние 90 дней</option></select><div class="muted" style="margin-bottom:12px">Открытия приложения и просмотры объявлений по дням (данные из аналитики)</div><div id="activityChart" role="img" aria-label="График активности за выбранный период"></div><div class="muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px"><span>🔵 Открытия приложения</span><span>🟩 Просмотры объявлений</span></div></div><div class="section">Топ-10 объявлений по просмотрам</div><div id="topListings" class="card">Загружаем рейтинг…</div><div class="section">Будущие платные услуги</div><div class="grid" id="orderStats"></div><div class="muted">Оплата не подключена. Заказы здесь только учитываются, автоматическое списание средств отсутствует.</div><div class="section">Последние пользователи</div><div id="adminUsers" class="card">Загружаем пользователей…</div><div class="section">Последние объявления</div><div id="adminListings" class="card">Загружаем объявления…</div><div class="section">Очередь модерации Telegram</div><div class="card"><div class="muted" style="margin-bottom:10px">Заявки из единой Telegram-очереди. Решения об одобрении и отклонении по-прежнему принимаются в Telegram-боте.</div><div id="adminModerationQueue">Загружаем очередь…</div><div class="admin-browser-pager" style="margin-top:12px"><button type="button" id="adminModerationPrev">← Назад</button><span id="adminModerationPage">Страница 1</span><button type="button" id="adminModerationNext">Далее →</button></div><button type="button" class="admin-open-list" id="adminModerationRefresh">Обновить очередь</button></div><div class="section">Жалобы на объявления</div><div id="adminReports" class="card">Загружаем жалобы…</div><div id="detailModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:101;padding:calc(18px + env(safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px)) 18px 18px;overflow:auto"><div style="max-width:680px;margin:12px auto;background:white;border-radius:18px;padding:18px"><button type="button" class="admin-detail-return" id="adminReturnToAppFromDetail">← В приложение</button><button id="closeDetail" style="float:right;border:0;border-radius:10px;padding:9px 12px;background:#eef3f9;font-weight:700">Закрыть ✕</button><div id="detailContent" style="padding-top:30px;overflow-wrap:anywhere"></div></div></div><div id="adminBrowseModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:100;padding:12px;overflow:auto"><div class="admin-browser"><div class="admin-browser-head"><h2 id="adminBrowseTitle">Список</h2><button type="button" id="closeAdminBrowse">Закрыть ✕</button></div><div class="admin-browser-search"><input id="adminBrowseQuery" type="search" autocomplete="off" placeholder="Поиск по ID, имени или названию"><button type="button" id="adminBrowseSearch">Найти</button></div><div id="adminBrowseMeta" class="muted" style="margin:10px 0">Загрузка…</div><div id="adminBrowseItems" class="admin-browser-items">Загрузка…</div><div class="admin-browser-pager"><button type="button" id="adminBrowsePrev">← Назад</button><span id="adminBrowsePage">Страница 1</span><button type="button" id="adminBrowseNext">Далее →</button></div></div></div><button class="refresh" onclick="loadStats()">Обновить статистику</button></div></main><script>const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();async function loadStats(){const status=document.getElementById('status');status.textContent='Загружаем статистику…';const initData=tg?.initData||'';try{const period=document.getElementById('analyticsPeriod')?.value||'7';const r=await fetch('/api/admin/stats?days='+encodeURIComponent(period),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(r.status===401||r.status===403){status.textContent='Доступ закрыт. Открой эту страницу внутри Telegram под аккаунтом администратора.';return}if(!r.ok)throw new Error(d.error||'Ошибка загрузки');status.hidden=true;document.getElementById('content').hidden=false;const metric=(label,value)=>`<div class="metric"><span>${label}</span><b>${Number(value||0).toLocaleString('ru-RU')}</b></div>`;document.getElementById('mainStats').innerHTML=metric('Всего пользователей',d.users_total)+metric('Всего объявлений',d.listings_total)+metric('Активные объявления',d.listings_active)+metric('На модерации',d.listings_pending)+metric('Другие статусы',d.listings_other);document.getElementById('visitStats').innerHTML=metric('Открытия сегодня',d.opens_today)+metric('Открытия за '+(d.period_days||7)+' дней',d.opens_period)+metric('Уникальные за '+(d.period_days||7)+' дней',d.unique_visitors_period)+metric('Просмотры сегодня',d.listing_views_today)+metric('Просмотры за '+(d.period_days||7)+' дней',d.listing_views_period);const chart=document.getElementById('activityChart');const rawDays=Array.isArray(d.activity_by_day)?d.activity_by_day:[];const selectedPeriod=Number(d.period_days||period);const bucketSize=selectedPeriod===90?10:(selectedPeriod===30?5:1);const days=[];for(let i=0;i<rawDays.length;i+=bucketSize){const chunk=rawDays.slice(i,i+bucketSize);if(!chunk.length)continue;days.push({date:chunk[0]?.date||'',endDate:chunk[chunk.length-1]?.date||chunk[0]?.date||'',opens:chunk.reduce((s,x)=>s+Number(x.opens||0),0),views:chunk.reduce((s,x)=>s+Number(x.views||0),0)});}const max=Math.max(1,...days.flatMap(x=>[Number(x.opens||0),Number(x.views||0)]));const dateLabel=(value)=>{if(!value)return '';const dt=new Date(value+'T12:00:00Z');return Number.isNaN(dt.getTime())?'':dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',timeZone:'UTC'});};chart.innerHTML=days.length?`<div style="width:100%;overflow:hidden"><div style="display:grid;grid-template-columns:repeat(${days.length},minmax(0,1fr));gap:${selectedPeriod===7?8:4}px;align-items:end;height:205px;padding:4px 0 0">${days.map((day,i)=>{const a=Number(day.opens||0),v=Number(day.views||0);const ah=a?Math.max(3,Math.round(a/max*112)):0,vh=v?Math.max(3,Math.round(v/max*112)):0;const label=bucketSize===1?dateLabel(day.date):(dateLabel(day.date)+'–'+dateLabel(day.endDate));return `<div style="display:flex;flex-direction:column;justify-content:end;align-items:center;height:100%;min-width:0"><div style="font-size:10px;color:#68788d;margin-bottom:4px;text-align:center;min-height:12px">${a+v||''}</div><div style="height:116px;width:100%;display:flex;align-items:end;justify-content:center;gap:2px"><div title="${label} · Открытия приложения: ${a}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${ah}px;max-height:112px;border-radius:4px 4px 0 0;background:#1478f5"></div><div title="${label} · Просмотры объявлений: ${v}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${vh}px;max-height:112px;border-radius:4px 4px 0 0;background:#16a36a"></div></div><div style="font-size:${selectedPeriod===90?'9px':'10px'};line-height:1.2;color:#68788d;margin-top:7px;text-align:center;overflow-wrap:anywhere;min-height:24px">${label}</div></div>`}).join('')}</div></div>`:'<div class="muted">Пока нет данных за этот период</div>';const topBox=document.getElementById('topListings');const top=Array.isArray(d.top_listings)?d.top_listings:[];topBox.innerHTML=top.length?top.map((x,i)=>`<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>${i+1}. #${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">${Number(x.views||0).toLocaleString('ru-RU')} просмотров · ${esc(x.status||'—')} · ${esc(x.price||'')} ${esc(x.currency||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`).join(''):'<div class="muted">Пока нет просмотров объявлений за выбранный период</div>';topBox.querySelectorAll('[data-admin-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.adminListing,initData)));document.getElementById('orderStats').innerHTML=metric('Всего заказов',d.orders_total)+metric('Ожидают оплаты',d.orders_pending)+metric('Отмечены оплаченными',d.orders_paid);if(!d.analytics_available){const n=document.createElement('div');n.className='status';n.textContent='Таблица статистики пока недоступна. Проверь, что SQL выполнен в том же проекте Supabase.';document.getElementById('content').prepend(n)} await loadAdminLists(initData); await loadAdminReports(initData); await loadAdminModerationQueue(initData,0); }catch(e){status.textContent='Не удалось загрузить данные. Проверь соединение с Supabase и открой панель внутри Telegram.'}}async function loadAdminReports(initData){const box=document.getElementById('adminReports');if(!box)return;try{const r=await fetch('/api/admin/data?kind=reports',{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok)throw new Error(d.error||'reports');const labels={scam:'Мошенничество',false_information:'Неверная информация',spam:'Спам / дубликат',prohibited_item:'Запрещённый товар',other:'Другое'};const rows=Array.isArray(d.items)?d.items:[];box.innerHTML=rows.length?rows.map(x=>`<div style="padding:12px 0;border-bottom:1px solid #e7edf5"><b>Жалоба #${esc(x.id)} · Объявление #${esc(x.listing_id||'—')}</b><div style="font-weight:700;margin-top:5px">${esc(x.listing_title||'Объявление')}</div><div class="muted">${esc(labels[x.reason]||x.reason||'—')} · ${esc(x.status||'new')} · ${esc(x.created_at||'')}</div>${x.details?`<div style="white-space:pre-wrap;margin-top:7px">${esc(x.details)}</div>`:''}<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">${x.status==='new'?`<button type="button" data-report-action="review" data-report-id="${esc(x.id)}">В работу</button>`:''}${x.status==='new'||x.status==='reviewing'?`<button type="button" data-report-action="dismiss" data-report-id="${esc(x.id)}">Отклонить жалобу</button>${x.listing_id?`<button type="button" data-report-action="hide" data-report-id="${esc(x.id)}">Снять объявление</button>`:''}`:''}</div></div>`).join(''):'Жалоб пока нет';box.querySelectorAll('[data-report-action]').forEach(b=>b.addEventListener('click',async()=>{const action=b.dataset.reportAction;const id=b.dataset.reportId;if(action==='hide'&&!confirm('Снять объявление с публикации? Оно исчезнет из каталога.'))return;b.disabled=true;try{const rr=await fetch('/api/admin/report/'+encodeURIComponent(id)+'/action',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({action})});const result=await rr.json().catch(()=>({}));if(!rr.ok)throw new Error(result.error||'action_failed');await loadAdminReports(initData);if(action==='hide')await loadAdminLists(initData)}catch(e){b.disabled=false;b.textContent='Ошибка · повторить'}}));}catch(e){box.textContent='Не удалось загрузить жалобы. Проверь таблицу mm_listing_reports в Supabase.'}}let adminModerationPage=0;
+function moderationPrice(value){return String(value||'').replace(/<\/?b>/gi,'').replace(/<[^>]*>/g,'').trim()}
 async function loadAdminModerationQueue(initData,page=adminModerationPage){
- const box=document.getElementById('adminModerationQueue');
- if(!box)return;
- adminModerationPage=Math.max(0,Number(page)||0);
- box.textContent='Загружаем очередь…';
+ const box=document.getElementById('adminModerationQueue');if(!box)return;
+ adminModerationPage=Math.max(0,Number(page)||0);box.textContent='Загружаем очередь…';
  try{
   const params=new URLSearchParams({page:String(adminModerationPage),per_page:'10'});
   const response=await fetch('/api/admin/moderation?'+params.toString(),{headers:{'X-Telegram-Init-Data':initData}});
-  const result=await response.json();
-  if(!response.ok)throw new Error(result.error||'queue_unavailable');
+  const result=await response.json();if(!response.ok)throw new Error(result.error||'queue_unavailable');
   const items=Array.isArray(result.items)?result.items:[];
   box.innerHTML=items.length?items.map(item=>{
    const meta=[item.category,item.type,item.subcategory,item.district].filter(Boolean).map(esc).join(' · ');
    const date=item.created_at?new Date(item.created_at).toLocaleString('ru-RU',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Tbilisi'}):'Дата не указана';
-   return `<div style="padding:12px 0;border-bottom:1px solid #e7edf5"><b>Заявка #${esc(item.request_id)} · ${esc(item.title||'Объявление')}</b><div class="muted">Автор Telegram ID: ${esc(item.user_chat_id||'—')} · ${esc(date)}</div>${meta?`<div class="muted">${meta}</div>`:''}${item.price?`<div style="font-weight:750;margin-top:5px">${esc(item.price)}</div>`:''}${item.description?`<div style="font-size:13px;line-height:1.4;color:#52647b;margin-top:5px;white-space:pre-wrap">${esc(item.description)}</div>`:''}<div class="muted" style="margin-top:5px">Фотографий: ${Number(item.photos_count||0)} · Решение принимается в Telegram-боте</div></div>`;
+   return `<article class="admin-moderation-item" style="padding:14px 0;border-bottom:1px solid #e7edf5">
+    <button type="button" data-moderation-open="${esc(item.request_id)}" style="display:block;width:100%;text-align:left;padding:0;border:0;background:transparent;color:inherit;cursor:pointer">
+     <b style="font-size:17px">Заявка #${esc(item.request_id)} · ${esc(item.title||'Объявление')}</b>
+     <div class="muted">Автор Telegram ID: ${esc(item.user_chat_id||'—')} · ${esc(date)}</div>
+     ${meta?`<div class="muted">${meta}</div>`:''}
+     ${item.price?`<div style="font-weight:800;margin-top:7px">💰 ${esc(moderationPrice(item.price))}</div>`:''}
+     ${item.description?`<div style="font-size:14px;line-height:1.45;color:#52647b;margin-top:6px;white-space:pre-wrap">${esc(item.description)}</div>`:''}
+     <div class="muted" style="margin-top:7px">Фотографий: ${Number(item.photos_count||0)} · Открыть подробности ↗</div>
+    </button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+     <button type="button" data-moderation-open="${esc(item.request_id)}" class="admin-open-list">Посмотреть заявку</button>
+    </div>
+   </article>`;
   }).join(''):'<div class="admin-detail-empty">Ожидающих заявок нет</div>';
+  box.querySelectorAll('[data-moderation-open]').forEach(btn=>btn.addEventListener('click',()=>openAdminModerationDetail(btn.dataset.moderationOpen,initData)));
   document.getElementById('adminModerationPage').textContent=`Страница ${adminModerationPage+1} · Всего ${Number(result.total||0).toLocaleString('ru-RU')}`;
   document.getElementById('adminModerationPrev').disabled=adminModerationPage===0;
   document.getElementById('adminModerationNext').disabled=(adminModerationPage+1)*Number(result.per_page||10)>=Number(result.total||0);
-  if(Number(result.total||0)>=Number(result.queue_cap||500)){
-   const note=document.createElement('div');note.className='muted';note.style.marginTop='8px';note.textContent='Очередь отображает максимум 500 последних сохранённых записей — ограничение существующего загрузчика Telegram-бота.';box.appendChild(note);
-  }
- }catch(error){
-  box.textContent='Не удалось загрузить очередь модерации. Проверь доступ к таблице состояния бота в Supabase.';
-  console.error('ADMIN MODERATION QUEUE:',error);
- }
+ }catch(error){box.textContent='Не удалось загрузить очередь модерации. Проверь доступ к таблице состояния бота в Supabase.';console.error('ADMIN MODERATION QUEUE:',error)}
 }
-document.getElementById('adminModerationPrev')?.addEventListener('click',()=>{
- if(adminModerationPage>0)loadAdminModerationQueue(window.Telegram?.WebApp?.initData||'',adminModerationPage-1);
-});
-document.getElementById('adminModerationNext')?.addEventListener('click',()=>{
- loadAdminModerationQueue(window.Telegram?.WebApp?.initData||'',adminModerationPage+1);
-});
-document.getElementById('adminModerationRefresh')?.addEventListener('click',()=>{
- loadAdminModerationQueue(window.Telegram?.WebApp?.initData||'',0);
-});
+async function openAdminModerationDetail(id,initData){
+ const modal=document.getElementById('detailModal'),box=document.getElementById('detailContent');
+ modal.style.display='block';box.innerHTML='<div class="admin-detail-loading">Загружаем заявку…</div>';
+ try{
+  const r=await fetch('/api/admin/moderation/'+encodeURIComponent(id),{headers:{'X-Telegram-Init-Data':initData}});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'detail_failed');
+  const x=d.item||{},photos=Array.isArray(x.photos)?x.photos:[];
+  const meta=[x.category,x.type,x.subcategory,x.district].filter(Boolean).map(esc).join(' · ');
+  const imgs=photos.map((url,index)=>`<img data-moderation-photo="${index}" alt="Фото объявления" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:#f3f6fa">`).join('');
+  const details=x.details&&typeof x.details==='object'?Object.entries(x.details).filter(([k,v])=>v!==''&&v!==null&&v!==undefined).map(([k,v])=>`<div class="muted">${esc(k)}: ${esc(typeof v==='object'?JSON.stringify(v):v)}</div>`).join(''):'';
+  box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Заявка #${esc(x.request_id)}</h2><span class="muted">На модерации</span></div>
+   <h3 style="margin:14px 0 6px">${esc(x.title||'Объявление')}</h3>
+   <div class="muted">${meta}</div>
+   <div style="font-size:22px;font-weight:800;margin:12px 0">💰 ${esc(moderationPrice(x.price))||'Цена не указана'}</div>
+   <div style="white-space:pre-wrap;line-height:1.5">${esc(x.description||'Описание не указано')}</div>
+   ${details?`<div style="margin-top:12px">${details}</div>`:''}
+   <div class="muted" style="margin:12px 0">Автор Telegram ID: ${esc(x.user_chat_id||'—')} · ${esc(x.created_at||'')}</div>
+   ${imgs?`<h3>Фотографии (${photos.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">${imgs}</div>`:`<div class="muted" style="margin:12px 0">Фотографии не приложены</div>`}
+   <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:20px">
+    <button type="button" data-moderation-action="approve" style="flex:1;min-width:130px;background:#16834a;color:white;border:0;border-radius:12px;padding:13px;font-weight:750">✓ Одобрить и опубликовать</button>
+    <button type="button" data-moderation-action="reject" style="flex:1;min-width:110px;background:#fff0f0;color:#b42318;border:1px solid #f2caca;border-radius:12px;padding:13px;font-weight:750">Отклонить</button>
+   </div>`;
+  box.querySelectorAll('[data-moderation-photo]').forEach(async img=>{
+   try{const pr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photo/'+img.dataset.moderationPhoto,{headers:{'X-Telegram-Init-Data':initData}});if(!pr.ok)throw new Error('photo');const blob=await pr.blob();img.src=URL.createObjectURL(blob)}catch(e){img.alt='Фото недоступно';img.style.display='none'}
+  });
+  box.querySelectorAll('[data-moderation-action]').forEach(btn=>btn.addEventListener('click',async()=>{
+   const action=btn.dataset.moderationAction;
+   const question=action==='approve'?'Опубликовать это объявление?':'Отклонить эту заявку?';
+   if(!confirm(question))return;
+   btn.disabled=true;btn.textContent='Обрабатываем…';
+   try{
+    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/action',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({action})});
+    const out=await rr.json().catch(()=>({}));if(!rr.ok)throw new Error(out.message||out.error||'action_failed');
+    modal.style.display='none';await loadAdminModerationQueue(initData,adminModerationPage);
+   }catch(e){btn.disabled=false;btn.textContent=action==='approve'?'Ошибка · повторить':'Ошибка · повторить';alert(e.message||'Не удалось выполнить действие')}
+  }));
+ }catch(e){box.innerHTML=`<div class="muted">Не удалось открыть заявку: ${esc(e.message||'ошибка')}</div>`}
+}
+document.getElementById('adminModerationPrev')?.addEventListener('click',()=>{if(adminModerationPage>0)loadAdminModerationQueue(window.Telegram?.WebApp?.initData||'',adminModerationPage-1)});
+document.getElementById('adminModerationNext')?.addEventListener('click',()=>loadAdminModerationQueue(window.Telegram?.WebApp?.initData||'',adminModerationPage+1));
+document.getElementById('adminModerationRefresh')?.addEventListener('click',()=>loadAdminModerationQueue(window.Telegram?.WebApp?.initData||'',0));
 let adminBrowseState={kind:'users',page:0,q:'',initData:'',perPage:20,total:null};
 function adminUserRow(x,initData){return `<button type="button" data-admin-user="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>${esc([x.first_name,x.last_name].filter(Boolean).join(' ')||x.username||('Пользователь #'+x.id))}</b><div class="muted">Telegram ID: ${esc(x.telegram_id||'—')} · ID: ${esc(x.id||'—')} · Подробности ↗</div></button>`}
 function adminListingRow(x){return `<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>#${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">Статус: ${esc(x.status||'—')} · Владелец: ${esc(x.telegram_id||'не указан')}</div><div class="muted">${esc(x.price||'Цена не указана')} ${esc(x.currency||'')} · ${esc(x.address||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`}
@@ -13885,6 +13928,130 @@ def mini_app_admin_moderation():
         "source": "telegram_runtime_moderation_queue",
         "queue_cap": 500,
     })
+
+
+@app.get("/api/admin/moderation/<int:request_id>")
+def mini_app_admin_moderation_detail(request_id):
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error":"admin_only"}), 403
+    pending = dict(load_pending_moderation_queue())
+    item = pending.get(int(request_id))
+    if not isinstance(item, dict):
+        return jsonify({"error":"request_not_found"}), 404
+    data = item.get("data") if isinstance(item.get("data"), dict) else {}
+    photos = data.get("photos") or []
+    if not isinstance(photos, list):
+        photos = []
+    safe_photos = [
+        f"/api/admin/moderation/{int(request_id)}/photo/{index}"
+        for index, photo in enumerate(photos[:8])
+        if isinstance(photo, str) and photo.strip()
+    ]
+    try:
+        title = make_title(data)
+    except Exception:
+        title = ""
+    try:
+        price = price_text(data)
+    except Exception:
+        price = ""
+    return jsonify({
+        "item": {
+            "request_id": int(request_id),
+            "user_chat_id": str(item.get("user_chat_id") or ""),
+            "created_at": str(item.get("created_at") or ""),
+            "title": str(title or data.get("title") or "Объявление")[:180],
+            "category": str(data.get("category") or "")[:80],
+            "type": str(data.get("type") or "")[:80],
+            "subcategory": str(data.get("subcategory") or "")[:100],
+            "district": str(data.get("district") or "")[:120],
+            "price": str(price or "")[:100],
+            "description": str(data.get("description") or "")[:3000],
+            "details": data.get("details") if isinstance(data.get("details"), dict) else {},
+            "photos": safe_photos,
+            "photos_count": len(photos),
+        }
+    })
+
+
+@app.get("/api/admin/moderation/<int:request_id>/photo/<int:photo_index>")
+def mini_app_admin_moderation_photo(request_id, photo_index):
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error":"admin_only"}), 403
+    item = dict(load_pending_moderation_queue()).get(int(request_id))
+    if not isinstance(item, dict):
+        return jsonify({"error":"request_not_found"}), 404
+    data = item.get("data") if isinstance(item.get("data"), dict) else {}
+    photos = data.get("photos") or []
+    if not isinstance(photos, list) or photo_index < 0 or photo_index >= min(len(photos), 8):
+        return jsonify({"error":"photo_not_found"}), 404
+    file_id = photos[photo_index]
+    if not isinstance(file_id, str) or not file_id.strip():
+        return jsonify({"error":"photo_not_found"}), 404
+    file_info = api("getFile", {"file_id": file_id})
+    if not isinstance(file_info, dict) or not file_info.get("ok"):
+        return jsonify({"error":"telegram_file_unavailable"}), 502
+    file_path = (file_info.get("result") or {}).get("file_path")
+    if not file_path or ".." in str(file_path).split("/"):
+        return jsonify({"error":"telegram_file_unavailable"}), 502
+    try:
+        image_response = HTTP_SESSION.get(
+            f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",
+            timeout=(5, 20),
+        )
+        image_response.raise_for_status()
+        content_type = image_response.headers.get("Content-Type", "image/jpeg")
+        if not content_type.startswith("image/"):
+            return jsonify({"error":"invalid_photo_type"}), 502
+        return Response(
+            image_response.content,
+            status=200,
+            mimetype=content_type,
+            headers={"Cache-Control":"private, max-age=300", "X-Content-Type-Options":"nosniff"},
+        )
+    except requests.RequestException as error:
+        print("ADMIN MODERATION PHOTO ERROR:", repr(error))
+        return jsonify({"error":"photo_download_failed"}), 502
+
+
+@app.post("/api/admin/moderation/<int:request_id>/action")
+def mini_app_admin_moderation_action(request_id):
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error":"admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"error":"db_unavailable"}), 503
+    body = request.get_json(silent=True) or {}
+    action = str(body.get("action") or "").strip().lower()
+    if action not in ("approve", "reject"):
+        return jsonify({"error":"invalid_action"}), 400
+    pending = dict(load_pending_moderation_queue())
+    if int(request_id) not in pending:
+        return jsonify({"error":"request_not_found"}), 404
+    admin_id = user.get("id")
+    try:
+        admin_id = int(admin_id)
+    except (TypeError, ValueError):
+        return jsonify({"error":"invalid_admin"}), 403
+    if action == "approve":
+        moderate_publish(int(request_id), admin_id, None)
+        still_pending = int(request_id) in dict(load_pending_moderation_queue())
+        if still_pending:
+            return jsonify({"error":"publish_failed","message":"Не удалось опубликовать. Заявка оставлена в очереди."}), 502
+        return jsonify({"ok":True,"status":"published"})
+    moderate_reject(int(request_id), admin_id, None)
+    still_pending = int(request_id) in dict(load_pending_moderation_queue())
+    if still_pending:
+        return jsonify({"error":"reject_failed"}), 502
+    return jsonify({"ok":True,"status":"rejected"})
 
 
 @app.post("/api/admin/listing/<int:listing_id>/unpublish")
