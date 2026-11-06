@@ -13632,7 +13632,7 @@ async function openAdminModerationDetail(id,initData){
     <button type="button" data-moderation-action="reject" style="flex:1;min-width:110px;background:#fff0f0;color:#b42318;border:1px solid #f2caca;border-radius:12px;padding:13px;font-weight:750">Отклонить</button>
    </div>`;
   box.querySelectorAll('[data-moderation-photo]').forEach(async img=>{
-   try{const pr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photo/'+img.dataset.moderationPhoto,{headers:{'X-Telegram-Init-Data':initData}});if(!pr.ok)throw new Error('photo');const blob=await pr.blob();img.src=URL.createObjectURL(blob)}catch(e){img.alt='Фото недоступно';img.style.display='none'}
+   try{const pr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photo/'+img.dataset.moderationPhoto,{headers:{'X-Telegram-Init-Data':initData}});if(!pr.ok){const failure=await pr.json().catch(()=>({}));throw new Error(failure.message||failure.error||('HTTP '+pr.status))}const blob=await pr.blob();if(!blob.type.startsWith('image/'))throw new Error('Сервер вернул не изображение');img.src=URL.createObjectURL(blob);img.style.minHeight='120px'}catch(e){console.error('ADMIN MODERATION PHOTO:',e);const note=document.createElement('div');note.className='muted';note.textContent='Не удалось загрузить фото: '+(e.message||'ошибка');img.replaceWith(note)}
   });
   box.querySelectorAll('[data-moderation-action]').forEach(btn=>btn.addEventListener('click',async()=>{
    const action=btn.dataset.moderationAction;
@@ -13994,30 +13994,45 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
     file_id = photos[photo_index]
     if not isinstance(file_id, str) or not file_id.strip():
         return jsonify({"error":"photo_not_found"}), 404
-    file_info = api("getFile", {"file_id": file_id})
-    if not isinstance(file_info, dict) or not file_info.get("ok"):
-        return jsonify({"error":"telegram_file_unavailable"}), 502
-    file_path = (file_info.get("result") or {}).get("file_path")
-    if not file_path or ".." in str(file_path).split("/"):
-        return jsonify({"error":"telegram_file_unavailable"}), 502
     try:
+        # Use the shared HTTP session for both Bot API calls and file downloads.
+        # Telegram file_id values are opaque and must never be exposed to the browser.
+        info_response = HTTP_SESSION.get(
+            f"{API}/getFile",
+            params={"file_id": file_id},
+            timeout=(5, 15),
+        )
+        info_response.raise_for_status()
+        file_info = info_response.json()
+        if not isinstance(file_info, dict) or not file_info.get("ok"):
+            description = str((file_info or {}).get("description") or "getFile failed")[:180]
+            print("ADMIN MODERATION GETFILE ERROR:", request_id, photo_index, description)
+            return jsonify({"error":"telegram_file_unavailable","message":description}), 502
+        file_path = (file_info.get("result") or {}).get("file_path")
+        if not file_path or ".." in str(file_path).split("/"):
+            return jsonify({"error":"telegram_file_unavailable"}), 502
         image_response = HTTP_SESSION.get(
             f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",
-            timeout=(5, 20),
+            timeout=(5, 25),
         )
         image_response.raise_for_status()
-        content_type = image_response.headers.get("Content-Type", "image/jpeg")
+        content_type = image_response.headers.get("Content-Type", "image/jpeg").split(";")[0].strip().lower()
         if not content_type.startswith("image/"):
+            print("ADMIN MODERATION INVALID PHOTO CONTENT TYPE:", content_type)
             return jsonify({"error":"invalid_photo_type"}), 502
         return Response(
             image_response.content,
             status=200,
             mimetype=content_type,
-            headers={"Cache-Control":"private, max-age=300", "X-Content-Type-Options":"nosniff"},
+            headers={
+                "Cache-Control":"private, max-age=300",
+                "X-Content-Type-Options":"nosniff",
+                "Content-Length":str(len(image_response.content)),
+            },
         )
-    except requests.RequestException as error:
-        print("ADMIN MODERATION PHOTO ERROR:", repr(error))
-        return jsonify({"error":"photo_download_failed"}), 502
+    except (requests.RequestException, ValueError) as error:
+        print("ADMIN MODERATION PHOTO ERROR:", request_id, photo_index, repr(error))
+        return jsonify({"error":"photo_download_failed","message":str(error)[:180]}), 502
 
 
 @app.post("/api/admin/moderation/<int:request_id>/action")
