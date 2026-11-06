@@ -13247,6 +13247,16 @@ def _admin_stats_payload(period_days=7):
                     stats["listings_pending"] += 1
                 else:
                     stats["listings_other"] += 1
+    # Moderation submissions are durable snapshots in mm_bot_runtime_state
+    # (moderation:<id>), not rows in the public listings table until approved.
+    # Therefore counting listings.status=pending always misses this queue.
+    try:
+        moderation_queue = load_pending_moderation_queue()
+        stats["listings_pending"] = len(moderation_queue)
+    except Exception as error:
+        print("ADMIN MODERATION COUNT ERROR:", repr(error))
+        # Keep the DB status count as a fallback if runtime-state storage is unavailable.
+
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -13997,13 +14007,7 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
     try:
         # Use the shared HTTP session for both Bot API calls and file downloads.
         # Telegram file_id values are opaque and must never be exposed to the browser.
-        info_response = HTTP_SESSION.get(
-            f"{API}/getFile",
-            params={"file_id": file_id},
-            timeout=(5, 15),
-        )
-        info_response.raise_for_status()
-        file_info = info_response.json()
+        file_info = api("getFile", {"file_id": file_id})
         if not isinstance(file_info, dict) or not file_info.get("ok"):
             description = str((file_info or {}).get("description") or "getFile failed")[:180]
             print("ADMIN MODERATION GETFILE ERROR:", request_id, photo_index, description)
@@ -14011,7 +14015,7 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
         file_path = (file_info.get("result") or {}).get("file_path")
         if not file_path or ".." in str(file_path).split("/"):
             return jsonify({"error":"telegram_file_unavailable"}), 502
-        image_response = HTTP_SESSION.get(
+        image_response = requests.get(
             f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",
             timeout=(5, 25),
         )
@@ -14029,13 +14033,24 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
         elif len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
             content_type = "image/webp"
         else:
-            reported_type = image_response.headers.get("Content-Type", "unknown")
-            print(
-                "ADMIN MODERATION INVALID PHOTO:",
-                request_id, photo_index, reported_type,
-                image_bytes[:16].hex(),
-            )
-            return jsonify({"error":"invalid_photo_type","message":"Telegram вернул файл, который не распознан как изображение."}), 502
+            reported_type = image_response.headers.get("Content-Type", "unknown").split(";")[0].strip().lower()
+            if reported_type.startswith("image/"):
+                # Trust Telegram's explicit image MIME type when it uses a
+                # format whose signature is not in the common set above.
+                content_type = reported_type
+            else:
+                diagnostic = {
+                    "content_type": reported_type,
+                    "bytes": len(image_bytes),
+                    "signature": image_bytes[:24].hex(),
+                    "file_extension": str(file_path).rsplit(".", 1)[-1].lower()[:12] if "." in str(file_path) else "",
+                }
+                print("ADMIN MODERATION INVALID PHOTO:", request_id, photo_index, diagnostic)
+                return jsonify({
+                    "error":"invalid_photo_type",
+                    "message":"Файл от Telegram не распознан как изображение.",
+                    "diagnostic":diagnostic,
+                }), 502
         return Response(
             image_bytes,
             status=200,
