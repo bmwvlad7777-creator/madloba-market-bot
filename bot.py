@@ -14807,20 +14807,44 @@ def _delete_listing_channel_messages(row):
             normalized_ids.append(message_id)
     if not normalized_ids:
         return True
+    listing_id = row.get("id")
+    listing_status = row.get("status")
     if not CHANNEL_USERNAME:
-        print("LISTING LIFECYCLE: channel username missing; cannot delete posts")
+        print("LISTING LIFECYCLE: Telegram cleanup blocked", {
+            "listing_id": listing_id,
+            "status": listing_status,
+            "reason": "channel_username_missing",
+            "message_ids": normalized_ids,
+        })
         return False
     all_ok = True
     for message_id in normalized_ids:
         result = api("deleteMessage", {"chat_id": CHANNEL_USERNAME, "message_id": message_id})
         if isinstance(result, dict) and result.get("ok"):
             continue
-        description = str(result.get("description", "")).lower() if isinstance(result, dict) else ""
+        description_raw = result.get("description", "") if isinstance(result, dict) else str(result or "no_response")
+        description = str(description_raw).lower()
         # Already-deleted messages are safe to treat as complete.
         if "message to delete not found" in description or "message identifier is not specified" in description:
+            print("LISTING LIFECYCLE: Telegram post already absent", {
+                "listing_id": listing_id, "message_id": message_id,
+            })
             continue
         all_ok = False
-        print("LISTING LIFECYCLE: Telegram delete failed", message_id, description[:200])
+        error_info = {
+            "listing_id": listing_id,
+            "status": listing_status,
+            "message_id": message_id,
+            "channel": CHANNEL_USERNAME,
+            "error_code": result.get("error_code") if isinstance(result, dict) else None,
+            "description": str(description_raw)[:200],
+            "action": "kept_for_retry",
+        }
+        print("LISTING LIFECYCLE: Telegram delete failed", error_info)
+    if all_ok:
+        print("LISTING LIFECYCLE: Telegram cleanup complete", {
+            "listing_id": listing_id, "message_ids": normalized_ids,
+        })
     return all_ok
 
 
