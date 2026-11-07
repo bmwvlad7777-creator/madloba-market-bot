@@ -11626,9 +11626,23 @@ body::before{
 #detailView #detailContent .contact-secondary-grid .mm-report-open{font-size:11px!important;padding:9px 6px!important;}
 }
 </style>
+<style>
+/* Multi-city follow-up: center the empty popular state across the full grid. */
+#bestRow .best-empty{
+  grid-column:1 / -1!important;
+  width:100%!important;
+  min-height:220px!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  margin:0!important;
+}
+</style>
 </head>
 <body>
-<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option><option value="uk">🇺🇦 UA</option></select><button class="city" id="cityMultiBtn" type="button" aria-haspopup="dialog" aria-expanded="false"><svg class="mm-city-drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8C9.2 6.6 5.4 10.1 5.4 14.1a6.6 6.6 0 1 0 13.2 0c0-4-3.8-7.5-6.6-11.3Z" fill="url(#mmCityDropGradient)" stroke="#2F80ED" stroke-width="1.15"/><defs><linearGradient id="mmCityDropGradient" x1="7" y1="4" x2="18" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#8CC8FF"/><stop offset="1" stop-color="#2878E8"/></linearGradient></defs><circle cx="12" cy="14" r="2.15" fill="#fff"/></svg><span id="cityMultiBtnText">Cities</span></button><select class="city" id="citySelect" aria-label="City" style="display:none!important"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option><option value="kutaisi">Kutaisi</option><option value="rustavi">Rustavi</option><option value="zugdidi">Zugdidi</option><option value="gori">Gori</option><option value="poti">Poti</option><option value="kobuleti">Kobuleti</option><option value="telavi">Telavi</option><option value="боржоми">Borjomi</option><optgroup id="cityOtherGroup" label="Other cities"><option value="ахалцихе">Akhaltsikhe</option><option value="озургети">Ozurgeti</option><option value="сенаки">Senaki</option><option value="самтредиа">Samtredia</option><option value="зестафони">Zestafoni</option><option value="марнеули">Marneuli</option><option value="хашури">Khashuri</option><option value="чиатура">Chiatura</option><option value="цхалтубо">Tskaltubo</option><option value="сагареджо">Sagarejo</option><option value="гардабани">Gardabani</option><option value="болниси">Bolnisi</option><option value="каспи">Kaspi</option><option value="хони">Khoni</option><option value="ланчхути">Lanchkhuti</option><option value="мцхета">Mtskheta</option><option value="ахалкалаки">Akhalkalaki</option><option value="ниноцминда">Ninotsminda</option><option value="дедоплисцкаро">Dedoplistskaro</option><option value="лагодехи">Lagodekhi</option><option value="кварели">Kvareli</option><option value="гурджаани">Gurjaani</option><option value="сигнахи">Sighnaghi</option><option value="цнори">Tsnori</option><option value="абаша">Abasha</option><option value="мартвили">Martvili</option><option value="хоби">Khobi</option><option value="цаленджиха">Tsalenjikha</option><option value="чхороцку">Chkhorotsku</option><option value="вани">Vani</option><option value="багдати">Baghdati</option><option value="тержола">Terjola</option><option value="сачхере">Sachkhere</option><option value="амбролаури">Ambrolauri</option><option value="они">Oni</option><option value="цагери">Tsageri</option><option value="местиа">Mestia</option><option value="хелвачаури">Khelvachauri</option><option value="кеда">Keda</option><option value="шуахеви">Shuakhevi</option><option value="хуло">Khulo</option></optgroup></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><button class="quick-arrow quick-arrow-left" id="quickArrowLeft" type="button" aria-label="Previous categories" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><div class="quick-actions" aria-label="Категории">
+<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option><option value="uk">🇺🇦 UA</option></select><button class="city" id="cityMultiBtn" type="button" aria-haspopup="dialog" aria-expanded="false"><svg class="mm-city-drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-7.1 8-13A8 8 0 1 0 4 9c0 5.9 8 13 8 13Z" fill="url(#mmCityDropGradient)" stroke="#2F80ED" stroke-width="1.15"/><defs><linearGradient id="mmCityDropGradient" x1="7" y1="3" x2="18" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#8CC8FF"/><stop offset="1" stop-color="#2878E8"/></linearGradient></defs><circle cx="12" cy="9" r="2.15" fill="#fff"/></svg><span id="cityMultiBtnText">Cities</span></button><select class="city" id="citySelect" aria-label="City" style="display:none!important"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option><option value="kutaisi">Kutaisi</option><option value="rustavi">Rustavi</option><option value="zugdidi">Zugdidi</option><option value="gori">Gori</option><option value="poti">Poti</option><option value="kobuleti">Kobuleti</option><option value="telavi">Telavi</option><option value="боржоми">Borjomi</option><optgroup id="cityOtherGroup" label="Other cities"><option value="ахалцихе">Akhaltsikhe</option><option value="озургети">Ozurgeti</option><option value="сенаки">Senaki</option><option value="самтредиа">Samtredia</option><option value="зестафони">Zestafoni</option><option value="марнеули">Marneuli</option><option value="хашури">Khashuri</option><option value="чиатура">Chiatura</option><option value="цхалтубо">Tskaltubo</option><option value="сагареджо">Sagarejo</option><option value="гардабани">Gardabani</option><option value="болниси">Bolnisi</option><option value="каспи">Kaspi</option><option value="хони">Khoni</option><option value="ланчхути">Lanchkhuti</option><option value="мцхета">Mtskheta</option><option value="ахалкалаки">Akhalkalaki</option><option value="ниноцминда">Ninotsminda</option><option value="дедоплисцкаро">Dedoplistskaro</option><option value="лагодехи">Lagodekhi</option><option value="кварели">Kvareli</option><option value="гурджаани">Gurjaani</option><option value="сигнахи">Sighnaghi</option><option value="цнори">Tsnori</option><option value="абаша">Abasha</option><option value="мартвили">Martvili</option><option value="хоби">Khobi</option><option value="цаленджиха">Tsalenjikha</option><option value="чхороцку">Chkhorotsku</option><option value="вани">Vani</option><option value="багдати">Baghdati</option><option value="тержола">Terjola</option><option value="сачхере">Sachkhere</option><option value="амбролаури">Ambrolauri</option><option value="они">Oni</option><option value="цагери">Tsageri</option><option value="местиа">Mestia</option><option value="хелвачаури">Khelvachauri</option><option value="кеда">Keda</option><option value="шуахеви">Shuakhevi</option><option value="хуло">Khulo</option></optgroup></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><button class="quick-arrow quick-arrow-left" id="quickArrowLeft" type="button" aria-label="Previous categories" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><div class="quick-actions" aria-label="Категории">
 <button class="quick-action" data-cat="realestate"><span class="quick-icon" data-icon="realestate"></span><span class="quick-label" data-i18n="category_realestate">Недвижимость</span></button>
 <button class="quick-action" data-cat="auto"><span class="quick-icon" data-icon="auto"></span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
 <button class="quick-action" data-cat="tech"><span class="quick-icon" data-icon="tech"></span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
@@ -11948,8 +11962,11 @@ function cardDisplayTitle(rawTitle,rawCategory){
 function cardLocation(x){
   // On cards show only the city entered for this listing; never show the full address here.
   if(!x||typeof x!=='object')return '';
+  // The normalized city_slug comes from listings.city_id and is authoritative.
+  // Legacy metadata may still contain an old/default city_name, so it must not
+  // override the actual city attached to this listing row.
   const candidates=[
-    x.city_name,x.city,x.city_slug,x.city_key,x.location_city,
+    x.city_slug,x.city_key,x.city_name,x.city,x.location_city,
     x.details&&x.details.city,x.details&&x.details.city_name,
     x.fields&&x.fields.city,x.fields&&x.fields.city_name
   ];
@@ -16540,14 +16557,18 @@ def mini_app_listings():
         item["currency"] = row.get("currency") or item.get("currency", "")
         item["address"] = row.get("address") or item.get("district", "")
         item["category_name"] = item.get("category") or "Объявление"
-        if city == "all":
-            _row_city_id = row.get("city_id")
-            try:
-                item["city_slug"] = city_ids_by_slug.get(int(_row_city_id), "")
-            except (TypeError, ValueError):
-                item["city_slug"] = ""
-        else:
-            item["city_slug"] = city
+        # Always resolve the city from the listing's own normalized city_id.
+        # A selected filter is not the listing's location: it may include several
+        # cities, and legacy metadata can contain a stale/default city label.
+        _row_city_id = row.get("city_id")
+        try:
+            _actual_city_slug = city_ids_by_slug.get(int(_row_city_id), "")
+        except (TypeError, ValueError):
+            _actual_city_slug = ""
+        item["city_slug"] = _actual_city_slug or (city if city != "all" else "")
+        if item["city_slug"]:
+            item["city_name"] = item["city_slug"]
+            item["city"] = item["city_slug"]
         _strip_public_listing_fields(item)
         _strip_listing_contact_fields(item)
 
