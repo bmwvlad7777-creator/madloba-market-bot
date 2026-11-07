@@ -13963,7 +13963,7 @@ if(kind==='listing'){
  <section class="admin-detail-section"><h3>Основная информация</h3><div class="admin-detail-price">${esc(price)}</div>${adminDetailField('Название',title)}${adminDetailField('Категория',x.category_name||x.category_title||x.category||'')}${adminDetailField('Подкатегория',x.subcategory||'')}${adminDetailField('Адрес',x.address||'')}${adminDetailField('Тип сделки',x.deal_type||'')}${adminDetailField('Создано',created)}${adminDetailField('Последнее обновление',updated)}</section>
  ${x.description?`<section class="admin-detail-section"><h3>Описание</h3><div class="admin-detail-description">${esc(x.description)}</div></section>`:''}
  <section class="admin-detail-section"><h3>Продавец и активность</h3>${adminDetailField('Telegram ID владельца',x.telegram_id||'')}${adminDetailField('Телефон',x.phone||'')}${adminDetailField('Просмотры',views)}${adminDetailField('Опубликовано в Telegram',(x.telegram===true||x.telegram==='true'||x.channel_message_id||x.channel_url)?'Да':'Нет')}${published!=='—'?adminDetailField('Дата публикации',published):''}</section>
- <section class="admin-detail-actions">${x.phone?`<button type="button" id="copyAdminPhone" class="admin-detail-primary">Скопировать телефон</button>`:''}${x.channel_url&&/^https:\/\/(t\.me|telegram\.me)\//i.test(String(x.channel_url))?`<a class="admin-detail-secondary" href="${esc(x.channel_url)}" target="_blank" rel="noopener">Открыть публикацию в Telegram ↗</a>`:''}${String(x.status||'').toLowerCase()==='published'?`<button type="button" id="adminUnpublishListing" class="admin-detail-secondary">Снять с публикации</button>`:''}${String(x.status||'').toLowerCase()==='archived'?`<button type="button" id="adminRestoreListing" class="admin-detail-primary">Восстановить из архива</button>`:''}</section><div id="adminListingActionStatus" class="admin-detail-note" role="status" aria-live="polite"></div>
+ <section class="admin-detail-actions">${x.phone?`<button type="button" id="copyAdminPhone" class="admin-detail-primary">Скопировать телефон</button>`:''}${x.channel_url&&/^https:\/\/(t\.me|telegram\.me)\//i.test(String(x.channel_url))?`<a class="admin-detail-secondary" href="${esc(x.channel_url)}" target="_blank" rel="noopener">Открыть публикацию в Telegram ↗</a>`:''}${String(x.status||'').toLowerCase()==='published'?`<button type="button" id="adminUnpublishListing" class="admin-detail-secondary">Снять с публикации</button>`:''}${Array.isArray(x.metadata?.channel_cleanup_manual_ids)&&x.metadata.channel_cleanup_manual_ids.length?`<button type="button" id="adminConfirmManualCleanup" class="admin-detail-secondary">Подтвердить ручное удаление поста</button>`:''}${String(x.status||'').toLowerCase()==='archived'?`<button type="button" id="adminRestoreListing" class="admin-detail-primary">Восстановить из архива</button>`:''}</section><div id="adminListingActionStatus" class="admin-detail-note" role="status" aria-live="polite"></div>
  <details class="admin-detail-technical"><summary>Дополнительная техническая информация</summary><div class="admin-detail-tech-grid">${[['ID объявления',x.id],['ID пользователя',x.user_id],['ID категории',x.category_id],['ID города',x.city_id],['ID сообщения в канале',x.channel_message_id],['Валюта',x.currency],['Цена в USD',x.price_usd],['Срок размещения до',x.expires_at],['WhatsApp',x.whatsapp===true||x.whatsapp==='true'?'Да':(x.whatsapp===false||x.whatsapp==='false'?'Нет':'')]].filter(([,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>adminDetailField(k,v)).join('')}</div></details>`;
 } else {
  const fullName=[x.first_name,x.last_name].filter(Boolean).join(' ').trim()||x.username||('Пользователь #'+id);
@@ -13976,7 +13976,7 @@ if(kind==='listing'){
 }
 box.innerHTML=html;
 const copyPhone=document.getElementById('copyAdminPhone');if(copyPhone)copyPhone.addEventListener('click',async()=>{try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(String(x.phone||''));copyPhone.textContent='Телефон скопирован'}else{copyPhone.textContent=String(x.phone||'Не удалось скопировать')}}catch(e){copyPhone.textContent='Не удалось скопировать'}});
-const unpublish=document.getElementById('adminUnpublishListing');if(unpublish)unpublish.addEventListener('click',async()=>{if(unpublish.disabled)return;if(!window.confirm('Снять объявление с публикации? Пост будет удалён из Telegram, а объявление переместится в архив.'))return;unpublish.disabled=true;unpublish.textContent='Выполняется…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Проверяем удаление публикации…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||({channel_cleanup_failed:'Не удалось удалить пост из Telegram. Объявление не изменено.',channel_message_ids_missing:'Нет ID сообщения Telegram. Статус не изменён.',db_update_failed:'Пост удалён, но статус в каталоге не обновлён. Повтори действие.',admin_only:'Нет прав администратора.',invalid_status:'Это объявление сейчас нельзя снять с публикации.'}[result.error]||'Не удалось выполнить действие.'));if(statusBox)statusBox.textContent='Объявление снято с публикации и перемещено в архив.';await showAdminDetail('listing',id,initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка выполнения';unpublish.disabled=false;unpublish.textContent='Снять с публикации'}});const restore=document.getElementById('adminRestoreListing');if(restore)restore.addEventListener('click',async()=>{if(restore.disabled)return;if(!window.confirm('Восстановить объявление? Оно будет повторно опубликовано в каталоге и Telegram без создания новой записи.'))return;restore.disabled=true;restore.textContent='Публикуем…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Проверяем данные и фотографии, затем публикуем…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/restore',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||({listing_data_incomplete:'Не хватает данных объявления для публикации.',channel_publish_failed:'Не удалось опубликовать объявление в Telegram.',republish_in_progress:'Восстановление уже выполняется.',invalid_status:'Это объявление сейчас нельзя восстановить.'}[result.error]||'Не удалось восстановить объявление.'));if(statusBox)statusBox.textContent='Объявление восстановлено и опубликовано.';await showAdminDetail('listing',id,initData);const archive=document.getElementById('adminArchivedListings');if(archive&&archive.style.display!=='none')await loadAdminArchivedListings(initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка восстановления';restore.disabled=false;restore.textContent='Восстановить из архива'}});box.querySelectorAll('[data-user-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.userListing,initData)));
+const unpublish=document.getElementById('adminUnpublishListing');if(unpublish)unpublish.addEventListener('click',async()=>{if(unpublish.disabled)return;if(!window.confirm('Снять объявление с публикации? Пост будет удалён из Telegram, а объявление переместится в архив.'))return;unpublish.disabled=true;unpublish.textContent='Выполняется…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Проверяем удаление публикации…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||({channel_cleanup_failed:'Не удалось удалить пост из Telegram. Объявление не изменено.',channel_message_ids_missing:'Нет ID сообщения Telegram. Статус не изменён.',db_update_failed:'Пост удалён, но статус в каталоге не обновлён. Повтори действие.',admin_only:'Нет прав администратора.',invalid_status:'Это объявление сейчас нельзя снять с публикации.'}[result.error]||'Не удалось выполнить действие.'));if(statusBox)statusBox.textContent='Объявление снято с публикации и перемещено в архив.';await showAdminDetail('listing',id,initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка выполнения';unpublish.disabled=false;unpublish.textContent='Снять с публикации'}});const manualCleanup=document.getElementById('adminConfirmManualCleanup');if(manualCleanup)manualCleanup.addEventListener('click',async()=>{if(manualCleanup.disabled)return;if(!window.confirm('Подтверди: ты уже вручную удалил все указанные публикации из Telegram? Это действие позволит архивировать объявление.'))return;manualCleanup.disabled=true;manualCleanup.textContent='Подтверждаем…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Обновляем статус объявления…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/confirm-manual-cleanup',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||'Не удалось подтвердить ручную очистку.');if(statusBox)statusBox.textContent='Ручная очистка подтверждена. Статус: '+(result.status==='archived'?'в архиве':result.status);await showAdminDetail('listing',id,initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка';manualCleanup.disabled=false;manualCleanup.textContent='Подтвердить ручное удаление поста'}});const restore=document.getElementById('adminRestoreListing');if(restore)restore.addEventListener('click',async()=>{if(restore.disabled)return;if(!window.confirm('Восстановить объявление? Оно будет повторно опубликовано в каталоге и Telegram без создания новой записи.'))return;restore.disabled=true;restore.textContent='Публикуем…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Проверяем данные и фотографии, затем публикуем…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/restore',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||({listing_data_incomplete:'Не хватает данных объявления для публикации.',channel_publish_failed:'Не удалось опубликовать объявление в Telegram.',republish_in_progress:'Восстановление уже выполняется.',invalid_status:'Это объявление сейчас нельзя восстановить.'}[result.error]||'Не удалось восстановить объявление.'));if(statusBox)statusBox.textContent='Объявление восстановлено и опубликовано.';await showAdminDetail('listing',id,initData);const archive=document.getElementById('adminArchivedListings');if(archive&&archive.style.display!=='none')await loadAdminArchivedListings(initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка восстановления';restore.disabled=false;restore.textContent='Восстановить из архива'}});box.querySelectorAll('[data-user-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.userListing,initData)));
 }catch(e){box.textContent='Не удалось загрузить подробности. Проверь логи Render.'}}
 document.getElementById('closeDetail').addEventListener('click',()=>document.getElementById('detailModal').style.display='none');document.getElementById('adminReturnToApp')?.addEventListener('click',()=>{window.location.replace('/app')});document.getElementById('adminReturnToAppFromDetail')?.addEventListener('click',()=>{window.location.replace('/app')});document.getElementById('detailModal').addEventListener('click',e=>{if(e.target.id==='detailModal')e.currentTarget.style.display='none'});let adminSwipeStart=null;
 function adminGoBackOneLevel(){
@@ -14809,6 +14809,17 @@ def _delete_listing_channel_messages(row):
         return True
     listing_id = row.get("id")
     listing_status = row.get("status")
+    metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
+    manual_ids = metadata.get("channel_cleanup_manual_ids")
+    if isinstance(manual_ids, list) and manual_ids:
+        pending_ids = {int(x) for x in manual_ids if str(x).isdigit()}
+        blocked_ids = [x for x in normalized_ids if x in pending_ids]
+        if blocked_ids:
+            print("LISTING LIFECYCLE: manual Telegram cleanup still required", {
+                "listing_id": listing_id, "status": listing_status,
+                "message_ids": blocked_ids, "action": "skipped_until_admin_confirmation",
+            })
+            return False
     if not CHANNEL_USERNAME:
         print("LISTING LIFECYCLE: Telegram cleanup blocked", {
             "listing_id": listing_id,
@@ -14831,15 +14842,36 @@ def _delete_listing_channel_messages(row):
             })
             continue
         all_ok = False
-        error_info = {
-            "listing_id": listing_id,
-            "status": listing_status,
-            "message_id": message_id,
-            "channel": CHANNEL_USERNAME,
-            "error_code": result.get("error_code") if isinstance(result, dict) else None,
-            "description": str(description_raw)[:200],
-            "action": "kept_for_retry",
-        }
+        too_old = "message can't be deleted" in description or "message can not be deleted" in description
+        if too_old:
+            manual_ids = metadata.get("channel_cleanup_manual_ids")
+            if not isinstance(manual_ids, list):
+                manual_ids = []
+            if message_id not in [int(x) for x in manual_ids if str(x).isdigit()]:
+                manual_ids.append(message_id)
+            metadata["channel_cleanup_manual_ids"] = manual_ids
+            metadata["channel_cleanup_manual_reason"] = "telegram_message_delete_time_limit"
+            metadata["channel_cleanup_manual_marked_at"] = _utc_now_iso()
+            saved = supabase_request(
+                "PATCH", "listings",
+                params={"id":f"eq.{listing_id}"},
+                payload={"metadata":metadata},
+            )
+            error_info = {
+                "listing_id": listing_id, "status": listing_status,
+                "message_id": message_id, "channel": CHANNEL_USERNAME,
+                "error_code": result.get("error_code") if isinstance(result, dict) else None,
+                "description": str(description_raw)[:200],
+                "action": "manual_cleanup_required" if saved is not None else "manual_cleanup_marker_save_failed",
+            }
+        else:
+            error_info = {
+                "listing_id": listing_id, "status": listing_status,
+                "message_id": message_id, "channel": CHANNEL_USERNAME,
+                "error_code": result.get("error_code") if isinstance(result, dict) else None,
+                "description": str(description_raw)[:200],
+                "action": "kept_for_retry",
+            }
         print("LISTING LIFECYCLE: Telegram delete failed", error_info)
     if all_ok:
         print("LISTING LIFECYCLE: Telegram cleanup complete", {
@@ -14871,6 +14903,51 @@ def _sync_edited_listing_to_channel(row, data):
             })
     except Exception as error:
         print("MINI APP CHANNEL SYNC ERROR:", repr(error))
+
+
+@app.post("/api/admin/listing/<int:listing_id>/confirm-manual-cleanup")
+def mini_app_admin_confirm_manual_cleanup(listing_id):
+    """Finalize expiry only after an administrator manually removes the old channel post."""
+    admin = _mini_app_authenticated_user()
+    if not admin:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(admin):
+        return jsonify({"error":"admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"error":"db_unavailable"}), 503
+    rows = supabase_request("GET", "listings", params={
+        "select":"id,status,metadata,expires_at", "id":f"eq.{int(listing_id)}", "limit":"1"
+    })
+    if rows is None:
+        return jsonify({"error":"listing_lookup_failed"}), 503
+    if not rows:
+        return jsonify({"error":"listing_not_found"}), 404
+    row = rows[0]
+    metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
+    manual_ids = metadata.get("channel_cleanup_manual_ids")
+    if not isinstance(manual_ids, list) or not manual_ids:
+        return jsonify({"error":"manual_cleanup_not_required"}), 409
+    # This endpoint is only called after the admin has manually deleted every listed post.
+    metadata.pop("channel_cleanup_manual_ids", None)
+    metadata.pop("channel_cleanup_manual_reason", None)
+    metadata.pop("channel_cleanup_manual_marked_at", None)
+    # The admin confirms that every ID in this list was manually removed.
+    # Clear the historical Telegram IDs so the later purge does not retry them.
+    metadata.pop("channel_message_ids", None)
+    status = str(row.get("status") or "").lower()
+    payload = {"metadata":metadata}
+    if status == "published" and row.get("expires_at") and str(row.get("expires_at")) <= _utc_now_iso():
+        payload.update({"status":"archived", "channel_url":"", "channel_message_id":None})
+    updated = supabase_request("PATCH", "listings", params={
+        "id":f"eq.{int(listing_id)}", "status":f"eq.{status}"
+    }, payload=payload)
+    if not isinstance(updated, list) or not updated:
+        return jsonify({"error":"db_update_failed"}), 503
+    print("LISTING LIFECYCLE: manual Telegram cleanup confirmed", {
+        "listing_id":int(listing_id), "manually_removed_message_ids":manual_ids,
+        "new_status":payload.get("status", status),
+    })
+    return jsonify({"ok":True,"status":payload.get("status", status)})
 
 
 @app.post("/api/admin/listing/<int:listing_id>/restore")
