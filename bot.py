@@ -7597,7 +7597,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b73f6">
 <title>Madloba Market</title>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
@@ -12087,7 +12087,7 @@ function cardText(x){
 }
 function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
-let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView','sellerView'])if($(id).classList.contains('show'))return id;return 'home'}function setDetailOpenState(open){document.body.classList.toggle('mm-detail-open',!!open);document.documentElement.classList.toggle('mm-detail-open',!!open)}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');setDetailOpenState(true);requestAnimationFrame(()=>requestAnimationFrame(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});$('detailView').scrollIntoView({behavior:'auto',block:'start'});}))}catch(e){toast(t('open_fail'))}}function leaveDetail(){setDetailOpenState(false);const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}if(origin==='sellerView'){openSellerProfile(window.__mmSellerProfileId);return}showHome()}
+let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView','sellerView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');document.body.classList.add('mm-detail-open');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'smooth',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){document.body.classList.remove('mm-detail-open');const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}if(origin==='sellerView'){openSellerProfile(window.__mmSellerProfileId);return}showHome()}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const detailDeal=cardDealLabel(x);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const telegramRaw=String(x.telegram_username||x.telegram||'').trim();const telegram=telegramRaw.replace(/^@/,'').replace(/^https?:\/\/(?:t\.me|telegram\.me)\//i,'').replace(/\/$/,'');const telegramValid=/^[A-Za-z0-9_]{5,32}$/.test(telegram);const telegramHref=telegramValid?`https://t.me/${encodeURIComponent(telegram)}`:'';const channelHref=String(x.channel_post_url||'').trim();const channelValid=/^https:\/\/(?:t\.me|telegram\.me)\//i.test(channelHref);const contactPrimary=[];if(phoneDigits.length>=5)contactPrimary.push(`<a class="contact-btn" href="tel:${esc(phone)}" target="_blank" rel="noopener" aria-label="${esc(t('contact_call'))}">${t('contact_call')}</a>`);const contactActions=`<div class="contact-actions-row"><a class="contact-action contact-action-telegram${telegramValid?'':' is-unavailable'}" ${telegramValid?`href="${esc(telegramHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon telegram-brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" role="img" focusable="false"><defs><linearGradient id="mmTelegramBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2AABEE"/><stop offset="1" stop-color="#229ED9"/></linearGradient></defs><circle cx="16" cy="16" r="16" fill="url(#mmTelegramBlue)"/><path d="M25.4 8.1 22.6 23c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.3L10 16.4l-4.9-1.5c-1.1-.3-1.1-1.1.2-1.6l19.1-7.4c.9-.3 1.6.2 1.3 2.2Z" fill="#fff"/></svg></span><span>Telegram</span></a><a class="contact-action contact-action-channel${channelValid?'':' is-unavailable'}" ${channelValid?`href="${esc(channelHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon">📣</span><span>${state.lang==='en'?'Channel':state.lang==='ka'?'არხი':state.lang==='uk'?'Канал':'Канал'}</span></a><button type="button" class="contact-action contact-action-report" id="mmReportOpen"><span class="contact-action-icon">⚑</span><span>${state.lang==='en'?'Report':state.lang==='ka'?'გასაჩივრება':state.lang==='uk'?'Скарга':'Жалоба'}</span></button></div>`;$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div class="detail-kickers" style="min-width:0;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${detailDeal?`<span class="detail-deal-badge deal-${esc(detailDeal.key)}">${esc(detailDeal.label)}</span>`:''}<div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div>${favButton(x,true)}</div><h1 class="detail-listing-title">${esc(localizeListingText(cardText(x).title||localizedCategory(x.category_name||x.category||'')))}</h1>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${x.seller&&x.seller.id?`<button type="button" class="seller-inline-card" data-seller-open="${esc(x.seller.id)}"><span class="seller-avatar small">${esc((x.seller.name||'S').slice(0,1).toLocaleUpperCase())}</span><span class="seller-inline-main"><strong>${esc(x.seller.name||sellerLabel('unknown'))}</strong><small>${esc(sellerLabel('member'))}</small></span><span class="seller-inline-arrow">›</span></button>`:''}<div class="contacts">${contactPrimary.join('')}${contactActions}</div></div>`;
 const sellerOpen=$('detailContent').querySelector('[data-seller-open]');if(sellerOpen)sellerOpen.onclick=e=>{e.stopPropagation();openSellerProfile(sellerOpen.dataset.sellerOpen)};
 const reportOpen=$('detailContent').querySelector('#mmReportOpen');if(reportOpen)reportOpen.onclick=()=>openListingReport(x);
@@ -13244,87 +13244,6 @@ body.mm-detail-open #detailView #detailContent{
 @media(max-width:390px){#cityMultiBtn{min-width:88px;max-width:96px;font-size:11px}.mm-city-dialog{padding:13px}.mm-city-options{gap:6px}.mm-city-option{font-size:12px;padding:7px}}
 </style>
 
-<style id="madloba-detail-and-cross-platform-zoom-v19">
-/* Authoritative detail state: hide the home header and remove its reserved vertical space. */
-html.mm-detail-open .top, html.mm-detail-open .hero,
-body.mm-detail-open .top, body.mm-detail-open .hero,
-html.mm-detail-open #backBtn, body.mm-detail-open #backBtn {
-  display:none!important; visibility:hidden!important; height:0!important;
-  min-height:0!important; margin:0!important; padding:0!important; border:0!important;
-}
-html.mm-detail-open .wrap, body.mm-detail-open .wrap {
-  padding-top:calc(72px + var(--tg-content-safe-area-inset-top,0px))!important;
-}
-html.mm-detail-open #detailView, body.mm-detail-open #detailView {
-  display:block!important; box-sizing:border-box!important; margin:0!important;
-  padding:0 0 calc(164px + env(safe-area-inset-bottom,0px) + var(--tg-content-safe-area-inset-bottom,0px))!important;
-  scroll-margin-top:0!important;
-}
-html.mm-detail-open #detailView .detail-top, body.mm-detail-open #detailView .detail-top {
-  position:relative!important; display:flex!important; align-items:center!important;
-  justify-content:center!important; width:100%!important; height:44px!important;
-  min-height:44px!important; margin:0 0 8px!important; padding:0!important;
-}
-html.mm-detail-open #detailView .detail-top .detail-back,
-body.mm-detail-open #detailView .detail-top .detail-back {
-  position:absolute!important; left:0!important; top:50%!important;
-  transform:translateY(-50%)!important; z-index:2!important;
-  min-height:40px!important; margin:0!important;
-}
-html.mm-detail-open #detailView .detail-top .section-head,
-body.mm-detail-open #detailView .detail-top .section-head {
-  position:static!important; display:flex!important; align-items:center!important;
-  justify-content:center!important; width:100%!important; max-width:100%!important;
-  min-width:0!important; margin:0!important; padding:0!important;
-}
-html.mm-detail-open #detailView .detail-top .section-head h2,
-body.mm-detail-open #detailView .detail-top .section-head h2 {
-  margin:0!important; text-align:center!important; white-space:nowrap!important;
-  font-size:20px!important; line-height:1.15!important;
-}
-html.mm-detail-open #detailView #detailContent,
-body.mm-detail-open #detailView #detailContent { margin:0!important; padding:0!important; }
-
-/* Prevent input-focus auto-zoom and pinch zoom on iOS Safari/WKWebView and Android WebView. */
-html, body, #app { -webkit-text-size-adjust:100%!important; touch-action:pan-x pan-y!important; }
-input, select, textarea, [contenteditable="true"] {
-  font-size:16px!important; -webkit-text-size-adjust:100%!important;
-  touch-action:pan-x pan-y!important;
-}
-button, a, [role="button"] { touch-action:manipulation!important; }
-@media(max-width:390px) {
-  html.mm-detail-open .wrap, body.mm-detail-open .wrap {
-    padding-top:calc(68px + var(--tg-content-safe-area-inset-top,0px))!important;
-  }
-  html.mm-detail-open #detailView .detail-top, body.mm-detail-open #detailView .detail-top {
-    margin-bottom:6px!important;
-  }
-}
-</style>
-<script id="madloba-cross-platform-zoom-lock-v19">
-(()=>{
-  const viewport=document.querySelector('meta[name="viewport"]');
-  const locked='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
-  const lock=()=>{if(viewport&&viewport.content!==locked)viewport.setAttribute('content',locked);};
-  const prevent=e=>{if(e.cancelable)e.preventDefault();};
-  ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,prevent,{capture:true,passive:false}));
-  document.addEventListener('touchstart',e=>{if(e.touches&&e.touches.length>1)prevent(e);},{capture:true,passive:false});
-  document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)prevent(e);},{capture:true,passive:false});
-  document.addEventListener('wheel',e=>{if(e.ctrlKey)prevent(e);},{capture:true,passive:false});
-  document.addEventListener('focusin',e=>{if(e.target&&e.target.matches('input,select,textarea,[contenteditable="true"]'))lock();},true);
-  document.addEventListener('focusout',e=>{if(e.target&&e.target.matches('input,select,textarea,[contenteditable="true"]')){lock();requestAnimationFrame(lock);}},true);
-  lock();
-})();
-</script>
-<style id="madloba-detail-header-position-final-v20">
-/* Narrow fix: remove only the accumulated top gap and center the title on the viewport axis. */
-#detailView{padding-top:0!important;margin-top:-20px!important;scroll-margin-top:0!important;}
-#detailView .detail-top{position:relative!important;display:block!important;box-sizing:border-box!important;width:100%!important;height:44px!important;min-height:44px!important;margin:0 0 10px!important;padding:0!important;}
-#detailView .detail-top .detail-back{position:absolute!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2!important;margin:0!important;}
-#detailView .detail-top .section-head{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;display:block!important;width:max-content!important;max-width:calc(100% - 150px)!important;min-width:0!important;margin:0!important;padding:0!important;text-align:center!important;}
-#detailView .detail-top .section-head h2{margin:0!important;text-align:center!important;white-space:nowrap!important;line-height:1.15!important;}
-@media(max-width:390px){#detailView{margin-top:-20px!important;}#detailView .detail-top{height:42px!important;min-height:42px!important;margin-bottom:9px!important;}}
-</style>
 </body></html>'''
 
 
@@ -13845,6 +13764,54 @@ body{padding-top:calc(20px + env(safe-area-inset-top,0px) + var(--tg-content-saf
 #content>.admin-compact-toggle .admin-compact-meta b{font-size:13px;font-weight:750}
 #content>#topListingsPanel>.card,#content>#adminUsersPanel>.card,#content>#adminListingsPanel>.card{margin-top:0}
 @media(max-width:520px){#content>.admin-compact-toggle{min-height:46px;padding:11px 13px;font-size:13px;margin:12px 0 7px}}
+</style>
+
+<style id="madloba-detail-header-final-targeted-v1">
+/* Only adjust the listing detail header row. Keep the existing home header, hero,
+   listing card, navigation and all application behavior untouched. */
+#detailView{
+  padding-top:18px!important;
+  scroll-margin-top:0!important;
+}
+#detailView .detail-top{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  min-height:44px!important;
+  height:44px!important;
+  margin:0 0 10px!important;
+  padding:0!important;
+  gap:0!important;
+  box-sizing:border-box!important;
+}
+#detailView .detail-top .detail-back{
+  position:relative!important;
+  z-index:2!important;
+  flex:0 0 auto!important;
+  margin:0!important;
+}
+#detailView .detail-top .section-head{
+  position:absolute!important;
+  z-index:1!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  display:block!important;
+  width:max-content!important;
+  max-width:calc(100% - 150px)!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:center!important;
+}
+#detailView .detail-top .section-head h2{
+  margin:0!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+}
+#detailView #detailContent{margin-top:0!important;}
 </style>
 </head><body><main class="wrap"><div class="head"><h1>MADLOBA MARKET</h1><div class="muted">Административная панель · статистика</div><button type="button" class="admin-return-app" id="adminReturnToApp">← В приложение</button></div><div id="status" class="status">Проверяем доступ…</div><div id="content" hidden><div class="section">Пользователи и объявления</div><div class="grid" id="mainStats"></div><div class="section">Посещения за период</div><div class="grid" id="visitStats"></div><div class="section">Активность за период</div><div class="card"><label for="analyticsPeriod" class="muted">Период статистики</label><select id="analyticsPeriod" style="display:block;width:100%;margin:8px 0 14px;padding:12px;border:1px solid #dce5f0;border-radius:10px;background:white;color:#142033;font-size:15px"><option value="7">Последние 7 дней</option><option value="30">Последние 30 дней</option><option value="90">Последние 90 дней</option></select><div class="muted" style="margin-bottom:12px">Открытия приложения и просмотры объявлений по дням (данные из аналитики)</div><div id="activityChart" role="img" aria-label="График активности за выбранный период"></div><div class="muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px"><span>🔵 Открытия приложения</span><span>🟩 Просмотры объявлений</span></div></div><div class="section">Будущие платные услуги</div><div class="grid" id="orderStats"></div><div class="muted">Оплата не подключена. Заказы здесь только учитываются, автоматическое списание средств отсутствует.</div><button type="button" class="admin-open-list admin-compact-toggle" id="topListingsToggle" aria-expanded="false"><span>Топ-10 объявлений по просмотрам</span><span class="admin-compact-meta"><b>10</b><span id="topListingsChevron" aria-hidden="true">⌄</span></span></button><div id="topListingsPanel" hidden><div id="topListings" class="card">Загружаем рейтинг…</div></div><button type="button" class="admin-open-list admin-compact-toggle" id="adminUsersToggle" aria-expanded="false"><span>Последние пользователи</span><span class="admin-compact-meta"><b id="adminUsersCount">…</b><span id="adminUsersChevron" aria-hidden="true">⌄</span></span></button><div id="adminUsersPanel" hidden><div id="adminUsers" class="card">Загружаем пользователей…</div></div><button type="button" class="admin-open-list admin-compact-toggle" id="adminListingsToggle" aria-expanded="false"><span>Последние объявления</span><span class="admin-compact-meta"><b id="adminListingsCount">…</b><span id="adminListingsChevron" aria-hidden="true">⌄</span></span></button><div id="adminListingsPanel" hidden><div id="adminListings" class="card">Загружаем объявления…</div></div><button type="button" class="admin-open-list" id="adminArchivedToggle" style="margin-top:10px">Архивные объявления</button><div id="adminArchivedListings" class="card" style="display:none;margin-top:10px"></div><button type="button" id="adminModerationToggle" class="admin-open-list" aria-expanded="false" style="display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;margin:18px 0 8px;padding:13px 15px"><span>Очередь модерации Telegram</span><span style="display:flex;align-items:center;gap:10px"><b id="adminModerationCount" style="font-size:13px;color:#64748b">Загрузка…</b><span id="adminModerationChevron" aria-hidden="true">⌄</span></span></button><div id="adminModerationPanel" class="card" hidden><div class="muted" style="margin-bottom:10px">Выбери заявку, чтобы открыть подробности. Решения об одобрении и отклонении по-прежнему принимаются здесь.</div><div id="adminModerationQueue">Загружаем очередь…</div><div class="admin-browser-pager" style="margin-top:12px"><button type="button" id="adminModerationPrev">← Назад</button><span id="adminModerationPage">Страница 1</span><button type="button" id="adminModerationNext">Далее →</button></div><button type="button" class="admin-open-list" id="adminModerationRefresh">Обновить очередь</button><button type="button" id="adminModerationClose" style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid #dce5f0;border-radius:12px;background:#f4f7fb;color:#52647b;font-weight:700">Свернуть очередь ↑</button></div><div class="section">Жалобы на объявления</div><div id="adminReports" class="card">Загружаем жалобы…</div><button type="button" class="admin-open-list" id="adminReportsHistoryToggle" style="margin-top:10px">История завершённых жалоб</button><div id="adminReportsHistory" class="card" style="display:none;margin-top:10px"></div><div id="detailModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:101;padding:calc(18px + env(safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px)) 18px 18px;overflow:auto"><div style="max-width:680px;margin:12px auto;background:white;border-radius:18px;padding:18px"><button type="button" class="admin-detail-return" id="adminReturnToAppFromDetail">← В приложение</button><button id="closeDetail" style="float:right;border:0;border-radius:10px;padding:9px 12px;background:#eef3f9;font-weight:700">Закрыть ✕</button><div id="detailContent" style="padding-top:30px;overflow-wrap:anywhere"></div></div></div><div id="adminBrowseModal" style="display:none;position:fixed;inset:0;background:#14203399;z-index:100;padding:12px;overflow:auto"><div class="admin-browser"><div class="admin-browser-head"><h2 id="adminBrowseTitle">Список</h2><button type="button" id="closeAdminBrowse">Закрыть ✕</button></div><div class="admin-browser-search"><input id="adminBrowseQuery" type="search" autocomplete="off" placeholder="Поиск по ID, имени или названию"><button type="button" id="adminBrowseSearch">Найти</button></div><div id="adminBrowseMeta" class="muted" style="margin:10px 0">Загрузка…</div><div id="adminBrowseItems" class="admin-browser-items">Загрузка…</div><div class="admin-browser-pager"><button type="button" id="adminBrowsePrev">← Назад</button><span id="adminBrowsePage">Страница 1</span><button type="button" id="adminBrowseNext">Далее →</button></div></div></div><button class="refresh" onclick="loadStats()">Обновить статистику</button></div></main><script>const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();async function loadStats(){const status=document.getElementById('status');status.textContent='Загружаем статистику…';const initData=tg?.initData||'';try{const period=document.getElementById('analyticsPeriod')?.value||'7';const r=await fetch('/api/admin/stats?days='+encodeURIComponent(period),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(r.status===401||r.status===403){status.textContent='Доступ закрыт. Открой эту страницу внутри Telegram под аккаунтом администратора.';return}if(!r.ok)throw new Error(d.error||'Ошибка загрузки');status.hidden=true;document.getElementById('content').hidden=false;const metric=(label,value)=>`<div class="metric"><span>${label}</span><b>${Number(value||0).toLocaleString('ru-RU')}</b></div>`;document.getElementById('mainStats').innerHTML=metric('Всего пользователей',d.users_total)+metric('Всего объявлений',d.listings_total)+metric('Активные объявления',d.listings_active)+metric('На модерации',d.listings_pending)+metric('Другие статусы',d.listings_other);document.getElementById('visitStats').innerHTML=metric('Открытия сегодня',d.opens_today)+metric('Открытия за '+(d.period_days||7)+' дней',d.opens_period)+metric('Уникальные за '+(d.period_days||7)+' дней',d.unique_visitors_period)+metric('Просмотры сегодня',d.listing_views_today)+metric('Просмотры за '+(d.period_days||7)+' дней',d.listing_views_period);const chart=document.getElementById('activityChart');const rawDays=Array.isArray(d.activity_by_day)?d.activity_by_day:[];const selectedPeriod=Number(d.period_days||period);const bucketSize=selectedPeriod===90?10:(selectedPeriod===30?5:1);const days=[];for(let i=0;i<rawDays.length;i+=bucketSize){const chunk=rawDays.slice(i,i+bucketSize);if(!chunk.length)continue;days.push({date:chunk[0]?.date||'',endDate:chunk[chunk.length-1]?.date||chunk[0]?.date||'',opens:chunk.reduce((s,x)=>s+Number(x.opens||0),0),views:chunk.reduce((s,x)=>s+Number(x.views||0),0)});}const max=Math.max(1,...days.flatMap(x=>[Number(x.opens||0),Number(x.views||0)]));const dateLabel=(value)=>{if(!value)return '';const dt=new Date(value+'T12:00:00Z');return Number.isNaN(dt.getTime())?'':dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',timeZone:'UTC'});};chart.innerHTML=days.length?`<div style="width:100%;overflow:hidden"><div style="display:grid;grid-template-columns:repeat(${days.length},minmax(0,1fr));gap:${selectedPeriod===7?8:4}px;align-items:end;height:205px;padding:4px 0 0">${days.map((day,i)=>{const a=Number(day.opens||0),v=Number(day.views||0);const ah=a?Math.max(3,Math.round(a/max*112)):0,vh=v?Math.max(3,Math.round(v/max*112)):0;const label=bucketSize===1?dateLabel(day.date):(dateLabel(day.date)+'–'+dateLabel(day.endDate));return `<div style="display:flex;flex-direction:column;justify-content:end;align-items:center;height:100%;min-width:0"><div style="font-size:10px;color:#68788d;margin-bottom:4px;text-align:center;min-height:12px">${a+v||''}</div><div style="height:116px;width:100%;display:flex;align-items:end;justify-content:center;gap:2px"><div title="${label} · Открытия приложения: ${a}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${ah}px;max-height:112px;border-radius:4px 4px 0 0;background:#1478f5"></div><div title="${label} · Просмотры объявлений: ${v}" style="width:${selectedPeriod===7? '13px':'min(18px,35%)'};height:${vh}px;max-height:112px;border-radius:4px 4px 0 0;background:#16a36a"></div></div><div style="font-size:${selectedPeriod===90?'9px':'10px'};line-height:1.2;color:#68788d;margin-top:7px;text-align:center;overflow-wrap:anywhere;min-height:24px">${label}</div></div>`}).join('')}</div></div>`:'<div class="muted">Пока нет данных за этот период</div>';const topBox=document.getElementById('topListings');const top=Array.isArray(d.top_listings)?d.top_listings:[];topBox.innerHTML=top.length?top.map((x,i)=>`<button type="button" data-admin-listing="${esc(x.id)}" style="display:block;text-align:left;width:100%;padding:12px 0;border:0;border-bottom:1px solid #e7edf5;background:white;color:#142033;cursor:pointer"><b>${i+1}. #${esc(x.id)} · ${esc(x.title||'Без названия')}</b><div class="muted">${Number(x.views||0).toLocaleString('ru-RU')} просмотров · ${esc(x.status||'—')} · ${esc(x.price||'')} ${esc(x.currency||'')}</div><div class="muted">Нажми для подробностей ↗</div></button>`).join(''):'<div class="muted">Пока нет просмотров объявлений за выбранный период</div>';topBox.querySelectorAll('[data-admin-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.adminListing,initData)));document.getElementById('orderStats').innerHTML=metric('Всего заказов',d.orders_total)+metric('Ожидают оплаты',d.orders_pending)+metric('Отмечены оплаченными',d.orders_paid);if(!d.analytics_available){const n=document.createElement('div');n.className='status';n.textContent='Таблица статистики пока недоступна. Проверь, что SQL выполнен в том же проекте Supabase.';document.getElementById('content').prepend(n)} await loadAdminLists(initData); await loadAdminReports(initData,'active'); initAdminReportsHistory(initData); await loadAdminModerationQueue(initData,0); }catch(e){status.textContent='Не удалось загрузить данные. Проверь соединение с Supabase и открой панель внутри Telegram.'}}async function loadAdminReports(initData,view='active'){
  const box=document.getElementById(view==='history'?'adminReportsHistory':'adminReports');if(!box)return;
