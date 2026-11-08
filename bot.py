@@ -7597,7 +7597,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b73f6">
 <title>Madloba Market</title>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
@@ -13244,6 +13244,33 @@ body.mm-detail-open #detailView #detailContent{
 @media(max-width:390px){#cityMultiBtn{min-width:88px;max-width:96px;font-size:11px}.mm-city-dialog{padding:13px}.mm-city-options{gap:6px}.mm-city-option{font-size:12px;padding:7px}}
 </style>
 
+<style id="madloba-detail-focus-and-cross-platform-zoom-v17">
+/* Detail view: remove the hidden home header's reserved top space and center the title. */
+body.mm-detail-open .top,
+body.mm-detail-open .hero{display:none!important}
+body.mm-detail-open .wrap{padding-top:calc(var(--tg-content-safe-area-inset-top,0px) + 10px)!important;}
+body.mm-detail-open #detailView{padding-top:0!important;margin-top:0!important;}
+body.mm-detail-open #detailView .detail-top{
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,auto) minmax(0,1fr)!important;
+  align-items:center!important;gap:8px!important;width:100%!important;
+  min-height:42px!important;margin:0 0 10px!important;padding:0!important;
+}
+body.mm-detail-open #detailView .detail-top .detail-back{grid-column:1!important;justify-self:start!important;}
+body.mm-detail-open #detailView .detail-top .section-head{grid-column:2!important;justify-self:center!important;margin:0!important;min-width:max-content!important;}
+body.mm-detail-open #detailView .detail-top .section-head h2{margin:0!important;text-align:center!important;white-space:nowrap!important;}
+/* Prevent focus-triggered viewport enlargement on iOS and Android. */
+#app input,#app select,#app textarea,#app [contenteditable="true"],
+.filter-field input,.filter-field select,.filter-field textarea{font-size:16px!important;}
+html,body{touch-action:pan-x pan-y!important;}
+</style>
+<script id="madloba-disable-gesture-zoom-v17">
+(()=>{
+  const stop=e=>{if(e.cancelable)e.preventDefault();};
+  ['gesturestart','gesturechange','gestureend'].forEach(type=>document.addEventListener(type,stop,{passive:false,capture:true}));
+  document.addEventListener('touchstart',e=>{if(e.touches&&e.touches.length>1)stop(e);},{passive:false,capture:true});
+  document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)stop(e);},{passive:false,capture:true});
+})();
+</script>
 </body></html>'''
 
 
