@@ -7597,7 +7597,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b73f6">
 <title>Madloba Market</title>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
@@ -12087,7 +12087,7 @@ function cardText(x){
 }
 function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
-let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView','sellerView'])if($(id).classList.contains('show'))return id;return 'home'}function setDetailOpenState(open){document.body.classList.toggle('mm-detail-open',!!open);document.documentElement.classList.toggle('mm-detail-open',!!open)}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');setDetailOpenState(true);requestAnimationFrame(()=>requestAnimationFrame(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});$('detailView').scrollIntoView({behavior:'auto',block:'start'});}))}catch(e){toast(t('open_fail'))}}function leaveDetail(){setDetailOpenState(false);const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}if(origin==='sellerView'){openSellerProfile(window.__mmSellerProfileId);return}showHome()}
+let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView','sellerView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const r=await apiFetch('/api/listing/'+encodeURIComponent(id));if(!r.ok)throw 0;const x=await r.json();currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');document.body.classList.add('mm-detail-open');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'smooth',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){document.body.classList.remove('mm-detail-open');const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}if(origin==='sellerView'){openSellerProfile(window.__mmSellerProfileId);return}showHome()}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const detailDeal=cardDealLabel(x);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const telegramRaw=String(x.telegram_username||x.telegram||'').trim();const telegram=telegramRaw.replace(/^@/,'').replace(/^https?:\/\/(?:t\.me|telegram\.me)\//i,'').replace(/\/$/,'');const telegramValid=/^[A-Za-z0-9_]{5,32}$/.test(telegram);const telegramHref=telegramValid?`https://t.me/${encodeURIComponent(telegram)}`:'';const channelHref=String(x.channel_post_url||'').trim();const channelValid=/^https:\/\/(?:t\.me|telegram\.me)\//i.test(channelHref);const contactPrimary=[];if(phoneDigits.length>=5)contactPrimary.push(`<a class="contact-btn" href="tel:${esc(phone)}" target="_blank" rel="noopener" aria-label="${esc(t('contact_call'))}">${t('contact_call')}</a>`);const contactActions=`<div class="contact-actions-row"><a class="contact-action contact-action-telegram${telegramValid?'':' is-unavailable'}" ${telegramValid?`href="${esc(telegramHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon telegram-brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" role="img" focusable="false"><defs><linearGradient id="mmTelegramBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2AABEE"/><stop offset="1" stop-color="#229ED9"/></linearGradient></defs><circle cx="16" cy="16" r="16" fill="url(#mmTelegramBlue)"/><path d="M25.4 8.1 22.6 23c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.3L10 16.4l-4.9-1.5c-1.1-.3-1.1-1.1.2-1.6l19.1-7.4c.9-.3 1.6.2 1.3 2.2Z" fill="#fff"/></svg></span><span>Telegram</span></a><a class="contact-action contact-action-channel${channelValid?'':' is-unavailable'}" ${channelValid?`href="${esc(channelHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon">📣</span><span>${state.lang==='en'?'Channel':state.lang==='ka'?'არხი':state.lang==='uk'?'Канал':'Канал'}</span></a><button type="button" class="contact-action contact-action-report" id="mmReportOpen"><span class="contact-action-icon">⚑</span><span>${state.lang==='en'?'Report':state.lang==='ka'?'გასაჩივრება':state.lang==='uk'?'Скарга':'Жалоба'}</span></button></div>`;$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="/media/${encodeURIComponent(x.id)}/0" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div class="detail-kickers" style="min-width:0;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${detailDeal?`<span class="detail-deal-badge deal-${esc(detailDeal.key)}">${esc(detailDeal.label)}</span>`:''}<div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div>${favButton(x,true)}</div><h1 class="detail-listing-title">${esc(localizeListingText(cardText(x).title||localizedCategory(x.category_name||x.category||'')))}</h1>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${x.seller&&x.seller.id?`<button type="button" class="seller-inline-card" data-seller-open="${esc(x.seller.id)}"><span class="seller-avatar small">${esc((x.seller.name||'S').slice(0,1).toLocaleUpperCase())}</span><span class="seller-inline-main"><strong>${esc(x.seller.name||sellerLabel('unknown'))}</strong><small>${esc(sellerLabel('member'))}</small></span><span class="seller-inline-arrow">›</span></button>`:''}<div class="contacts">${contactPrimary.join('')}${contactActions}</div></div>`;
 const sellerOpen=$('detailContent').querySelector('[data-seller-open]');if(sellerOpen)sellerOpen.onclick=e=>{e.stopPropagation();openSellerProfile(sellerOpen.dataset.sellerOpen)};
 const reportOpen=$('detailContent').querySelector('#mmReportOpen');if(reportOpen)reportOpen.onclick=()=>openListingReport(x);
@@ -13244,78 +13244,6 @@ body.mm-detail-open #detailView #detailContent{
 @media(max-width:390px){#cityMultiBtn{min-width:88px;max-width:96px;font-size:11px}.mm-city-dialog{padding:13px}.mm-city-options{gap:6px}.mm-city-option{font-size:12px;padding:7px}}
 </style>
 
-<style id="madloba-detail-and-cross-platform-zoom-v19">
-/* Authoritative detail state: hide the home header and remove its reserved vertical space. */
-html.mm-detail-open .top, html.mm-detail-open .hero,
-body.mm-detail-open .top, body.mm-detail-open .hero,
-html.mm-detail-open #backBtn, body.mm-detail-open #backBtn {
-  display:none!important; visibility:hidden!important; height:0!important;
-  min-height:0!important; margin:0!important; padding:0!important; border:0!important;
-}
-html.mm-detail-open .wrap, body.mm-detail-open .wrap {
-  padding-top:calc(72px + var(--tg-content-safe-area-inset-top,0px))!important;
-}
-html.mm-detail-open #detailView, body.mm-detail-open #detailView {
-  display:block!important; box-sizing:border-box!important; margin:0!important;
-  padding:0 0 calc(164px + env(safe-area-inset-bottom,0px) + var(--tg-content-safe-area-inset-bottom,0px))!important;
-  scroll-margin-top:0!important;
-}
-html.mm-detail-open #detailView .detail-top, body.mm-detail-open #detailView .detail-top {
-  position:relative!important; display:flex!important; align-items:center!important;
-  justify-content:center!important; width:100%!important; height:44px!important;
-  min-height:44px!important; margin:0 0 8px!important; padding:0!important;
-}
-html.mm-detail-open #detailView .detail-top .detail-back,
-body.mm-detail-open #detailView .detail-top .detail-back {
-  position:absolute!important; left:0!important; top:50%!important;
-  transform:translateY(-50%)!important; z-index:2!important;
-  min-height:40px!important; margin:0!important;
-}
-html.mm-detail-open #detailView .detail-top .section-head,
-body.mm-detail-open #detailView .detail-top .section-head {
-  position:static!important; display:flex!important; align-items:center!important;
-  justify-content:center!important; width:100%!important; max-width:100%!important;
-  min-width:0!important; margin:0!important; padding:0!important;
-}
-html.mm-detail-open #detailView .detail-top .section-head h2,
-body.mm-detail-open #detailView .detail-top .section-head h2 {
-  margin:0!important; text-align:center!important; white-space:nowrap!important;
-  font-size:20px!important; line-height:1.15!important;
-}
-html.mm-detail-open #detailView #detailContent,
-body.mm-detail-open #detailView #detailContent { margin:0!important; padding:0!important; }
-
-/* Prevent input-focus auto-zoom and pinch zoom on iOS Safari/WKWebView and Android WebView. */
-html, body, #app { -webkit-text-size-adjust:100%!important; touch-action:pan-x pan-y!important; }
-input, select, textarea, [contenteditable="true"] {
-  font-size:16px!important; -webkit-text-size-adjust:100%!important;
-  touch-action:pan-x pan-y!important;
-}
-button, a, [role="button"] { touch-action:manipulation!important; }
-@media(max-width:390px) {
-  html.mm-detail-open .wrap, body.mm-detail-open .wrap {
-    padding-top:calc(68px + var(--tg-content-safe-area-inset-top,0px))!important;
-  }
-  html.mm-detail-open #detailView .detail-top, body.mm-detail-open #detailView .detail-top {
-    margin-bottom:6px!important;
-  }
-}
-</style>
-<script id="madloba-cross-platform-zoom-lock-v19">
-(()=>{
-  const viewport=document.querySelector('meta[name="viewport"]');
-  const locked='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
-  const lock=()=>{if(viewport&&viewport.content!==locked)viewport.setAttribute('content',locked);};
-  const prevent=e=>{if(e.cancelable)e.preventDefault();};
-  ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,prevent,{capture:true,passive:false}));
-  document.addEventListener('touchstart',e=>{if(e.touches&&e.touches.length>1)prevent(e);},{capture:true,passive:false});
-  document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)prevent(e);},{capture:true,passive:false});
-  document.addEventListener('wheel',e=>{if(e.ctrlKey)prevent(e);},{capture:true,passive:false});
-  document.addEventListener('focusin',e=>{if(e.target&&e.target.matches('input,select,textarea,[contenteditable="true"]'))lock();},true);
-  document.addEventListener('focusout',e=>{if(e.target&&e.target.matches('input,select,textarea,[contenteditable="true"]')){lock();requestAnimationFrame(lock);}},true);
-  lock();
-})();
-</script>
 </body></html>'''
 
 
