@@ -57,6 +57,9 @@ MAX_PHOTOS = 8
 
 
 app = Flask(__name__)
+# Reject oversized inbound HTTP bodies before route handlers parse them.
+# Listing photos are stored as Telegram file IDs, not multipart uploads.
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 # Reuse outbound HTTP connections instead of opening a new TCP/TLS connection
 # for every Supabase/Telegram request. Automatic retries are restricted to
