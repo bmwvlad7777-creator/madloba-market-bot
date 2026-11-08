@@ -14968,28 +14968,30 @@ def _delete_listing_channel_messages(row):
 
 
 def _sync_edited_listing_to_channel(row, data):
-    """Обновляет текст опубликованного объявления в Telegram, когда это возможно."""
+    """Обновляет текст Telegram-поста; False означает, что синхронизацию надо повторить."""
     if not CHANNEL_USERNAME or not row.get("channel_message_id"):
-        return
+        return True
     try:
         text_value = build_listing(data)
         photos = data.get("photos") or []
         if photos:
-            api("editMessageCaption", {
+            result = api("editMessageCaption", {
                 "chat_id": CHANNEL_USERNAME,
                 "message_id": row.get("channel_message_id"),
                 "caption": text_value,
                 "parse_mode": "HTML",
             })
         else:
-            api("editMessageText", {
+            result = api("editMessageText", {
                 "chat_id": CHANNEL_USERNAME,
                 "message_id": row.get("channel_message_id"),
                 "text": text_value,
                 "parse_mode": "HTML",
             })
+        return isinstance(result, dict) and result.get("ok") is True
     except Exception as error:
         print("MINI APP CHANNEL SYNC ERROR:", repr(error))
+        return False
 
 
 @app.post("/api/admin/listing/<int:listing_id>/confirm-manual-cleanup")
@@ -15279,8 +15281,9 @@ def mini_app_update_listing(listing_id):
             params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
             payload={"metadata": metadata},
         )
-        if metadata_result is None:
-            print("MINI APP: metadata update skipped after successful core update")
+        if metadata_result is None or not isinstance(metadata_result, list) or not metadata_result:
+            print("MINI APP: metadata update failed after successful core update; retry required", listing_id)
+            return jsonify({"error":"metadata_update_failed_retry"}), 503
 
     # Синхронизируем уже опубликованный текст с каналом.
     if str(row.get("status") or "").lower() == "published":
@@ -15298,7 +15301,9 @@ def mini_app_update_listing(listing_id):
         edited["telegram"] = telegram
         edited["currency"] = currency
         edited["price"] = raw_price
-        _sync_edited_listing_to_channel(row, edited)
+        if not _sync_edited_listing_to_channel(row, edited):
+            print("MINI APP: listing saved but Telegram channel sync failed; retry required", listing_id)
+            return jsonify({"error":"channel_sync_failed_retry"}), 503
 
     return jsonify({"ok":True})
 
@@ -15445,7 +15450,10 @@ def mini_app_republish_listing(listing_id):
     photo_rows = supabase_request(
         "GET", "listing_photos",
         params={"select":"photo_url,sort_order", "listing_id":f"eq.{int(listing_id)}", "order":"sort_order.asc"},
-    ) or []
+    )
+    if photo_rows is None:
+        _release_republish_lock()
+        return jsonify({"error":"photos_lookup_failed_retry"}), 503
     data["photos"] = [str(x.get("photo_url")) for x in photo_rows if x.get("photo_url")]
 
     try:
@@ -15505,6 +15513,8 @@ def mini_app_delete_listing(listing_id):
         "listing_photos",
         params={"listing_id":f"eq.{listing_id}"},
     )
+    if photos_deleted is None:
+        return jsonify({"error":"photo_records_delete_failed_retry"}), 503
     deleted = supabase_request(
         "DELETE",
         "listings",
