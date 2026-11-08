@@ -228,6 +228,28 @@ def supabase_request(method, path, params=None, payload=None):
 
 
 
+def _record_listing_status_change(listing_id, old_status, new_status, reason, actor_type="system", actor_id=None):
+    """Append an immutable listing lifecycle event; never block the main action on audit failure."""
+    old_value = str(old_status or "").strip().lower() or None
+    new_value = str(new_status or "").strip().lower()
+    if not listing_id or not new_value or old_value == new_value:
+        return False
+    payload = {
+        "listing_id": int(listing_id),
+        "old_status": old_value,
+        "new_status": new_value,
+        "reason": str(reason or "unspecified")[:120],
+        "actor_type": str(actor_type or "system")[:40],
+        "actor_id": str(actor_id)[:120] if actor_id not in (None, "") else None,
+    }
+    result = supabase_request("POST", "mm_listing_status_history", payload=payload)
+    if not isinstance(result, list) or not result:
+        print("LISTING STATUS HISTORY WRITE FAILED:", {"listing_id": int(listing_id), "old_status": old_value, "new_status": new_value, "reason": payload["reason"]})
+        return False
+    return True
+
+
+
 # ============================================================
 # УСТОЙЧИВОЕ ХРАНЕНИЕ СОСТОЯНИЯ БОТА В SUPABASE
 # Требуется таблица public.mm_bot_runtime_state из SQL-миграции.
@@ -1131,6 +1153,7 @@ def save_listing_to_supabase(data, publish_result, user_chat_id=None):
             supabase_request("DELETE", "listings", params={"id": f"eq.{listing_id}"})
             return None
 
+    _record_listing_status_change(listing_id, None, "published", "initial_publication_after_moderation", "system")
     return _row_to_listing({**row, "listing_photos": photos})
 
 
@@ -14501,6 +14524,7 @@ def mini_app_admin_unpublish_listing(listing_id):
             "error":"db_update_failed",
             "message":"Пост удалён из Telegram, но статус в каталоге не обновлён. Повторное действие безопасно."
         }), 503
+    _record_listing_status_change(listing_id, status, "archived", "admin_unpublish", "admin", user.get("id") or user.get("telegram_id") or user.get("user_id"))
     load_supabase_published_listings()
     return jsonify({"ok":True,"status":"archived"})
 
@@ -14623,6 +14647,7 @@ def mini_app_admin_report_action(report_id):
             )
             if not isinstance(hidden, list) or not hidden:
                 return jsonify({"ok":False,"error":"listing_hide_failed","message":"Публикация удалена из Telegram, но статус объявления не обновлён. Повтори действие."}), 503
+            _record_listing_status_change(listing_id, listing_status, "archived", "admin_hide_after_report", "admin", admin.get("id") or admin.get("telegram_id") or admin.get("user_id"))
         elif listing_status != "archived":
             return jsonify({"ok":False,"error":"listing_not_published","status":listing_status}), 409
 
@@ -14973,6 +14998,8 @@ def mini_app_admin_confirm_manual_cleanup(listing_id):
     }, payload=payload)
     if not isinstance(updated, list) or not updated:
         return jsonify({"error":"db_update_failed"}), 503
+    if payload.get("status") != status:
+        _record_listing_status_change(listing_id, status, payload.get("status"), "expiry_manual_telegram_cleanup_confirmed", "admin", admin.get("id") or admin.get("telegram_id") or admin.get("user_id"))
     print("LISTING LIFECYCLE: manual Telegram cleanup confirmed", {
         "listing_id":int(listing_id), "manually_removed_message_ids":manual_ids,
         "new_status":payload.get("status", status),
@@ -15101,6 +15128,7 @@ def mini_app_admin_restore_listing(listing_id):
         release_lock()
         return jsonify({"error":"db_update_failed"}), 503
 
+    _record_listing_status_change(listing_id, "archived", "published", "admin_restore", "admin", admin.get("id") or admin.get("telegram_id") or admin.get("user_id"))
     load_supabase_published_listings()
     return jsonify({"ok":True,"status":"published","channel_url":channel_url})
 
@@ -15268,6 +15296,7 @@ def mini_app_unpublish_listing(listing_id):
     )
     if updated is None:
         return jsonify({"error":"db_update_failed"}), 503
+    _record_listing_status_change(listing_id, status, "archived", "owner_unpublish", "owner", user.get("id") or user.get("telegram_id") or user.get("user_id"))
     return jsonify({"ok":True})
 
 
@@ -15428,6 +15457,7 @@ def mini_app_republish_listing(listing_id):
         _release_republish_lock()
         return jsonify({"error":"db_update_failed"}), 503
 
+    _record_listing_status_change(listing_id, "archived", "published", "owner_republish", "owner", user.get("id") or user.get("telegram_id") or user.get("user_id"))
     load_supabase_published_listings()
     return jsonify({"ok":True, "channel_url":channel_url})
 
@@ -15455,6 +15485,8 @@ def mini_app_delete_listing(listing_id):
     )
     if deleted is None:
         return jsonify({"error":"db_delete_failed"}), 503
+    if isinstance(deleted, list) and deleted:
+        _record_listing_status_change(listing_id, row.get("status"), "deleted", "owner_permanent_delete", "owner", user.get("id") or user.get("telegram_id") or user.get("user_id"))
     return jsonify({"ok":True})
 
 
@@ -16897,7 +16929,8 @@ def _archive_expired_listings(now_iso):
             params={"id":f"eq.{row.get('id')}", "status":"eq.published", "expires_at":f"lte.{now_iso}"},
             payload={"status":"archived", "channel_url":"", "channel_message_id":None},
         )
-        if updated is not None:
+        if isinstance(updated, list) and updated:
+            _record_listing_status_change(row.get("id"), row.get("status"), "archived", "automatic_expiry", "system")
             archived += 1
     return archived
 
@@ -16938,7 +16971,8 @@ def _purge_expired_listings(purge_cutoff_iso):
             "DELETE", "listings",
             params={"id":f"eq.{listing_id}", "status":"eq.archived", "expires_at":f"lte.{purge_cutoff_iso}"},
         )
-        if deleted is not None:
+        if isinstance(deleted, list) and deleted:
+            _record_listing_status_change(listing_id, row.get("status"), "deleted", "retention_purge_after_expiry", "system")
             deleted_count += 1
     return deleted_count
 
