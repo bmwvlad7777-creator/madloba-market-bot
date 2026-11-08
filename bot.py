@@ -227,57 +227,6 @@ def supabase_request(method, path, params=None, payload=None):
         return None
 
 
-# ============================================================
-# DISTRIBUTED MINI APP API RATE LIMITING
-# Requires public.mm_api_rate_limits and rpc/mm_consume_api_rate_limit.
-# The HMAC key prevents raw Telegram IDs from being stored in the table.
-# ============================================================
-
-def _mm_rate_limit_guard(scope, telegram_user_id, max_requests, window_seconds):
-    """Return a Flask (response, status) tuple when blocked/unavailable, else None."""
-    if not supabase_enabled():
-        # Keep the existing non-Supabase fallback mode operational.
-        return None
-    identity = str(telegram_user_id or "").strip()
-    if not identity:
-        return jsonify({"ok": False, "error": "rate_limit_identity_missing"}), 401
-
-    rate_key = hmac.new(
-        BOT_TOKEN.encode("utf-8"),
-        f"{scope}:{identity}".encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
-
-    result = supabase_request(
-        "POST",
-        "rpc/mm_consume_api_rate_limit",
-        payload={
-            "p_rate_key": rate_key,
-            "p_max_requests": int(max_requests),
-            "p_window_seconds": int(window_seconds),
-        },
-    )
-    if not isinstance(result, dict) or "allowed" not in result:
-        print(
-            "MADLOBA RATE LIMIT ERROR:",
-            scope,
-            str(LAST_SUPABASE_ERROR or "invalid RPC response")[:300],
-        )
-        return jsonify({"ok": False, "error": "rate_limit_unavailable"}), 503
-
-    if result.get("allowed") is True:
-        return None
-
-    retry_after = max(1, int(result.get("retry_after_seconds") or window_seconds))
-    response = jsonify({
-        "ok": False,
-        "error": "rate_limit_exceeded",
-        "retry_after_seconds": retry_after,
-    })
-    response.headers["Retry-After"] = str(retry_after)
-    return response, 429
-
-
 
 # ============================================================
 # УСТОЙЧИВОЕ ХРАНЕНИЕ СОСТОЯНИЯ БОТА В SUPABASE
@@ -7648,7 +7597,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b73f6">
 <title>Madloba Market</title>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
@@ -13255,18 +13204,6 @@ body.mm-detail-open #detailView #detailContent{
     padding-bottom:calc(164px + env(safe-area-inset-bottom,0px) + var(--tg-content-safe-area-inset-bottom,0px))!important;
   }
 }
-
-/* iOS/Android filter focus: prevent Safari's automatic input zoom. */
-#filterPanel input,
-#filterPanel select,
-#filterPanel textarea,
-#filterPanel .filter-field input,
-#filterPanel .filter-field select,
-#filterPanel .filter-field textarea {
-  font-size:16px!important;
-  -webkit-text-size-adjust:100%;
-  touch-action:pan-x pan-y;
-}
 </style>
 
 
@@ -13306,18 +13243,32 @@ body.mm-detail-open #detailView #detailContent{
 .mm-city-apply{border:0;border-radius:12px;background:#1678e8;color:white;padding:12px;font-weight:750;font-size:15px}
 @media(max-width:390px){#cityMultiBtn{min-width:88px;max-width:96px;font-size:11px}.mm-city-dialog{padding:13px}.mm-city-options{gap:6px}.mm-city-option{font-size:12px;padding:7px}}
 </style>
+<style id="madloba-favorites-match-main-cards-v1">
+/* Favorites: use the same compact card geometry, typography, badges and heart control as the main catalog. */
+#favoritesList.list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;overflow:visible!important;padding:0 2px 5px!important;align-items:stretch!important}
+#favoritesList .fav-card{display:block!important;min-width:0!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:visible!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#favoritesList .fav-card>.card{position:relative!important;display:block!important;min-width:0!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;border:1px solid #e4ebf5!important;border-radius:18px!important;background:#fff!important;box-shadow:0 6px 18px rgba(30,55,90,.075)!important;cursor:pointer!important}
+#favoritesList .card:active{transform:scale(.99)!important;box-shadow:0 3px 10px rgba(15,23,42,.08)!important}
+#favoritesList .card>.photo{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:116px!important;min-height:116px!important;max-height:116px!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#f7f9fc!important;font-size:28px!important}
+#favoritesList .card>.photo img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important}
+#favoritesList .card>.photo .photo-empty{display:flex!important;width:100%!important;height:100%!important;align-items:center!important;justify-content:center!important;gap:5px!important}
+#favoritesList .card>.cardbody{display:flex!important;flex-direction:column!important;align-items:flex-start!important;min-width:0!important;overflow:hidden!important;padding:10px 10px 11px!important;gap:0!important}
+#favoritesList .card .card-kickers{display:flex!important;align-items:center!important;flex-wrap:nowrap!important;gap:5px!important;width:100%!important;height:22px!important;min-height:22px!important;max-height:22px!important;min-width:0!important;margin:0 0 6px!important;padding:0!important;overflow:hidden!important}
+#favoritesList .card .deal-badge{display:inline-flex!important;flex:0 1 auto!important;align-items:center!important;justify-content:center!important;height:20px!important;min-height:20px!important;max-height:20px!important;max-width:48%!important;margin:0!important;padding:0 7px!important;border:0!important;border-radius:999px!important;color:#fff!important;font-size:8.5px!important;font-weight:900!important;line-height:20px!important;letter-spacing:.25px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#favoritesList .card .deal-sell{background:#e94f60!important}#favoritesList .card .deal-buy{background:#287be8!important}#favoritesList .card .deal-rent{background:#169b60!important}#favoritesList .card .deal-seek{background:#d99a16!important}#favoritesList .card .deal-give{background:#8054d6!important}#favoritesList .card .deal-offer{background:#6848bd!important}
+#favoritesList .card .tag{display:inline-flex!important;align-items:center!important;flex:0 1 auto!important;min-width:0!important;max-width:58%!important;height:20px!important;min-height:20px!important;max-height:20px!important;margin:0!important;padding:0 7px!important;border:0!important;border-radius:999px!important;background:#edf5ff!important;color:#176fc9!important;font-size:9px!important;font-weight:850!important;line-height:20px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#favoritesList .card .price{display:block!important;width:100%!important;margin:0 0 5px!important;color:#111827!important;font-size:18px!important;font-weight:900!important;line-height:1.12!important;letter-spacing:-.35px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#favoritesList .card .listing-name{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2!important;width:100%!important;min-height:0!important;max-height:31px!important;overflow:hidden!important;margin:0 0 5px!important;color:#202b3d!important;font-size:12px!important;font-weight:750!important;line-height:1.28!important;overflow-wrap:anywhere!important}
+#favoritesList .card .listing-subtitle{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;line-clamp:2!important;width:100%!important;min-height:0!important;max-height:30px!important;overflow:hidden!important;margin:0 0 6px!important;color:#718096!important;font-size:10px!important;line-height:1.3!important;overflow-wrap:anywhere!important}
+#favoritesList .card .card-meta{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:5px!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+#favoritesList .card .loc{display:flex!important;flex:1 1 auto!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:5px!important;width:auto!important;min-width:0!important;max-width:100%!important;height:16px!important;min-height:16px!important;max-height:16px!important;margin:0!important;padding:0!important;overflow:hidden!important;white-space:nowrap!important;line-height:16px!important;box-sizing:border-box!important;color:#718096!important;font-size:10px!important}
+#favoritesList .card .loc svg{display:block!important;position:static!important;float:none!important;flex:0 0 14px!important;width:14px!important;height:14px!important;min-width:14px!important;min-height:14px!important;max-width:14px!important;max-height:14px!important;margin:0!important;padding:0!important;fill:none!important;stroke:#2786f5!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+#favoritesList .card .loc span{display:block!important;flex:1 1 auto!important;min-width:0!important;max-width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;line-height:16px!important;font-size:10px!important}
+#favoritesList .card .card-time{flex:0 0 auto!important;margin:0!important;padding:0!important;color:#8793a5!important;font-size:9px!important;line-height:14px!important;white-space:nowrap!important}
+#favoritesList .card .fav-btn{position:absolute!important;top:8px!important;right:8px!important;z-index:3!important;display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;margin:0!important;padding:0!important;border:1px solid rgba(226,232,240,.95)!important;border-radius:50%!important;background:rgba(255,255,255,.96)!important;box-shadow:0 4px 12px rgba(15,23,42,.13)!important;color:#ef4f5f!important;font-size:19px!important;line-height:1!important}
+@media(max-width:390px){#favoritesList.list{gap:8px!important;padding-left:1px!important;padding-right:1px!important}#favoritesList .card>.photo{height:100px!important;min-height:100px!important;max-height:100px!important}#favoritesList .card>.cardbody{padding:8px 8px 9px!important}#favoritesList .card .listing-name{font-size:11px!important}#favoritesList .card .listing-subtitle{font-size:9px!important}}
+</style>
 
-<script id="mm-prevent-viewport-zoom">
-(function(){
-  // Keep normal one-finger scrolling and photo swipes; block only pinch/double-tap zoom.
-  ['gesturestart','gesturechange','gestureend'].forEach(function(type){
-    document.addEventListener(type,function(event){event.preventDefault();},{passive:false});
-  });
-  document.addEventListener('touchmove',function(event){
-    if(event.touches && event.touches.length>1) event.preventDefault();
-  },{passive:false});
-})();
-</script>
 </body></html>'''
 
 
@@ -14576,9 +14527,6 @@ def mini_app_submit_listing_report(listing_id):
     reporter_id = _supabase_user_id(user.get("id"))
     if not reporter_id:
         return jsonify({"ok":False,"error":"user_sync_failed"}), 503
-    rate_limit = _mm_rate_limit_guard("listing_report", user.get("id"), 5, 3600)
-    if rate_limit:
-        return rate_limit
     if str(listing_rows[0].get("user_id") or "") == str(reporter_id):
         return jsonify({"ok":False,"error":"cannot_report_own_listing"}), 400
     existing = supabase_request("GET", "mm_listing_reports", params={
@@ -14769,9 +14717,6 @@ def mini_app_auth():
     user = _mini_app_authenticated_user()
     if not user:
         return jsonify({"ok":False,"error":"invalid_init_data"}), 401
-    rate_limit = _mm_rate_limit_guard("auth", user.get("id"), 20, 60)
-    if rate_limit:
-        return rate_limit
     if supabase_enabled():
         _sync_supabase_user_profile(user)
     _track_mm_event("app_open", user.get("id"))
@@ -14808,10 +14753,6 @@ def mini_app_support():
         return jsonify({"ok": False, "error": "empty_message"}), 400
     if len(message) > 2000:
         return jsonify({"ok": False, "error": "message_too_long"}), 400
-
-    rate_limit = _mm_rate_limit_guard("support", user.get("id"), 3, 600)
-    if rate_limit:
-        return rate_limit
 
     admin_ids = set(ADMIN_TELEGRAM_IDS)
     if str(ADMIN_CHAT_ID).strip().isdigit():
@@ -14968,30 +14909,28 @@ def _delete_listing_channel_messages(row):
 
 
 def _sync_edited_listing_to_channel(row, data):
-    """Обновляет текст Telegram-поста; False означает, что синхронизацию надо повторить."""
+    """Обновляет текст опубликованного объявления в Telegram, когда это возможно."""
     if not CHANNEL_USERNAME or not row.get("channel_message_id"):
-        return True
+        return
     try:
         text_value = build_listing(data)
         photos = data.get("photos") or []
         if photos:
-            result = api("editMessageCaption", {
+            api("editMessageCaption", {
                 "chat_id": CHANNEL_USERNAME,
                 "message_id": row.get("channel_message_id"),
                 "caption": text_value,
                 "parse_mode": "HTML",
             })
         else:
-            result = api("editMessageText", {
+            api("editMessageText", {
                 "chat_id": CHANNEL_USERNAME,
                 "message_id": row.get("channel_message_id"),
                 "text": text_value,
                 "parse_mode": "HTML",
             })
-        return isinstance(result, dict) and result.get("ok") is True
     except Exception as error:
         print("MINI APP CHANNEL SYNC ERROR:", repr(error))
-        return False
 
 
 @app.post("/api/admin/listing/<int:listing_id>/confirm-manual-cleanup")
@@ -15281,9 +15220,8 @@ def mini_app_update_listing(listing_id):
             params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
             payload={"metadata": metadata},
         )
-        if metadata_result is None or not isinstance(metadata_result, list) or not metadata_result:
-            print("MINI APP: metadata update failed after successful core update; retry required", listing_id)
-            return jsonify({"error":"metadata_update_failed_retry"}), 503
+        if metadata_result is None:
+            print("MINI APP: metadata update skipped after successful core update")
 
     # Синхронизируем уже опубликованный текст с каналом.
     if str(row.get("status") or "").lower() == "published":
@@ -15301,9 +15239,7 @@ def mini_app_update_listing(listing_id):
         edited["telegram"] = telegram
         edited["currency"] = currency
         edited["price"] = raw_price
-        if not _sync_edited_listing_to_channel(row, edited):
-            print("MINI APP: listing saved but Telegram channel sync failed; retry required", listing_id)
-            return jsonify({"error":"channel_sync_failed_retry"}), 503
+        _sync_edited_listing_to_channel(row, edited)
 
     return jsonify({"ok":True})
 
@@ -15450,10 +15386,7 @@ def mini_app_republish_listing(listing_id):
     photo_rows = supabase_request(
         "GET", "listing_photos",
         params={"select":"photo_url,sort_order", "listing_id":f"eq.{int(listing_id)}", "order":"sort_order.asc"},
-    )
-    if photo_rows is None:
-        _release_republish_lock()
-        return jsonify({"error":"photos_lookup_failed_retry"}), 503
+    ) or []
     data["photos"] = [str(x.get("photo_url")) for x in photo_rows if x.get("photo_url")]
 
     try:
@@ -15513,8 +15446,6 @@ def mini_app_delete_listing(listing_id):
         "listing_photos",
         params={"listing_id":f"eq.{listing_id}"},
     )
-    if photos_deleted is None:
-        return jsonify({"error":"photo_records_delete_failed_retry"}), 503
     deleted = supabase_request(
         "DELETE",
         "listings",
@@ -15591,9 +15522,6 @@ def mini_app_add_favorite(listing_id):
     user_id = _supabase_user_id(user.get("id"))
     if not user_id:
         return jsonify({"error":"user_not_found"}), 400
-    rate_limit = _mm_rate_limit_guard("favorite_add", user.get("id"), 60, 60)
-    if rate_limit:
-        return rate_limit
     published = supabase_request(
         "GET","listings",
         params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","expires_at":f"gt.{_utc_now_iso()}","limit":"1"},
@@ -15625,9 +15553,6 @@ def mini_app_remove_favorite(listing_id):
     user_id = _supabase_user_id(user.get("id"))
     if not user_id:
         return jsonify({"error":"user_not_found"}), 400
-    rate_limit = _mm_rate_limit_guard("favorite_remove", user.get("id"), 60, 60)
-    if rate_limit:
-        return rate_limit
     deleted = supabase_request(
         "DELETE","favorites",
         params={"user_id":f"eq.{user_id}","listing_id":f"eq.{listing_id}"},
