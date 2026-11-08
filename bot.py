@@ -227,6 +227,57 @@ def supabase_request(method, path, params=None, payload=None):
         return None
 
 
+# ============================================================
+# DISTRIBUTED MINI APP API RATE LIMITING
+# Requires public.mm_api_rate_limits and rpc/mm_consume_api_rate_limit.
+# The HMAC key prevents raw Telegram IDs from being stored in the table.
+# ============================================================
+
+def _mm_rate_limit_guard(scope, telegram_user_id, max_requests, window_seconds):
+    """Return a Flask (response, status) tuple when blocked/unavailable, else None."""
+    if not supabase_enabled():
+        # Keep the existing non-Supabase fallback mode operational.
+        return None
+    identity = str(telegram_user_id or "").strip()
+    if not identity:
+        return jsonify({"ok": False, "error": "rate_limit_identity_missing"}), 401
+
+    rate_key = hmac.new(
+        BOT_TOKEN.encode("utf-8"),
+        f"{scope}:{identity}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+    result = supabase_request(
+        "POST",
+        "rpc/mm_consume_api_rate_limit",
+        payload={
+            "p_rate_key": rate_key,
+            "p_max_requests": int(max_requests),
+            "p_window_seconds": int(window_seconds),
+        },
+    )
+    if not isinstance(result, dict) or "allowed" not in result:
+        print(
+            "MADLOBA RATE LIMIT ERROR:",
+            scope,
+            str(LAST_SUPABASE_ERROR or "invalid RPC response")[:300],
+        )
+        return jsonify({"ok": False, "error": "rate_limit_unavailable"}), 503
+
+    if result.get("allowed") is True:
+        return None
+
+    retry_after = max(1, int(result.get("retry_after_seconds") or window_seconds))
+    response = jsonify({
+        "ok": False,
+        "error": "rate_limit_exceeded",
+        "retry_after_seconds": retry_after,
+    })
+    response.headers["Retry-After"] = str(retry_after)
+    return response, 429
+
+
 
 # ============================================================
 # УСТОЙЧИВОЕ ХРАНЕНИЕ СОСТОЯНИЯ БОТА В SUPABASE
@@ -14525,6 +14576,9 @@ def mini_app_submit_listing_report(listing_id):
     reporter_id = _supabase_user_id(user.get("id"))
     if not reporter_id:
         return jsonify({"ok":False,"error":"user_sync_failed"}), 503
+    rate_limit = _mm_rate_limit_guard("listing_report", user.get("id"), 5, 3600)
+    if rate_limit:
+        return rate_limit
     if str(listing_rows[0].get("user_id") or "") == str(reporter_id):
         return jsonify({"ok":False,"error":"cannot_report_own_listing"}), 400
     existing = supabase_request("GET", "mm_listing_reports", params={
@@ -14715,6 +14769,9 @@ def mini_app_auth():
     user = _mini_app_authenticated_user()
     if not user:
         return jsonify({"ok":False,"error":"invalid_init_data"}), 401
+    rate_limit = _mm_rate_limit_guard("auth", user.get("id"), 20, 60)
+    if rate_limit:
+        return rate_limit
     if supabase_enabled():
         _sync_supabase_user_profile(user)
     _track_mm_event("app_open", user.get("id"))
@@ -14751,6 +14808,10 @@ def mini_app_support():
         return jsonify({"ok": False, "error": "empty_message"}), 400
     if len(message) > 2000:
         return jsonify({"ok": False, "error": "message_too_long"}), 400
+
+    rate_limit = _mm_rate_limit_guard("support", user.get("id"), 3, 600)
+    if rate_limit:
+        return rate_limit
 
     admin_ids = set(ADMIN_TELEGRAM_IDS)
     if str(ADMIN_CHAT_ID).strip().isdigit():
@@ -15520,6 +15581,9 @@ def mini_app_add_favorite(listing_id):
     user_id = _supabase_user_id(user.get("id"))
     if not user_id:
         return jsonify({"error":"user_not_found"}), 400
+    rate_limit = _mm_rate_limit_guard("favorite_add", user.get("id"), 60, 60)
+    if rate_limit:
+        return rate_limit
     published = supabase_request(
         "GET","listings",
         params={"select":"id","id":f"eq.{listing_id}","status":"eq.published","expires_at":f"gt.{_utc_now_iso()}","limit":"1"},
@@ -15551,6 +15615,9 @@ def mini_app_remove_favorite(listing_id):
     user_id = _supabase_user_id(user.get("id"))
     if not user_id:
         return jsonify({"error":"user_not_found"}), 400
+    rate_limit = _mm_rate_limit_guard("favorite_remove", user.get("id"), 60, 60)
+    if rate_limit:
+        return rate_limit
     deleted = supabase_request(
         "DELETE","favorites",
         params={"user_id":f"eq.{user_id}","listing_id":f"eq.{listing_id}"},
