@@ -7597,7 +7597,7 @@ MINI_APP_HTML = r'''<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b73f6">
 <title>Madloba Market</title>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
@@ -13204,6 +13204,18 @@ body.mm-detail-open #detailView #detailContent{
     padding-bottom:calc(164px + env(safe-area-inset-bottom,0px) + var(--tg-content-safe-area-inset-bottom,0px))!important;
   }
 }
+
+/* iOS/Android filter focus: prevent Safari's automatic input zoom. */
+#filterPanel input,
+#filterPanel select,
+#filterPanel textarea,
+#filterPanel .filter-field input,
+#filterPanel .filter-field select,
+#filterPanel .filter-field textarea {
+  font-size:16px!important;
+  -webkit-text-size-adjust:100%;
+  touch-action:pan-x pan-y;
+}
 </style>
 
 
@@ -13244,6 +13256,17 @@ body.mm-detail-open #detailView #detailContent{
 @media(max-width:390px){#cityMultiBtn{min-width:88px;max-width:96px;font-size:11px}.mm-city-dialog{padding:13px}.mm-city-options{gap:6px}.mm-city-option{font-size:12px;padding:7px}}
 </style>
 
+<script id="mm-prevent-viewport-zoom">
+(function(){
+  // Keep normal one-finger scrolling and photo swipes; block only pinch/double-tap zoom.
+  ['gesturestart','gesturechange','gestureend'].forEach(function(type){
+    document.addEventListener(type,function(event){event.preventDefault();},{passive:false});
+  });
+  document.addEventListener('touchmove',function(event){
+    if(event.touches && event.touches.length>1) event.preventDefault();
+  },{passive:false});
+})();
+</script>
 </body></html>'''
 
 
