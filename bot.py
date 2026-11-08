@@ -13267,6 +13267,8 @@ body.mm-detail-open #detailView #detailContent{
 #favoritesList .card .card-time{flex:0 0 auto!important;margin:0!important;padding:0!important;color:#8793a5!important;font-size:9px!important;line-height:14px!important;white-space:nowrap!important}
 #favoritesList .card .fav-btn{position:absolute!important;top:8px!important;right:8px!important;z-index:3!important;display:flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;margin:0!important;padding:0!important;border:1px solid rgba(226,232,240,.95)!important;border-radius:50%!important;background:rgba(255,255,255,.96)!important;box-shadow:0 4px 12px rgba(15,23,42,.13)!important;color:#ef4f5f!important;font-size:19px!important;line-height:1!important}
 @media(max-width:390px){#favoritesList.list{gap:8px!important;padding-left:1px!important;padding-right:1px!important}#favoritesList .card>.photo{height:100px!important;min-height:100px!important;max-height:100px!important}#favoritesList .card>.cardbody{padding:8px 8px 9px!important}#favoritesList .card .listing-name{font-size:11px!important}#favoritesList .card .listing-subtitle{font-size:9px!important}}
+/* Match favorites heart control exactly to the final home catalog size and placement. */
+#favoritesList .card .fav-btn{top:7px!important;right:7px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;line-height:30px!important;font-size:19px!important;padding:0!important;box-sizing:border-box!important}
 </style>
 
 </body></html>'''
