@@ -17098,12 +17098,41 @@ def _process_listing_reminder_outbox_tasks(tasks):
                         payload={marker: _utc_now_iso()},
                     )
                 else:
-                    # Telegram may already have accepted the message. Do not
-                    # blindly retry a completion failure: log for reconciliation.
-                    print(
-                        "LISTING OUTBOX: completion not confirmed after Telegram success",
-                        {"task_id": task["id"], "listing_id": task["listing_id"]},
+                    # Telegram accepted the message, but the database completion
+                    # was not confirmed. Suppress automatic redelivery by using
+                    # the existing fail RPC with max_attempts=1. This moves a
+                    # still-owned sending task to terminal `failed`; the explicit
+                    # error text marks it as delivery-unknown for manual review.
+                    # If completion actually committed despite a transport error,
+                    # the claim token is already cleared and this call safely
+                    # returns false without changing the `sent` row.
+                    quarantined = supabase_request(
+                        "POST", "rpc/mm_fail_reminder_outbox",
+                        payload={
+                            "p_task_id": task["id"],
+                            "p_claim_token": task["claim_token"],
+                            "p_error": (
+                                "DELIVERY UNKNOWN: Telegram accepted the message, "
+                                "but outbox completion was not confirmed; "
+                                "automatic retry suppressed pending manual reconciliation"
+                            ),
+                            "p_max_attempts": 1,
+                        },
                     )
+                    if quarantined is True or quarantined == [True]:
+                        result_counts["failed"] += 1
+                        print(
+                            "LISTING OUTBOX: delivery quarantined for manual reconciliation",
+                            {"task_id": task["id"], "listing_id": task["listing_id"]},
+                        )
+                    else:
+                        # Do not hide an unresolved state: if quarantine itself
+                        # could not be confirmed, lease recovery may still retry.
+                        print(
+                            "LISTING OUTBOX: CRITICAL delivery state unresolved; "
+                            "quarantine not confirmed",
+                            {"task_id": task["id"], "listing_id": task["listing_id"]},
+                        )
             else:
                 description = (
                     telegram_result.get("description", "unknown error")
