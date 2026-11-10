@@ -15539,6 +15539,8 @@ def mini_app_delete_listing(listing_id):
         "listing_photos",
         params={"listing_id":f"eq.{listing_id}"},
     )
+    if photos_deleted is None:
+        return jsonify({"error":"db_photo_delete_failed"}), 503
     deleted = supabase_request(
         "DELETE",
         "listings",
