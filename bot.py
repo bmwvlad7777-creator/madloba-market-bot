@@ -16871,14 +16871,38 @@ def _create_listing_reminder_outbox_tasks(now_iso):
         if rows is None:
             continue
 
+        # Resolve owners in one batched query instead of one request per listing.
+        valid_rows = [
+            row for row in rows
+            if row.get("id") and row.get("user_id") and row.get("expires_at")
+        ]
+        user_ids = sorted({str(row["user_id"]) for row in valid_rows})
+        if not user_ids:
+            continue
+
+        owners = supabase_request(
+            "GET", "users",
+            params={
+                "select": "id,telegram_id",
+                "id": f"in.({','.join(user_ids)})",
+                "limit": str(len(user_ids)),
+            },
+        )
+        if owners is None:
+            print(
+                "LISTING OUTBOX: owner lookup failed",
+                {"stage": days_left, "user_count": len(user_ids)},
+            )
+            continue
+
+        owner_by_user_id = {
+            str(owner.get("id")): owner.get("telegram_id")
+            for owner in owners
+            if owner.get("id") is not None
+        }
         tasks = []
-        for row in rows:
-            listing_id = row.get("id")
-            user_id = row.get("user_id")
-            expiry_at = row.get("expires_at")
-            if not listing_id or not user_id or not expiry_at:
-                continue
-            owner_telegram_id = _listing_owner_telegram_id(user_id)
+        for row in valid_rows:
+            owner_telegram_id = owner_by_user_id.get(str(row["user_id"]))
             if not owner_telegram_id:
                 continue
             try:
@@ -16886,10 +16910,10 @@ def _create_listing_reminder_outbox_tasks(now_iso):
             except (TypeError, ValueError):
                 continue
             tasks.append({
-                "listing_id": listing_id,
+                "listing_id": row["id"],
                 "reminder_stage": days_left,
                 "owner_telegram_id": owner_telegram_id,
-                "expiry_at": expiry_at,
+                "expiry_at": row["expires_at"],
             })
 
         if not tasks:
@@ -16993,7 +17017,7 @@ def _process_listing_reminder_outbox_tasks(tasks):
                         "p_max_attempts": 5,
                     },
                 )
-                if failed is not None:
+                if failed is True or failed == [True]:
                     result_counts["failed"] += 1
             continue
 
@@ -17019,7 +17043,7 @@ def _process_listing_reminder_outbox_tasks(tasks):
                         "p_reason": "Listing is no longer in the claimed published cycle",
                     },
                 )
-                if obsolete is not None:
+                if obsolete is True or obsolete == [True]:
                     result_counts["obsolete"] += 1
                 continue
             task["title"] = row.get("title") or "Ваше объявление"
@@ -17094,7 +17118,7 @@ def _process_listing_reminder_outbox_tasks(tasks):
                         "p_max_attempts": 5,
                     },
                 )
-                if failed is not None:
+                if failed is True or failed == [True]:
                     result_counts["failed"] += 1
 
     return result_counts
