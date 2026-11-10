@@ -16756,6 +16756,11 @@ LISTING_LIFETIME_DAYS = 10
 LISTING_REMINDER_DAYS_BEFORE_EXPIRY = 3
 LISTING_PURGE_GRACE_DAYS = 2
 LISTING_LIFECYCLE_INTERVAL_SECONDS = 15 * 60
+# Safe rollout switch: keep legacy reminders until explicitly enabled in Render.
+# Accepted true values: 1, true, yes, on. Default is deliberately false.
+LISTING_REMINDER_OUTBOX_ENABLED = os.environ.get(
+    "LISTING_REMINDER_OUTBOX_ENABLED", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _storage_object_from_url(photo_ref):
@@ -17309,7 +17314,31 @@ def run_listing_lifecycle_once():
     purge_cutoff_iso = (now - timedelta(days=LISTING_PURGE_GRACE_DAYS)).isoformat()
     result = {"reminded":0,"archived":0,"deleted":0}
     try:
-        result["reminded"] = _remind_listings_due_soon(now_iso, reminder_cutoff_iso)
+        if LISTING_REMINDER_OUTBOX_ENABLED:
+            # Outbox and legacy delivery must never run in the same lifecycle pass.
+            # A failed claim does NOT fall back to legacy: doing so could duplicate
+            # a message whose outbox delivery state is uncertain.
+            created = _create_listing_reminder_outbox_tasks(now_iso)
+            claimed = _claim_listing_reminder_outbox_tasks()
+            if claimed is None:
+                print("LISTING OUTBOX: claim RPC unavailable; legacy fallback suppressed")
+                outbox_counts = {"sent": 0, "failed": 0, "obsolete": 0}
+            elif not isinstance(claimed, list):
+                print(
+                    "LISTING OUTBOX: unexpected claim RPC response; legacy fallback suppressed",
+                    type(claimed).__name__,
+                )
+                outbox_counts = {"sent": 0, "failed": 0, "obsolete": 0}
+            else:
+                outbox_counts = _process_listing_reminder_outbox_tasks(claimed)
+            result["reminded"] = int(outbox_counts.get("sent", 0) or 0)
+            print(
+                "LISTING OUTBOX PASS:",
+                {"created": created, "claimed": len(claimed) if isinstance(claimed, list) else None,
+                 **outbox_counts},
+            )
+        else:
+            result["reminded"] = _remind_listings_due_soon(now_iso, reminder_cutoff_iso)
         result["archived"] = _archive_expired_listings(now_iso)
         result["deleted"] = _purge_expired_listings(purge_cutoff_iso)
         print("LISTING LIFECYCLE PASS:", result)
