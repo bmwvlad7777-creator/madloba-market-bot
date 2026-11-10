@@ -17012,12 +17012,11 @@ def _process_listing_reminder_outbox_tasks(tasks):
 
             if not row or not same_expiry:
                 obsolete = supabase_request(
-                    "POST", "rpc/mm_fail_reminder_outbox",
+                    "POST", "rpc/mm_obsolete_reminder_outbox",
                     payload={
                         "p_task_id": task["id"],
                         "p_claim_token": task["claim_token"],
-                        "p_error": "Listing is no longer in the claimed published cycle",
-                        "p_max_attempts": 5,
+                        "p_reason": "Listing is no longer in the claimed published cycle",
                     },
                 )
                 if obsolete is not None:
