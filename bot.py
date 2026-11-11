@@ -13352,6 +13352,16 @@ body.mm-detail-open #detailView #detailContent{
 @media(max-width:390px){#favoritesList.list{gap:8px!important;padding-left:1px!important;padding-right:1px!important}#favoritesList .card>.photo{height:100px!important;min-height:100px!important;max-height:100px!important}#favoritesList .card>.cardbody{padding:8px 8px 9px!important}#favoritesList .card .listing-name{font-size:11px!important}#favoritesList .card .listing-subtitle{font-size:9px!important}}
 /* Match favorites heart control exactly to the final home catalog size and placement. */
 #favoritesList .card .fav-btn{top:7px!important;right:7px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;line-height:30px!important;font-size:19px!important;padding:0!important;box-sizing:border-box!important}
+
+/* iOS/Telegram Mini App: prevent automatic focus zoom on form controls.
+   Keep the user's ability to manually zoom the page; only normalize editable controls. */
+html body input,
+html body textarea,
+html body select,
+html body [contenteditable="true"] {
+  font-size: 16px !important;
+}
+
 </style>
 
 </body></html>'''
