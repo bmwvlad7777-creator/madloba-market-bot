@@ -14997,28 +14997,41 @@ def _delete_listing_channel_messages(row):
 
 
 def _sync_edited_listing_to_channel(row, data):
-    """Обновляет текст опубликованного объявления в Telegram, когда это возможно."""
+    """Обновляет пост в Telegram и явно сообщает, если синхронизация не удалась."""
     if not CHANNEL_USERNAME or not row.get("channel_message_id"):
-        return
+        return True
     try:
         text_value = build_listing(data)
         photos = data.get("photos") or []
         if photos:
-            api("editMessageCaption", {
+            result = api("editMessageCaption", {
                 "chat_id": CHANNEL_USERNAME,
                 "message_id": row.get("channel_message_id"),
                 "caption": text_value,
                 "parse_mode": "HTML",
             })
         else:
-            api("editMessageText", {
+            result = api("editMessageText", {
                 "chat_id": CHANNEL_USERNAME,
                 "message_id": row.get("channel_message_id"),
                 "text": text_value,
                 "parse_mode": "HTML",
             })
+        if isinstance(result, dict) and result.get("ok") is True:
+            return True
+        description = str(result.get("description", "") if isinstance(result, dict) else result or "no_response")
+        # Telegram may reject an identical edit; the desired state is already present.
+        if "message is not modified" in description.lower():
+            return True
+        print("MINI APP CHANNEL SYNC ERROR:", {
+            "listing_id": row.get("id"),
+            "message_id": row.get("channel_message_id"),
+            "description": description[:200],
+        })
+        return False
     except Exception as error:
         print("MINI APP CHANNEL SYNC ERROR:", repr(error))
+        return False
 
 
 @app.post("/api/admin/listing/<int:listing_id>/confirm-manual-cleanup")
@@ -15330,7 +15343,11 @@ def mini_app_update_listing(listing_id):
         edited["telegram"] = telegram
         edited["currency"] = currency
         edited["price"] = raw_price
-        _sync_edited_listing_to_channel(row, edited)
+        if not _sync_edited_listing_to_channel(row, edited):
+            return jsonify({
+                "error":"channel_sync_failed",
+                "detail":"Объявление сохранено, но не удалось обновить публикацию в Telegram. Повторите сохранение.",
+            }), 502
 
     return jsonify({"ok":True})
 
