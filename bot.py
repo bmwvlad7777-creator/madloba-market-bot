@@ -874,18 +874,17 @@ def _sync_supabase_user_profile(telegram_user):
 
 
 def _strip_public_listing_fields(item):
-    """Remove private lifecycle and Telegram-cleanup metadata from public listing payloads."""
-    for key in ("status", "expires_at", "reminder_sent_at", "channel_message_id"):
-        item.pop(key, None)
-    # These values are operational bot metadata, not public listing content.
-    # They may exist in legacy metadata even though normalized lifecycle fields
-    # are stored in dedicated columns.
+    """Remove private lifecycle and Telegram cleanup fields from public listing payloads."""
     for key in (
-        "legacy_id",
+        "status",
+        "expires_at",
+        "reminder_sent_at",
+        "channel_message_id",
         "channel_message_ids",
         "channel_cleanup_manual_ids",
         "channel_cleanup_manual_reason",
         "channel_cleanup_manual_marked_at",
+        "legacy_id",
     ):
         item.pop(key, None)
     return item
