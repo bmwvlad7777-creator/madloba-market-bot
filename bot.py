@@ -15478,7 +15478,11 @@ def mini_app_republish_listing(listing_id):
     photo_rows = supabase_request(
         "GET", "listing_photos",
         params={"select":"photo_url,sort_order", "listing_id":f"eq.{int(listing_id)}", "order":"sort_order.asc"},
-    ) or []
+    )
+    if photo_rows is None:
+        _release_republish_lock()
+        print("MINI APP REPUBLISH ERROR: photo_lookup_failed", int(listing_id))
+        return jsonify({"error":"photo_lookup_failed"}), 503
     data["photos"] = [str(x.get("photo_url")) for x in photo_rows if x.get("photo_url")]
 
     try:
