@@ -16112,10 +16112,11 @@ def mini_app_listings():
             params["and"] = f"({','.join(price_conditions)})"
 
         def _fetch_listing_candidates(query_params, max_candidates=10000, batch_size=1000):
-            """Fetch a bounded, stable set of listing candidates in API-sized batches."""
+            """Fetch candidates in stable batches; fail closed rather than return a truncated set."""
             candidates = []
             paged_params = dict(query_params)
             paged_params["limit"] = str(batch_size)
+            reached_scan_limit = True
             for candidate_offset in range(0, max_candidates, batch_size):
                 paged_params["offset"] = str(candidate_offset)
                 batch = supabase_request("GET", "listings", params=paged_params)
@@ -16123,7 +16124,25 @@ def mini_app_listings():
                     return None
                 candidates.extend(batch)
                 if len(batch) < batch_size:
+                    reached_scan_limit = False
                     break
+
+            # A full final batch does not prove that the result set ended at the
+            # configured cap. Probe one row beyond it so callers never silently
+            # filter/sort/page an incomplete candidate set.
+            if reached_scan_limit and len(candidates) >= max_candidates:
+                probe_params = dict(query_params)
+                probe_params["limit"] = "1"
+                probe_params["offset"] = str(max_candidates)
+                probe = supabase_request("GET", "listings", params=probe_params)
+                if probe is None:
+                    return None
+                if probe:
+                    print(
+                        "WARN listings_candidate_scan_limit "
+                        f"max_candidates={max_candidates}; refusing incomplete result set"
+                    )
+                    return None
             return candidates
 
         # Search is applied in Python to the candidate rows so it can match
@@ -17642,17 +17661,60 @@ def mini_app_media(listing_id, index):
                 or photo_url.port not in (None, 443)
             ):
                 return "Not found", 404
-            upstream=requests.get(photo_ref,timeout=15,allow_redirects=False)
+            upstream=requests.get(photo_ref,timeout=(5, 15),allow_redirects=False,stream=True)
             if 300 <= upstream.status_code < 400:
+                upstream.close()
                 return "Not found",404
         else:
             file_info=api("getFile",{"file_id":photo_ref});result=file_info.get("result") if isinstance(file_info,dict) else None;file_path=result.get("file_path") if isinstance(result,dict) else None
             if not file_path:return "Not found",404
-            upstream=requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=20)
-        if not upstream.ok:return "Not found",404
+            upstream=requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=(5, 20),stream=True)
+        if not upstream.ok:
+            upstream.close()
+            return "Not found",404
+
+        # Bound memory use for both Supabase and Telegram upstreams. Do not
+        # trust Content-Length alone: enforce the cap while streaming as well.
+        max_media_bytes = 12 * 1024 * 1024
+        declared_length = upstream.headers.get("Content-Length")
+        if declared_length:
+            try:
+                if int(declared_length) > max_media_bytes:
+                    upstream.close()
+                    return "Media too large", 413
+            except (TypeError, ValueError):
+                upstream.close()
+                return "Media unavailable", 502
+        image_chunks = []
+        image_size = 0
+        try:
+            for chunk in upstream.iter_content(chunk_size=64 * 1024):
+                if not chunk:
+                    continue
+                image_size += len(chunk)
+                if image_size > max_media_bytes:
+                    return "Media too large", 413
+                image_chunks.append(chunk)
+        finally:
+            upstream.close()
+        image_bytes = b"".join(image_chunks)
+
+        # Only serve formats accepted by the listing photo pipeline. Ignore an
+        # upstream MIME label and derive the response type from the byte signature.
+        if image_bytes.startswith(b"\xff\xd8\xff"):
+            media_content_type = "image/jpeg"
+        elif image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+            media_content_type = "image/png"
+        elif image_bytes.startswith((b"GIF87a", b"GIF89a")):
+            media_content_type = "image/gif"
+        elif len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+            media_content_type = "image/webp"
+        else:
+            return "Unsupported media type", 415
+
         _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
-        print(f"PERF media ms={_perf_elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(upstream.content)}")
-        return Response(upstream.content,content_type=upstream.headers.get("Content-Type","image/jpeg"),headers={"Cache-Control":"public, max-age=86400","X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"})
+        print(f"PERF media ms={_perf_elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={image_size}")
+        return Response(image_bytes,content_type=media_content_type,headers={"Cache-Control":"public, max-age=86400","X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"})
     except Exception as error:
         print("MEDIA ERROR:",repr(error));return "Media unavailable",503
 
