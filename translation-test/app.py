@@ -3,6 +3,7 @@ import logging
 import hmac
 from functools import lru_cache
 from typing import Literal
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel, Field
@@ -14,6 +15,11 @@ app = FastAPI(title="Madloba Translation Test")
 
 API_KEY = os.getenv("TRANSLATION_API_KEY", "").strip()
 MAX_CHARS = 8000
+
+# Keep Argos models inside the deployed service directory so build-time
+# installation and runtime lookup use the same location.
+ARGOS_PACKAGES_DIR = str(Path(__file__).resolve().parent / "argos-packages")
+os.environ["ARGOS_PACKAGES_DIR"] = ARGOS_PACKAGES_DIR
 
 
 class TranslateRequest(BaseModel):
@@ -81,7 +87,7 @@ def root():
     return {
         "service": "madloba-translation-test",
         "status": "ok",
-        "integration": "disabled",
+        "integration": "argos",
     }
 
 
@@ -89,12 +95,20 @@ def root():
 def health():
     try:
         languages = get_languages()
+        required_pairs = (("ru", "en"), ("en", "ru"), ("uk", "en"), ("en", "uk"))
+        installed_pairs = []
+        for src, dst in required_pairs:
+            if src in languages and dst in languages:
+                if languages[src].get_translation(languages[dst]) is not None:
+                    installed_pairs.append(f"{src}->{dst}")
+
+        ready = len(installed_pairs) == len(required_pairs)
         return {
-            "status": "ok" if all(
-                code in languages for code in ("ru", "en", "uk")
-            ) else "models_missing",
+            "status": "ok" if ready else "models_missing",
             "installed_languages": sorted(languages),
-            "integration": "disabled",
+            "installed_pairs": installed_pairs,
+            "packages_dir": ARGOS_PACKAGES_DIR,
+            "integration": "enabled" if ready else "disabled",
         }
     except Exception:
         raise HTTPException(
