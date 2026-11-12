@@ -137,3 +137,4 @@ def translate(
         raise HTTPException(
             status_code=503,
             detail="Translation unavailable",
+        )
