@@ -4,8 +4,7 @@ import hmac
 from functools import lru_cache
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel, Field
 
 logging.basicConfig(level=logging.INFO)
@@ -15,8 +14,6 @@ app = FastAPI(title="Madloba Translation Test")
 
 API_KEY = os.getenv("TRANSLATION_API_KEY", "").strip()
 MAX_CHARS = 8000
-# Register Bearer authentication in OpenAPI so Swagger UI can authorize requests.
-bearer_scheme = HTTPBearer(auto_error=False, scheme_name="BearerAuth")
 
 
 class TranslateRequest(BaseModel):
@@ -109,7 +106,7 @@ def health():
 @app.post("/translate")
 def translate(
     request: TranslateRequest,
-    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+    authorization: str | None = Header(default=None, alias="Authorization"),
 ):
     if not API_KEY:
         raise HTTPException(
@@ -117,9 +114,9 @@ def translate(
             detail="API key is not configured",
         )
 
-    supplied_key = credentials.credentials if credentials else ""
-    if credentials is None or credentials.scheme.lower() != "bearer" or not hmac.compare_digest(
-        supplied_key, API_KEY
+    scheme, separator, supplied_key = (authorization or "").partition(" ")
+    if not separator or scheme.lower() != "bearer" or not hmac.compare_digest(
+        supplied_key.strip(), API_KEY
     ):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -140,4 +137,3 @@ def translate(
         raise HTTPException(
             status_code=503,
             detail="Translation unavailable",
-        )
