@@ -12012,6 +12012,24 @@ function localizeListingText(value){
   'Коляска':{en:'Stroller',ka:'საბავშვო ეტლი',uk:'Візок'},'Детская кроватка':{en:'Baby cot',ka:'ბავშვის საწოლი',uk:'Дитяче ліжечко'},'Игрушки':{en:'Toys',ka:'სათამაშოები',uk:'Іграшки'},'Одежда':{en:'Clothing',ka:'ტანსაცმელი',uk:'Одяг'},'Обувь':{en:'Shoes',ka:'ფეხსაცმელი',uk:'Взуття'},'Корм для животных':{en:'Pet food',ka:'ცხოველების საკვები',uk:'Корм для тварин'},'Ветеринар':{en:'Veterinarian',ka:'ვეტერინარი',uk:'Ветеринар'},'Щенок':{en:'Puppy',ka:'ლეკვი',uk:'Цуценя'},'Котёнок':{en:'Kitten',ka:'კნუტი',uk:'Кошеня'}
  };
  Object.entries(extraWords).forEach(([src,translations])=>{words[src]={...(words[src]||{}),...translations};});
+ // Full-text translations for the current catalogue listings. Original seller text remains unchanged in storage.
+ const listingPhrases={
+  'Айфон':{en:'iPhone',ka:'iPhone',uk:'iPhone'},
+  'Красивое аккуратное':{en:'Cute and neat.',ka:'ლამაზი და მოწესრიგებული.',uk:'Гарне й охайне.'},
+  'Крутое новое устройство стильное мощное международная':{en:'Great new device: stylish, powerful, international version.',ka:'შესანიშნავი ახალი მოწყობილობა: ელეგანტური, მძლავრი, საერთაშორისო ვერსია.',uk:'Класний новий пристрій: стильний, потужний, міжнародна версія.'},
+  'Свежий но VIN-код надо будет ставить интересная мощная машина':{en:'A fresh-looking car in good condition, but a VIN code will still need to be installed. An interesting, powerful car.',ka:'მანქანა კარგ მდგომარეობაშია, თუმცა VIN-კოდის დაყენება ჯერ კიდევ საჭირო იქნება. საინტერესო და მძლავრი ავტომობილი.',uk:'Автомобіль у хорошому стані, але VIN-код ще потрібно буде встановити. Цікава й потужна машина.'},
+  'Красиво виглядає':{en:'Looks nice.',ka:'ლამაზად გამოიყურება.',uk:'Гарно виглядає.'},
+  'Красотка':{en:'Beauty.',ka:'ლამაზმანი.',uk:'Красуня.'},
+  'Большая чистая красивая в центре города интересная постройка есть двор':{en:'A spacious, clean and attractive property in the city centre. Interesting building with a yard.',ka:'დიდი, სუფთა და ლამაზი ობიექტი ქალაქის ცენტრში. საინტერესო შენობა ეზოთი.',uk:'Великий, чистий і гарний об’єкт у центрі міста. Цікава будівля з подвір’ям.'},
+  'Красиво стильно мощно модно здорово':{en:'Beautiful, stylish, powerful, modern car.',ka:'ლამაზი, ელეგანტური, მძლავრი და თანამედროვე ავტომობილი.',uk:'Гарний, стильний, потужний, сучасний автомобіль.'},
+  'Направится ли на место где находится человек который будет работать':{en:'Will it be suitable for the place where the person who will work is located?',ka:'მოერგება თუ არა იმ ადგილს, სადაც მომუშავე ადამიანი იმყოფება?',uk:'Чи підійде до місця, де перебуває людина, яка працюватиме?'},
+  'Ровная':{en:'In good condition.',ka:'კარგ მდგომარეობაშია.',uk:'У хорошому стані.'},
+  'Не весело)':{en:'Not fun :)',ka:'არ არის სახალისო :)',uk:'Не весело :)'},
+  'Не весело) Astra watching you know me, why do you kill me out? Judge':{en:'Not fun :) Astra watching you know me, why do you kill me out? Judge',ka:'არ არის სახალისო :) Astra watching you know me, why do you kill me out? Judge',uk:'Не весело :) Astra watching you know me, why do you kill me out? Judge'},
+  'Почти идеально':{en:'Almost perfect.',ka:'თითქმის იდეალურია.',uk:'Майже ідеально.'},
+  'Отличная и красивая':{en:'Excellent and beautiful.',ka:'შესანიშნავი და ლამაზი.',uk:'Чудова й гарна.'}
+ };
+ Object.entries(listingPhrases).forEach(([src,translations])=>{words[src]={...(words[src]||{}),...translations};});
  let out=raw;
  if(state.lang==='en')out=out.replace(/(\d+)\s*[- ]комнатн(?:ый|ая|ое)\s+(дом|квартира)/giu,(_,n,kind)=>`${n}-bedroom ${kind.toLowerCase()==='дом'?'house':'apartment'}`);
  else if(state.lang==='uk')out=out.replace(/(\d+)\s*[- ]комнатн(?:ый|ая|ое)\s+(дом|квартира)/giu,(_,n,kind)=>`${n}-кімнат${kind.toLowerCase()==='дом'?'ний будинок':'на квартира'}`);
