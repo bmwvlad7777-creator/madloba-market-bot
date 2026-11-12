@@ -5,7 +5,8 @@ from functools import lru_cache
 from typing import Literal
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
 logging.basicConfig(level=logging.INFO)
@@ -15,6 +16,7 @@ app = FastAPI(title="Madloba Translation Test")
 
 API_KEY = os.getenv("TRANSLATION_API_KEY", "").strip()
 MAX_CHARS = 8000
+bearer_scheme = HTTPBearer(auto_error=False)
 
 # Keep Argos models inside the deployed service directory so build-time
 # installation and runtime lookup use the same location.
@@ -120,7 +122,7 @@ def health():
 @app.post("/translate")
 def translate(
     request: TranslateRequest,
-    authorization: str | None = Header(default=None, alias="Authorization"),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ):
     if not API_KEY:
         raise HTTPException(
@@ -128,9 +130,11 @@ def translate(
             detail="API key is not configured",
         )
 
-    scheme, separator, supplied_key = (authorization or "").partition(" ")
-    if not separator or scheme.lower() != "bearer" or not hmac.compare_digest(
-        supplied_key.strip(), API_KEY
+    supplied_key = credentials.credentials.strip() if credentials else ""
+    if (
+        credentials is None
+        or credentials.scheme.lower() != "bearer"
+        or not hmac.compare_digest(supplied_key, API_KEY)
     ):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
