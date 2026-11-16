@@ -17470,30 +17470,125 @@ def _purge_expired_listings(purge_cutoff_iso):
         return 0
     deleted_count = 0
     for row in rows:
-        # A previously published Telegram post can remain in metadata as a list of IDs.
-        if not _delete_listing_channel_messages(row):
-            continue
         listing_id = row.get("id")
+        if not listing_id:
+            continue
+
+        # Claim the same atomic lock used by owner/admin republishing.
+        # The conditional PATCH ensures only one transition owns the row.
+        lock_time = _utc_now_iso()
+        lock_params = {
+            "id":f"eq.{listing_id}",
+            "status":"eq.archived",
+            "expires_at":f"lte.{purge_cutoff_iso}",
+        }
+        claimed = supabase_request(
+            "PATCH", "listings",
+            params={**lock_params, "republish_lock_at":"is.null"},
+            payload={"republish_lock_at":lock_time},
+        )
+        if claimed is None:
+            continue
+        if not claimed:
+            stale_before = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+            claimed = supabase_request(
+                "PATCH", "listings",
+                params={**lock_params, "republish_lock_at":f"lt.{stale_before}"},
+                payload={"republish_lock_at":lock_time},
+            )
+            if claimed is None or not claimed:
+                continue
+
+        def refresh_purge_lock():
+            nonlocal lock_time
+            next_lock_time = _utc_now_iso()
+            refreshed = supabase_request(
+                "PATCH", "listings",
+                params={
+                    **lock_params,
+                    "republish_lock_at":f"eq.{lock_time}",
+                },
+                payload={"republish_lock_at":next_lock_time},
+            )
+            if not isinstance(refreshed, list) or not refreshed:
+                return False
+            lock_time = next_lock_time
+            return True
+
+        def release_purge_lock():
+            supabase_request(
+                "PATCH", "listings",
+                params={
+                    "id":f"eq.{listing_id}",
+                    "status":"eq.archived",
+                    "republish_lock_at":f"eq.{lock_time}",
+                },
+                payload={"republish_lock_at":None},
+            )
+
+        # Refresh before/after Telegram cleanup. If another transition has
+        # reclaimed an expired lease while Telegram was responding, stop before
+        # touching photos or the listing row.
+        if not refresh_purge_lock():
+            continue
+        if not _delete_listing_channel_messages(row):
+            release_purge_lock()
+            continue
+        if not refresh_purge_lock():
+            continue
+
         photo_rows = supabase_request(
             "GET", "listing_photos",
             params={"select":"photo_url", "listing_id":f"eq.{listing_id}", "limit":"100"},
         )
         if photo_rows is None:
+            release_purge_lock()
             continue
-        storage_ok = all(_delete_supabase_storage_photo(photo.get("photo_url")) for photo in photo_rows)
+
+        storage_ok = True
+        for photo in photo_rows:
+            # Renew ownership before each external deletion. Storage requests
+            # have bounded timeouts, so the lease stays fresh during the loop.
+            if not refresh_purge_lock():
+                storage_ok = False
+                break
+            if not _delete_supabase_storage_photo(photo.get("photo_url")):
+                storage_ok = False
+                break
         if not storage_ok:
-            # Keep the DB rows so failed Storage deletions can be retried next cycle.
+            release_purge_lock()
             continue
-        photos_deleted = supabase_request("DELETE", "listing_photos", params={"listing_id":f"eq.{listing_id}"})
+
+        if not refresh_purge_lock():
+            continue
+        photos_deleted = supabase_request(
+            "DELETE", "listing_photos",
+            params={"listing_id":f"eq.{listing_id}"},
+        )
         if photos_deleted is None:
+            release_purge_lock()
+            continue
+
+        if not refresh_purge_lock():
             continue
         deleted = supabase_request(
             "DELETE", "listings",
-            params={"id":f"eq.{listing_id}", "status":"eq.archived", "expires_at":f"lte.{purge_cutoff_iso}"},
+            params={
+                "id":f"eq.{listing_id}",
+                "status":"eq.archived",
+                "expires_at":f"lte.{purge_cutoff_iso}",
+                "republish_lock_at":f"eq.{lock_time}",
+            },
         )
         if isinstance(deleted, list) and deleted:
-            _record_listing_status_change(listing_id, row.get("status"), "deleted", "retention_purge_after_expiry", "system")
+            _record_listing_status_change(
+                listing_id, row.get("status"), "deleted",
+                "retention_purge_after_expiry", "system"
+            )
             deleted_count += 1
+        else:
+            # If another guarded transition changed the row, do not leave a stale lock.
+            release_purge_lock()
     return deleted_count
 
 
