@@ -14550,6 +14550,9 @@ def mini_app_admin_moderation_action(request_id):
         return jsonify({"error":"admin_only"}), 403
     if not supabase_enabled():
         return jsonify({"error":"db_unavailable"}), 503
+    rate_limit = _mm_rate_limit_guard("admin_moderation_action", user.get("id"), 30, 60)
+    if rate_limit:
+        return rate_limit
     body = request.get_json(silent=True) or {}
     action = str(body.get("action") or "").strip().lower()
     if action not in ("approve", "reject"):
@@ -14585,6 +14588,9 @@ def mini_app_admin_unpublish_listing(listing_id):
         return jsonify({"error":"admin_only"}), 403
     if not supabase_enabled():
         return jsonify({"error":"db_unavailable"}), 503
+    rate_limit = _mm_rate_limit_guard("admin_listing_unpublish", user.get("id"), 10, 60)
+    if rate_limit:
+        return rate_limit
 
     rows = supabase_request("GET", "listings", params={
         "select":"id,status,metadata,channel_url,channel_message_id,user_id",
@@ -14698,6 +14704,9 @@ def mini_app_admin_report_action(report_id):
         return jsonify({"ok":False,"error":"admin_only"}), 403
     if not supabase_enabled():
         return jsonify({"ok":False,"error":"db_unavailable"}), 503
+    rate_limit = _mm_rate_limit_guard("admin_report_action", admin.get("id"), 30, 60)
+    if rate_limit:
+        return rate_limit
     payload = request.get_json(silent=True) or {}
     action = str(payload.get("action") or "").strip().lower()
     reports = supabase_request("GET", "mm_listing_reports", params={
@@ -15098,6 +15107,9 @@ def mini_app_admin_confirm_manual_cleanup(listing_id):
         return jsonify({"error":"admin_only"}), 403
     if not supabase_enabled():
         return jsonify({"error":"db_unavailable"}), 503
+    rate_limit = _mm_rate_limit_guard("admin_confirm_manual_cleanup", admin.get("id"), 5, 600)
+    if rate_limit:
+        return rate_limit
     rows = supabase_request("GET", "listings", params={
         "select":"id,status,metadata,expires_at", "id":f"eq.{int(listing_id)}", "limit":"1"
     })
@@ -15145,6 +15157,9 @@ def mini_app_admin_restore_listing(listing_id):
         return jsonify({"error":"admin_only"}), 403
     if not supabase_enabled():
         return jsonify({"error":"db_unavailable"}), 503
+    rate_limit = _mm_rate_limit_guard("admin_listing_restore", admin.get("id"), 5, 600)
+    if rate_limit:
+        return rate_limit
 
     rows = supabase_request("GET", "listings", params={
         "select":"*", "id":f"eq.{int(listing_id)}", "limit":"1"
@@ -15293,6 +15308,9 @@ def mini_app_update_listing(listing_id):
     row, user, user_id = _mini_app_owned_row(listing_id)
     if not user:
         return jsonify({"error":"invalid_init_data"}), 401
+    rate_limit = _mm_rate_limit_guard("owner_listing_edit", user.get("id"), 10, 60)
+    if rate_limit:
+        return rate_limit
     if not row:
         return jsonify({"error":"not_found"}), 404
     payload = request.get_json(silent=True) or {}
@@ -15411,6 +15429,9 @@ def mini_app_unpublish_listing(listing_id):
     row, user, user_id = _mini_app_owned_row(listing_id)
     if not user:
         return jsonify({"error":"invalid_init_data"}), 401
+    rate_limit = _mm_rate_limit_guard("owner_listing_unpublish", user.get("id"), 10, 60)
+    if rate_limit:
+        return rate_limit
     if not row:
         return jsonify({"error":"not_found"}), 404
     status = str(row.get("status") or "").lower()
@@ -15438,6 +15459,9 @@ def mini_app_republish_listing(listing_id):
     row, user, user_id = _mini_app_owned_row(listing_id)
     if not user:
         return jsonify({"error":"invalid_init_data"}), 401
+    rate_limit = _mm_rate_limit_guard("owner_listing_republish", user.get("id"), 3, 600)
+    if rate_limit:
+        return rate_limit
     if not row:
         return jsonify({"error":"not_found"}), 404
     status = str(row.get("status") or "").lower()
@@ -15603,6 +15627,9 @@ def mini_app_delete_listing(listing_id):
     row, user, user_id = _mini_app_owned_row(listing_id)
     if not user:
         return jsonify({"error":"invalid_init_data"}), 401
+    rate_limit = _mm_rate_limit_guard("owner_listing_delete", user.get("id"), 3, 600)
+    if rate_limit:
+        return rate_limit
     if not row:
         return jsonify({"error":"not_found"}), 404
     # Keep the database row and photos until Telegram posts are confirmed deleted.
