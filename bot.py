@@ -5030,14 +5030,79 @@ def moderate_publish(
         _moderation_callback_answer(callback_id, "Заявка не содержит сохранённых данных. Откройте её заново.", True)
         return
 
-    # If Telegram already accepted this post but Supabase failed, retry only
-    # the database save. Never send the same channel post a second time.
+    # Persist a publish-attempt marker BEFORE calling Telegram. If the process
+    # stops after Telegram accepts the post but before its response is saved,
+    # the durable marker prevents a restart from blindly sending a duplicate.
     result = item.get("_telegram_publish_result")
     if not isinstance(result, dict):
+        publish_state = str(item.get("_telegram_publish_state") or "")
+        if publish_state in {"sending", "unknown", "sent"}:
+            _moderation_callback_answer(
+                callback_id,
+                "⚠️ Предыдущая попытка публикации не завершена безопасно. Проверьте канал перед повтором.",
+                True
+            )
+            send(
+                admin_user_id,
+                "<b>⚠️ Нужна ручная проверка публикации.</b>\n\n"
+                f"Заявка #{request_id}: предыдущая попытка могла дойти до Telegram, "
+                "но подтверждённый результат не сохранён. Повторная отправка заблокирована, "
+                "чтобы не создать дубликат. Проверьте канал и каталог перед дальнейшими действиями."
+            )
+            refresh_admin_moderation_queue(0)
+            return
+
+        item["_telegram_publish_state"] = "sending"
+        if not runtime_state_save(_runtime_key("moderation", request_id), item):
+            item.pop("_telegram_publish_state", None)
+            _moderation_callback_answer(
+                callback_id,
+                "⚠️ Не удалось сохранить состояние публикации. Telegram не вызывался; попробуйте позже.",
+                True
+            )
+            send(
+                admin_user_id,
+                "<b>⚠️ Публикация не запускалась.</b>\n\n"
+                f"Не удалось надёжно сохранить состояние заявки #{request_id}. "
+                "После восстановления базы повторите действие."
+            )
+            return
+
         result = publish_listing(data)
         if result.get("ok"):
             item["_telegram_publish_result"] = result
+            item["_telegram_publish_state"] = "sent"
+            if not runtime_state_save(_runtime_key("moderation", request_id), item):
+                # The earlier durable `sending` marker remains in Supabase. If
+                # catalog registration also fails, a restart will quarantine
+                # this request for manual reconciliation instead of resending.
+                print("MODERATION: Telegram result persistence failed; durable sending marker retained", request_id)
+        elif isinstance(result, dict) and result.get("error"):
+            # A transport/timeout error is ambiguous: Telegram may have accepted
+            # the post even though the response was lost. Never auto-retry it.
+            item["_telegram_publish_state"] = "unknown"
             runtime_state_save(_runtime_key("moderation", request_id), item)
+            _moderation_callback_answer(
+                callback_id,
+                "⚠️ Не удалось подтвердить результат Telegram. Повторная отправка заблокирована до проверки канала.",
+                True
+            )
+            send(
+                admin_user_id,
+                "<b>⚠️ Неизвестный результат публикации.</b>\n\n"
+                f"Заявка #{request_id}: соединение прервалось, и Telegram мог принять сообщение. "
+                "Не нажимайте публикацию повторно до проверки канала."
+            )
+            refresh_admin_moderation_queue(0)
+            return
+        else:
+            # A structured Telegram Bot API rejection confirms that the post
+            # was not accepted, so a later deliberate retry is safe.
+            item.pop("_telegram_publish_state", None)
+            if not runtime_state_save(_runtime_key("moderation", request_id), item):
+                # The persisted `sending` marker is conservative: after restart
+                # the request will require manual review rather than duplicate.
+                print("MODERATION: Telegram rejection state reset not persisted", request_id)
 
     if not result.get(
         "ok"
