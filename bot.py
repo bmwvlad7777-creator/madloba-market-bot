@@ -15090,6 +15090,83 @@ def listing_picker_mini_app():
 .top #cityMultiBtn{height:38px!important;min-height:38px!important;padding-left:9px!important;padding-right:9px!important;font-size:13px!important;gap:5px!important;border-radius:13px!important;}
 .top #cityMultiBtn .mm-city-drop-icon{width:16px!important;height:16px!important;flex:0 0 16px!important;}
 @media(max-width:390px){.top #langSelect{width:68px!important;min-width:68px!important}.top #cityMultiBtn{padding-left:7px!important;padding-right:7px!important;font-size:12px!important;}}
+
+/* MADLOBA MARKET — My listings cards v3: premium marketplace hierarchy; CSS only. */
+#mineList.mine-list{gap:16px!important}
+#mineList .mine-card{
+  position:relative!important;isolation:isolate!important;overflow:hidden!important;
+  padding:15px!important;border:1px solid #e1e8f2!important;border-radius:23px!important;
+  background:#fff!important;
+  box-shadow:0 10px 28px rgba(25,45,75,.075),0 2px 6px rgba(25,45,75,.035)!important;
+}
+#mineList .mine-card:before{
+  content:"";position:absolute;inset:0 auto 0 0;width:4px!important;
+  background:linear-gradient(180deg,#1677f2 0%,#72b2ff 100%)!important;
+}
+#mineList .mine-row{display:grid!important;grid-template-columns:88px minmax(0,1fr)!important;gap:13px!important;align-items:start!important;padding:1px 0 0 2px!important}
+#mineList .mine-thumb{
+  width:88px!important;height:88px!important;flex:0 0 88px!important;
+  border-radius:19px!important;background:#f0f5fc!important;
+  border:1px solid #e6edf7!important;box-shadow:none!important;
+  color:#8da2bd!important;font-size:25px!important;
+}
+#mineList .mine-thumb img{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important}
+#mineList .mine-info{min-width:0!important;padding:1px 0 0!important}
+#mineList .mine-title{
+  color:#17243a!important;font-size:16px!important;line-height:1.25!important;
+  font-weight:850!important;letter-spacing:-.35px!important;
+  display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;
+}
+#mineList .mine-price{font-size:22px!important;line-height:1.08!important;font-weight:900!important;letter-spacing:-.6px!important;margin-top:7px!important;color:#111e33!important}
+#mineList .status{
+  display:inline-flex!important;align-items:center!important;gap:7px!important;
+  margin-top:8px!important;padding:6px 10px!important;border:1px solid #d9efe4!important;
+  border-radius:999px!important;background:#effaf4!important;color:#16804c!important;
+  font-size:11px!important;font-weight:850!important;line-height:1.1!important;
+}
+#mineList .status:before{content:"";display:inline-block!important;width:7px!important;height:7px!important;flex:0 0 7px!important;border-radius:50%!important;background:#20a464!important;box-shadow:0 0 0 3px rgba(32,164,100,.12)!important;margin:0!important}
+#mineList .mine-expiry{
+  display:block!important;margin-top:11px!important;padding:8px 10px!important;
+  border:1px solid #edf1f6!important;border-radius:12px!important;
+  background:#f7f9fc!important;color:#64748b!important;
+  font-size:11px!important;line-height:1.35!important;font-weight:750!important;
+}
+#mineList .mine-expiry.missing{background:#fff8eb!important;border-color:#f7e7c5!important;color:#9a650f!important}
+#mineList .mine-actions{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;margin-top:15px!important;padding-top:13px!important;
+  border-top:1px solid #edf1f6!important;
+}
+#mineList .mine-action{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  min-width:0!important;min-height:43px!important;padding:10px 9px!important;
+  border:1px solid #e5eaf2!important;border-radius:14px!important;
+  background:#f8fafc!important;color:#34445b!important;
+  font-size:12px!important;line-height:1.15!important;font-weight:850!important;
+  letter-spacing:-.12px!important;box-shadow:none!important;
+  white-space:normal!important;
+}
+#mineList .mine-action[data-action="open"]{
+  grid-column:1/-1!important;min-height:46px!important;
+  color:#fff!important;border-color:#176fe5!important;
+  background:linear-gradient(135deg,#2585fa 0%,#1268df 100%)!important;
+  box-shadow:0 7px 16px rgba(22,111,229,.19)!important;font-size:13px!important;
+}
+#mineList .mine-action[data-action="edit"]{background:#f7f9fc!important;border-color:#e3e9f1!important;color:#35445a!important}
+#mineList .mine-action[data-action="renew"],
+#mineList .mine-action[data-action="republish"]{background:#effaf4!important;border-color:#d9efe3!important;color:#16804c!important}
+#mineList .mine-action[data-action="unpublish"]{background:#fff8eb!important;border-color:#f5e5c2!important;color:#9a650f!important}
+#mineList .mine-action[data-action="delete"]{background:#fff5f6!important;border-color:#f5dfe4!important;color:#bd3650!important}
+#mineList .mine-action:active{transform:scale(.985)!important;box-shadow:inset 0 2px 5px rgba(25,45,75,.08)!important}
+@media(max-width:390px){
+  #mineList .mine-card{padding:12px!important;border-radius:20px!important}
+  #mineList .mine-row{grid-template-columns:76px minmax(0,1fr)!important;gap:10px!important}
+  #mineList .mine-thumb{width:76px!important;height:76px!important;flex-basis:76px!important;border-radius:16px!important}
+  #mineList .mine-title{font-size:15px!important}
+  #mineList .mine-price{font-size:20px!important}
+  #mineList .mine-action{min-height:41px!important;padding:9px 6px!important;font-size:11px!important}
+}
+
 </style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span id="rangeMin">0</span><span id="rangeMax">500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
 const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(['mileage','area','experience'].includes(kind)){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue'),min=document.getElementById('rangeMin'),max=document.getElementById('rangeMax'),button=document.getElementById('chooseMileage');if(kind==='child_age'){range.min='0';range.max='18';range.step='1';range.value='1';out.textContent='1 год';min.textContent='0 лет';max.textContent='18 лет';button.textContent='Выбрать возраст'}else if(kind==='experience'){range.min='0';range.max='40';range.step='1';range.value='1';out.textContent='1 год';min.textContent='Без опыта';max.textContent='40 лет';button.textContent='Выбрать опыт'}else if(kind==='area'){const limits={"apartment":500,"house":1000,"room":300,"commercial":5000,"land":10000,"garage":500};const maxArea=limits[__AREA_SUBCATEGORY__]||500;range.min='1';range.max=String(maxArea);range.step='1';range.value=String(Math.min(70,maxArea));out.textContent=range.value+' м²';min.textContent='1 м²';max.textContent=Number(maxArea).toLocaleString('ru-RU')+' м²';button.textContent='Выбрать площадь'}else{range.min='0';range.max='500000';range.step='1000';range.value='0';out.textContent='0 км';min.textContent='0 км';max.textContent='500 000 км';button.textContent='Выбрать пробег'}function fmt(n){const v=Number(n).toLocaleString('ru-RU');if(kind==='area')return v+' м²';if(kind==='child_age'||kind==='experience')return v+(Number(n)===1?' год':(Number(n)>=2&&Number(n)<=4?' года':' лет'));return v+' км'}range.addEventListener('input',()=>out.textContent=fmt(range.value));button.addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
 </script>
