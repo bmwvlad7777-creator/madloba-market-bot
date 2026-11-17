@@ -11802,12 +11802,33 @@ body::before{
 #detailContent .detail-share svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #detailContent .detail-share:active{transform:scale(.96)}
 </style>
-<style id="madloba-detail-hide-home-header-v16">
-/* DETAIL-01 v16: the home brand/hero header must not occupy vertical space on listing details. */
-body.mm-detail-open .wrap > .top,
-body.mm-detail-open .wrap > .hero{display:none!important;}
-/* Keep the existing Telegram safe-area clearance for the detail title/back row. */
-body.mm-detail-open #detailView{padding-top:max(92px,calc(var(--tg-content-safe-area-inset-top,0px) + 20px),calc(var(--tg-safe-area-inset-top,0px) + 64px),calc(env(safe-area-inset-top,0px) + 64px))!important;}
+<style id="madloba-clean-listing-detail-mode-v1">
+/* Open a listing as a focused page: remove the home header, city-photo backdrop and bottom tabs.
+   The existing detail back action restores the previous app view. */
+body.mm-detail-open{
+  padding-bottom:0!important;
+  background:var(--bg)!important;
+}
+body.mm-detail-open::before{display:none!important;content:none!important;}
+body.mm-detail-open .wrap{
+  padding-top:0!important;
+  padding-bottom:12px!important;
+}
+body.mm-detail-open .top,
+body.mm-detail-open .hero,
+body.mm-detail-open #backBtn,
+body.mm-detail-open .filter-bar,
+body.mm-detail-open .bottom{
+  display:none!important;
+}
+body.mm-detail-open #detailView{
+  display:block!important;
+  margin:0!important;
+  padding-top:max(76px,calc(var(--tg-content-safe-area-inset-top,0px) + 14px),calc(var(--tg-safe-area-inset-top,0px) + 14px),calc(env(safe-area-inset-top,0px) + 14px))!important;
+  padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))!important;
+  scroll-margin-top:0!important;
+}
+body.mm-detail-open #detailView .detail-top{margin-top:0!important;}
 </style>
 </head>
 <body>
