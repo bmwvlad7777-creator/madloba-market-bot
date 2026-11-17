@@ -16964,9 +16964,9 @@ def mini_app_listings():
             offset = page * per_page
             generic_rows = supabase_request(
                 "POST",
-                "rpc/mm_filter_generic_listings",
+                "rpc/mm_filter_generic_listings_multi" if selected_city_ids else "rpc/mm_filter_generic_listings",
                 payload={
-                    "p_city_id": int(city_id),
+                    **({"p_city_ids": selected_city_ids} if selected_city_ids else {"p_city_id": int(city_id)}),
                     "p_category_id": int(category_id),
                     "p_deal": str(request.args.get("deal", "")).strip().lower() or None,
                     "p_subcategory": str(request.args.get("sub", "")).strip().lower() or None,
