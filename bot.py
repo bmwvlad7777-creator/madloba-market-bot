@@ -11831,32 +11831,38 @@ body.mm-detail-open #detailView{
 }
 body.mm-detail-open #detailView .detail-top{margin-top:0!important;}
 </style>
-<style id="madloba-header-selector-equal-size-v1">
-/* Match the language and city controls in height and width for a balanced header. */
+<style id="madloba-header-selector-compact-v1">
+/* Compact header controls: same height, content-sized widths, no oversized pills. */
 .top #langSelect,
 .top #cityMultiBtn{
   box-sizing:border-box!important;
-  width:112px!important;
-  min-width:112px!important;
-  max-width:112px!important;
-  height:48px!important;
-  min-height:48px!important;
-  max-height:48px!important;
-  flex:0 0 112px!important;
+  height:40px!important;
+  min-height:40px!important;
+  max-height:40px!important;
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
-  gap:5px!important;
-  padding:0 8px!important;
+  gap:4px!important;
+  padding:0 7px!important;
   border-radius:999px!important;
-  font-size:13px!important;
+  font-size:12px!important;
   line-height:1!important;
   white-space:nowrap!important;
 }
-.top #langSelect{ text-align:center!important; }
-.top #cityMultiBtn .mm-city-drop-icon{width:17px!important;height:17px!important;flex:0 0 17px!important;}
+.top #langSelect{
+  flex:0 0 68px!important;
+  width:68px!important;min-width:68px!important;max-width:68px!important;
+  text-align:center!important;
+}
+.top #cityMultiBtn{
+  flex:0 0 124px!important;
+  width:124px!important;min-width:124px!important;max-width:124px!important;
+  padding:0 8px!important;
+}
+.top #cityMultiBtn .mm-city-drop-icon{width:15px!important;height:15px!important;flex:0 0 15px!important;}
 @media(max-width:390px){
-  .top #langSelect,.top #cityMultiBtn{width:106px!important;min-width:106px!important;max-width:106px!important;flex-basis:106px!important;height:46px!important;min-height:46px!important;max-height:46px!important;font-size:12px!important;}
+  .top #langSelect{flex-basis:62px!important;width:62px!important;min-width:62px!important;max-width:62px!important;font-size:11px!important;}
+  .top #cityMultiBtn{flex-basis:116px!important;width:116px!important;min-width:116px!important;max-width:116px!important;font-size:11px!important;}
 }
 </style>
 </head>
@@ -15050,6 +15056,13 @@ def listing_picker_mini_app():
     title_json = json.dumps(title, ensure_ascii=False)
     html_page = r'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><script src="https://telegram.org/js/telegram-web-app.js"></script><title>Madloba Market</title><style>
 :root{color-scheme:light;--panel:#fff;--text:#17202b;--muted:#7b8794;--line:#e8edf2;--accent:#70a94b}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:rgba(10,18,28,.35);color:var(--text)}.sheet{position:absolute;left:0;right:0;bottom:0;height:min(88dvh,760px);background:var(--panel);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:10px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px #0002}.handle{width:38px;height:4px;border-radius:9px;background:#d5dbe1;margin:0 auto 15px}.head{font-size:19px;font-weight:750;margin:0 0 13px}.search{height:44px;border:1px solid var(--line);border-radius:12px;padding:0 13px;font-size:16px;outline:none;background:#f7f8fa;width:100%;margin-bottom:8px}.list{overflow-y:auto;overscroll-behavior:contain;flex:1;-webkit-overflow-scrolling:touch}.item{display:flex;align-items:center;min-height:52px;padding:0 10px;border-bottom:1px solid var(--line);font-size:16px;cursor:pointer}.item:active{background:#edf5e8}.foot{font-size:12px;color:var(--muted);padding-top:10px;text-align:center}.value{font-size:30px;font-weight:750;text-align:center;margin:30px 0 20px}.range{width:100%;accent-color:var(--accent);height:42px}.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+</style>/* Header selector compactness: reduce vertical bulk without changing controls or behavior. */
+<style id="madloba-header-compact-height-v2">
+.top .city{height:38px!important;min-height:38px!important;padding-top:0!important;padding-bottom:0!important;border-radius:13px!important;line-height:1.1!important;box-shadow:0 3px 10px rgba(15,23,42,.06)!important;}
+.top #langSelect{width:72px!important;min-width:72px!important;padding-left:5px!important;padding-right:5px!important;font-size:13px!important;}
+.top #cityMultiBtn{height:38px!important;min-height:38px!important;padding-left:9px!important;padding-right:9px!important;font-size:13px!important;gap:5px!important;border-radius:13px!important;}
+.top #cityMultiBtn .mm-city-drop-icon{width:16px!important;height:16px!important;flex:0 0 16px!important;}
+@media(max-width:390px){.top #langSelect{width:68px!important;min-width:68px!important}.top #cityMultiBtn{padding-left:7px!important;padding-right:7px!important;font-size:12px!important;}}
 </style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span id="rangeMin">0</span><span id="rangeMax">500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
 const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(['mileage','area','experience'].includes(kind)){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue'),min=document.getElementById('rangeMin'),max=document.getElementById('rangeMax'),button=document.getElementById('chooseMileage');if(kind==='child_age'){range.min='0';range.max='18';range.step='1';range.value='1';out.textContent='1 год';min.textContent='0 лет';max.textContent='18 лет';button.textContent='Выбрать возраст'}else if(kind==='experience'){range.min='0';range.max='40';range.step='1';range.value='1';out.textContent='1 год';min.textContent='Без опыта';max.textContent='40 лет';button.textContent='Выбрать опыт'}else if(kind==='area'){const limits={"apartment":500,"house":1000,"room":300,"commercial":5000,"land":10000,"garage":500};const maxArea=limits[__AREA_SUBCATEGORY__]||500;range.min='1';range.max=String(maxArea);range.step='1';range.value=String(Math.min(70,maxArea));out.textContent=range.value+' м²';min.textContent='1 м²';max.textContent=Number(maxArea).toLocaleString('ru-RU')+' м²';button.textContent='Выбрать площадь'}else{range.min='0';range.max='500000';range.step='1000';range.value='0';out.textContent='0 км';min.textContent='0 км';max.textContent='500 000 км';button.textContent='Выбрать пробег'}function fmt(n){const v=Number(n).toLocaleString('ru-RU');if(kind==='area')return v+' м²';if(kind==='child_age'||kind==='experience')return v+(Number(n)===1?' год':(Number(n)>=2&&Number(n)<=4?' года':' лет'));return v+' км'}range.addEventListener('input',()=>out.textContent=fmt(range.value));button.addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
 </script>
