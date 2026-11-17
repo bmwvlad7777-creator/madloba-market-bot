@@ -14364,6 +14364,33 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 #bestRow .card-time,#list .card-time{font-size:8.5px!important;line-height:15px!important}
 #bestRow .best-card .fav-btn,#list .card .fav-btn{top:7px!important;right:7px!important;width:30px!important;height:30px!important;font-size:19px!important;line-height:30px!important}
 @media(max-width:390px){#bestRow.best-row,#list.list{grid-auto-rows:246px!important;gap:8px!important}#bestRow .best-card,#list .card{height:246px!important;min-height:246px!important;max-height:246px!important}#bestRow .best-photo,#list .card .photo{flex-basis:98px!important;height:98px!important;min-height:98px!important;max-height:98px!important}#bestRow .best-body,#list .card .cardbody{height:148px!important;min-height:148px!important;max-height:148px!important;padding-left:8px!important;padding-right:8px!important}}
+
+/* MADLOBA MARKET — My listings cards v2: editorial, polished visual layer only. */
+#mineList.mine-list{gap:14px!important}
+#mineList .mine-card{
+  position:relative!important;overflow:hidden!important;
+  padding:13px!important;border:1px solid #dce6f2!important;border-radius:21px!important;
+  background:linear-gradient(145deg,#fff 0%,#fff 72%,#f8fbff 100%)!important;
+  box-shadow:0 9px 24px rgba(31,55,88,.075),inset 0 1px 0 rgba(255,255,255,.98)!important;
+}
+#mineList .mine-card:before{content:"";position:absolute;left:0;top:17px;bottom:17px;width:3px;border-radius:0 5px 5px 0;background:linear-gradient(180deg,#3b91ff,#b7d8ff)}
+#mineList .mine-row{gap:12px!important;align-items:flex-start!important;padding-left:2px!important}
+#mineList .mine-thumb{width:76px!important;height:76px!important;flex:0 0 76px!important;border-radius:17px!important;background:linear-gradient(145deg,#edf5ff,#e4eefb)!important;border:1px solid #e3edf9!important;box-shadow:inset 0 1px 0 #fff!important;color:#8aa2bf!important;font-size:23px!important}
+#mineList .mine-thumb img{object-fit:cover!important}
+#mineList .mine-info{padding:1px 1px 0!important}
+#mineList .mine-title{font-size:15.5px!important;line-height:1.22!important;font-weight:850!important;letter-spacing:-.25px!important;color:#172338!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+#mineList .mine-price{font-size:20px!important;line-height:1.1!important;letter-spacing:-.45px!important;margin-top:6px!important;color:#172338!important}
+#mineList .status{margin-top:7px!important;padding:5px 10px!important;border:1px solid #dfebfb!important;background:#f0f6ff!important;color:#176fda!important;font-size:11px!important;font-weight:800!important;letter-spacing:.05px!important}
+#mineList .status:before{content:"";width:6px;height:6px;border-radius:50%;background:#29966a;margin-right:6px;box-shadow:0 0 0 3px rgba(41,150,106,.10)}
+#mineList .mine-expiry{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:3px!important;margin-top:9px!important;padding:6px 9px!important;border-radius:10px!important;background:#f6f8fb!important;color:#68778c!important;font-size:11px!important;line-height:1.35!important;font-weight:700!important}
+#mineList .mine-expiry.missing{background:#fff8eb!important;color:#a66b16!important}
+#mineList .mine-actions{gap:7px!important;margin-top:12px!important;padding-top:11px!important;border-top:1px solid #edf1f6!important}
+#mineList .mine-action{min-height:40px!important;padding:9px 7px!important;border-radius:13px!important;border:1px solid #e4eaf2!important;background:linear-gradient(180deg,#fff,#f7f9fc)!important;color:#3c4b60!important;font-size:12px!important;font-weight:800!important;letter-spacing:-.1px!important;box-shadow:0 2px 5px rgba(31,55,88,.025)!important;transition:transform .12s ease,box-shadow .12s ease!important}
+#mineList .mine-action.primary{background:linear-gradient(180deg,#f2f7ff,#eaf3ff)!important;color:#176fda!important;border-color:#d8e8ff!important}
+#mineList .mine-action.warn{background:linear-gradient(180deg,#fffaf0,#fff5df)!important;color:#9a620d!important;border-color:#f6e4b9!important}
+#mineList .mine-action.danger{background:linear-gradient(180deg,#fff6f7,#fff0f2)!important;color:#bd3150!important;border-color:#f8dce2!important}
+#mineList .mine-action:active{transform:translateY(1px) scale(.985)!important;box-shadow:inset 0 2px 5px rgba(31,55,88,.07)!important}
+@media(max-width:390px){#mineList .mine-card{padding:11px!important;border-radius:19px!important}#mineList .mine-thumb{width:68px!important;height:68px!important;flex-basis:68px!important}#mineList .mine-title{font-size:14.5px!important}#mineList .mine-price{font-size:19px!important}#mineList .mine-action{font-size:11px!important;min-height:39px!important}}
 </style>
 
 </body></html>""", mimetype="text/html")
