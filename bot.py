@@ -13453,6 +13453,15 @@ body.mm-detail-open #detailView #detailContent{
 /* Match favorites heart control exactly to the final home catalog size and placement. */
 #favoritesList .card .fav-btn{top:7px!important;right:7px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;max-width:30px!important;max-height:30px!important;line-height:30px!important;font-size:19px!important;padding:0!important;box-sizing:border-box!important}
 
+/* Favorites-only geometry fix: make each card fill its grid cell and align
+   the metadata row without changing the shared card renderer or any behavior. */
+#favoritesList.list{grid-auto-rows:1fr!important;align-items:stretch!important}
+#favoritesList .fav-card{height:100%!important;min-height:0!important}
+#favoritesList .fav-card>.card{display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important}
+#favoritesList .fav-card>.card>.photo{flex:0 0 100px!important;height:100px!important;min-height:100px!important;max-height:100px!important}
+#favoritesList .fav-card>.card>.cardbody{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-height:0!important}
+#favoritesList .fav-card>.card>.cardbody>.card-meta{margin-top:auto!important}
+
 /* iOS/Telegram Mini App: prevent automatic focus zoom on form controls.
    Keep the user's ability to manually zoom the page; only normalize editable controls. */
 html body input,
