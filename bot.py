@@ -11824,11 +11824,40 @@ body.mm-detail-open .bottom{
 body.mm-detail-open #detailView{
   display:block!important;
   margin:0!important;
-  padding-top:max(76px,calc(var(--tg-content-safe-area-inset-top,0px) + 14px),calc(var(--tg-safe-area-inset-top,0px) + 14px),calc(env(safe-area-inset-top,0px) + 14px))!important;
+  /* Keep the app's native Close control clear of the in-page Back button. */
+  padding-top:max(100px,calc(var(--tg-content-safe-area-inset-top,0px) + 38px),calc(var(--tg-safe-area-inset-top,0px) + 38px),calc(env(safe-area-inset-top,0px) + 38px))!important;
   padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))!important;
   scroll-margin-top:0!important;
 }
 body.mm-detail-open #detailView .detail-top{margin-top:0!important;}
+</style>
+<style id="madloba-header-selector-equal-size-v1">
+/* Match the language and city controls in height and width for a balanced header. */
+.top #langSelect,
+.top #cityMultiBtn{
+  box-sizing:border-box!important;
+  width:112px!important;
+  min-width:112px!important;
+  max-width:112px!important;
+  height:48px!important;
+  min-height:48px!important;
+  max-height:48px!important;
+  flex:0 0 112px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  padding:0 8px!important;
+  border-radius:999px!important;
+  font-size:13px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.top #langSelect{ text-align:center!important; }
+.top #cityMultiBtn .mm-city-drop-icon{width:17px!important;height:17px!important;flex:0 0 17px!important;}
+@media(max-width:390px){
+  .top #langSelect,.top #cityMultiBtn{width:106px!important;min-width:106px!important;max-width:106px!important;flex-basis:106px!important;height:46px!important;min-height:46px!important;max-height:46px!important;font-size:12px!important;}
+}
 </style>
 </head>
 <body>
