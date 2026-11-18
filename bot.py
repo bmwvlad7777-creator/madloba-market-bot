@@ -13711,6 +13711,88 @@ html body [contenteditable="true"] {
   font-size: 16px !important;
 }
 
+
+<style id="madloba-photo-fit-final-v3">
+/* Final photo-fit pass: override older cover rules after all legacy styles. */
+#bestRow .best-photo img,
+#list .card .photo img,
+#favoritesList .fav-card>.card>.photo img,
+#sellerListings .card .photo img {
+  position:relative!important;
+  z-index:1!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  padding:3px 0!important;
+  box-sizing:border-box!important;
+}
+#bestRow .best-photo .mm-photo-blur,
+#list .card .photo .mm-photo-blur,
+#favoritesList .fav-card>.card>.photo .mm-photo-blur,
+#sellerListings .card .photo .mm-photo-blur,
+#detailView #detailContent .detail-photo .mm-photo-blur {
+  filter:blur(34px) brightness(1.13) saturate(.68)!important;
+  opacity:.30!important;
+  transform:scale(1.12)!important;
+}
+#bestRow .best-photo::after,
+#list .card .photo::after,
+#favoritesList .fav-card>.card>.photo::after,
+#sellerListings .card .photo::after,
+#detailView #detailContent .detail-photo::after {
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:0!important;
+  background:linear-gradient(135deg,rgba(248,250,253,.48),rgba(239,244,250,.38))!important;
+  pointer-events:none!important;
+}
+/* My listings use compact square thumbnails rather than the shared card renderer. */
+#mineList .mine-thumb {
+  position:relative!important;
+  overflow:hidden!important;
+  background:linear-gradient(145deg,#f5f8fc,#eaf0f7)!important;
+}
+#mineList .mine-thumb img {
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  padding:3px!important;
+  box-sizing:border-box!important;
+}
+/* Give portrait originals more room in the detail gallery without cropping. */
+#detailView #detailContent .detail-photo {
+  height:clamp(250px,72vw,360px)!important;
+  min-height:250px!important;
+  max-height:360px!important;
+  background:#edf2f8!important;
+}
+#detailView #detailContent .detail-photo img {
+  position:relative!important;
+  z-index:1!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  padding:4px 0!important;
+  box-sizing:border-box!important;
+}
+@media(max-width:390px){
+  #detailView #detailContent .detail-photo {
+    height:clamp(250px,72vw,330px)!important;
+    min-height:250px!important;
+    max-height:330px!important;
+  }
+}
+</style>
+
 </style>
 
 </body></html>'''
