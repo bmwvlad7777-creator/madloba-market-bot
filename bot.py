@@ -1212,10 +1212,10 @@ def validate_structured_listing_data(data):
             or "wa.me/" in contact_lower
             or "whatsapp" in contact_lower
         )
-        if not is_social_contact and re.search(r"\d", contact):
+        if not is_social_contact:
             compact_contact = re.sub(r"[\s()\-]", "", contact)
             if not re.fullmatch(r"\+9955\d{8}", compact_contact):
-                return invalid("Телефон должен быть грузинским мобильным номером в формате +995 5XX XX XX XX.")
+                return invalid("Укажите грузинский мобильный номер: +995 5XX XX XX XX, либо Telegram/WhatsApp контакт.")
 
     if present("dimensions") and not _valid_dimensions_value(present("dimensions")):
         return invalid("Размеры укажите числами: например, 120×60×40 см или 1.2 м.")
@@ -1226,9 +1226,9 @@ def validate_structured_listing_data(data):
         if present("floor") and present("floor") not in REALESTATE_FLOOR_OPTIONS:
             return invalid("Этаж должен быть выбран из списка.")
         if present("area"):
-            raw = re.sub(r"[\s,]", "", present("area"))
-            if not raw.isdigit():
-                return invalid("Площадь должна быть числом.")
+            raw = re.sub(r"\s", "", present("area"))
+            if not re.fullmatch(r"\d+", raw):
+                return invalid("Площадь должна содержать только цифры, без букв и слов.")
             area = int(raw)
             limits = {"apartment": 500, "house": 1000, "room": 300,
                       "commercial": 5000, "land": 10000, "garage": 500}
@@ -2229,6 +2229,15 @@ def main_menu():
     ]
 
 
+def _detail_requires_picker(field_key):
+    """Fields with controlled options must never accept ordinary chat text."""
+    return field_key in {
+        "condition", "age", "gender", "make_model", "year", "mileage",
+        "color", "drivetrain", "rooms", "floor", "brand_model", "warranty",
+        "experience",
+    }
+
+
 def category_fields(data):
     """Return fields appropriate to the selected category/subcategory."""
     category_key = str((data or {}).get("category_key", ""))
@@ -3079,12 +3088,12 @@ def normalize_pet_age(value):
 
 
 def _valid_dimensions_value(value):
-    """Accept numeric dimensions (one to three measures), optionally with units."""
+    """Accept only numeric dimensions (one to three measures); reject words/units."""
     raw = str(value or "").strip().lower().replace("×", "x").replace("✕", "x").replace("х", "x")
-    raw = re.sub(r"\s+", " ", raw)
-    # Examples: 120x60x40 см, 120 x 60 cm, 120 см, 1.2 м.
+    raw = re.sub(r"\s+", "", raw)
+    # Digits and numeric separators only: e.g. 120x60x40 or 1.2.
     number = r"\d{1,6}(?:[.,]\d{1,3})?"
-    pattern = rf"^{number}(?:\s*x\s*{number}){{0,2}}\s*(?:мм|миллиметр(?:а|ов)?|mm|см|сантиметр(?:а|ов)?|cm|м|метр(?:а|ов)?|m)?$"
+    pattern = rf"^{number}(?:x{number}){{0,2}}$"
     if not re.fullmatch(pattern, raw):
         return False
     values = re.findall(number, raw)
@@ -5212,15 +5221,14 @@ def process_moderator_text(admin_chat_id, text):
             or "wa.me/" in contact_value.lower()
             or "whatsapp" in contact_value.lower()
         )
-        if not is_social_contact and re.search(r"\d", contact_value):
+        if not is_social_contact:
             compact = re.sub(r"[\s()\-]", "", contact_value)
             # Georgian mobile: +995 followed by 9 digits (mobile starts with 5).
             if not re.fullmatch(r"\+9955\d{8}", compact):
                 send(
                     chat_id,
-                    "⚠️ Проверьте формат номера. Для грузинского мобильного укажите <code>+995</code> и ещё 9 цифр.\n"
-                    "Пример: <code>+995 5XX XX XX XX</code>.\n\n"
-                    "Если хотите указать Telegram, используйте формат <code>@username</code>."
+                    "⚠️ Здесь можно указать только грузинский мобильный номер <code>+995 5XX XX XX XX</code>, "
+                    "Telegram <code>@username</code> или ссылку WhatsApp. Буквы в поле номера не принимаются."
                 )
                 return
             contact_value = compact
@@ -5235,7 +5243,10 @@ def process_moderator_text(admin_chat_id, text):
         if index < len(fields):
             field_key = fields[index][0]
             if field_key == "dimensions" and not _valid_dimensions_value(text):
-                send(admin_chat_id, "⚠️ Укажите размеры числами: например, <code>120×60×40 см</code> или <code>1.2 м</code>.")
+                send(admin_chat_id, "⚠️ Введите только цифры и разделитель ×, например <code>120×60×40</code>. Буквы запрещены.")
+                return True
+            if field_key == "area" and not re.fullmatch(r"\s*\d+\s*", text):
+                send(admin_chat_id, "⚠️ Площадь должна содержать только цифры, без букв.")
                 return True
             data["details"][field_key] = normalize_detail_value(data.get("category_key", ""), field_key, text)
     else:
@@ -5704,6 +5715,9 @@ def process_text(
         ):
 
             field_key = fields[index][0]
+            if _detail_requires_picker(field_key):
+                ask_detail(chat_id, index)
+                return True
             if field_key == "condition":
                 send(chat_id, "Выберите состояние товара — только один из двух вариантов:", condition_choice_keyboard())
                 return True
@@ -5711,7 +5725,10 @@ def process_text(
                 send_auto_make_picker(chat_id, index)
                 return True
             if field_key == "dimensions" and not _valid_dimensions_value(text):
-                send(chat_id, "⚠️ Укажите размеры числами: например, <code>120×60×40 см</code> или <code>1.2 м</code>.")
+                send(chat_id, "⚠️ Введите только цифры и разделитель ×. Например: <code>120×60×40</code>. Буквы и единицы измерения вводить нельзя.")
+                return True
+            if field_key == "area" and not re.fullmatch(r"\s*\d+\s*", text):
+                send(chat_id, "⚠️ Площадь указывается только цифрами, без букв и единиц измерения. Например: <code>70</code>.")
                 return True
             data["details"][field_key] = normalize_detail_value(
                 data.get("category_key", ""), field_key, text
@@ -5754,11 +5771,17 @@ def process_text(
         ):
 
             field_key = fields[index][0]
+            if _detail_requires_picker(field_key):
+                ask_detail(chat_id, index)
+                return True
             if field_key == "condition":
                 send(chat_id, "Выберите состояние товара — только «Новое» или «Б/у»:", condition_choice_keyboard())
                 return True
             if field_key == "dimensions" and not _valid_dimensions_value(text):
-                send(chat_id, "⚠️ Укажите размеры числами: например, <code>120×60×40 см</code> или <code>1.2 м</code>.")
+                send(chat_id, "⚠️ Введите только цифры и разделитель ×. Например: <code>120×60×40</code>. Буквы и единицы измерения вводить нельзя.")
+                return True
+            if field_key == "area" and not re.fullmatch(r"\s*\d+\s*", text):
+                send(chat_id, "⚠️ Площадь указывается только цифрами, без букв и единиц измерения. Например: <code>70</code>.")
                 return True
             data["details"][field_key] = normalize_detail_value(
                 data.get("category_key", ""), field_key, text
@@ -5904,12 +5927,11 @@ def process_text(
     ):
 
         compact_phone = re.sub(r"[\s()\-]", "", text)
-        if not re.fullmatch(r"\+?[1-9]\d{6,14}", compact_phone):
+        if not re.fullmatch(r"\+9955\d{8}", compact_phone):
             send(
                 chat_id,
-                "⚠️ Укажите только номер телефона в международном формате.\n"
-                "Например: <code>+995 5XX XX XX XX</code>.\n"
-                "Telegram username добавится автоматически из вашего профиля."
+                "⚠️ Укажите только грузинский мобильный номер: <code>+995 5XX XX XX XX</code>. "
+                "Буквы и произвольный текст не принимаются. Telegram username добавится автоматически из профиля."
             )
             return True
 
