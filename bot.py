@@ -11980,18 +11980,6 @@ body.mm-detail-open #detailView .detail-top{margin-top:0!important;}
   .top #cityMultiBtn{flex-basis:116px!important;width:116px!important;min-width:116px!important;max-width:116px!important;font-size:11px!important;}
 }
 </style>
-
-<style id="madloba-photo-contain-soft-blur-v2">
-/* Photo presentation: keep the full original image visible over a subtle, heavily diffused backdrop. */
-#bestRow .best-photo,#list .card .photo,#favoritesList .card .photo,#sellerListings .card .photo{position:relative!important;isolation:isolate!important;background:#eef2f7!important;overflow:hidden!important}
-#bestRow .best-photo .mm-photo-blur,#list .card .photo .mm-photo-blur,#favoritesList .card .photo .mm-photo-blur,#sellerListings .card .photo .mm-photo-blur{position:absolute!important;inset:-14px!important;z-index:0!important;background-position:center!important;background-size:cover!important;background-repeat:no-repeat!important;filter:blur(25px) brightness(1.08) saturate(.82)!important;opacity:.42!important;transform:scale(1.08)!important;pointer-events:none!important}
-#bestRow .best-photo::after,#list .card .photo::after,#favoritesList .card .photo::after,#sellerListings .card .photo::after{content:""!important;position:absolute!important;inset:0!important;z-index:0!important;background:linear-gradient(135deg,rgba(242,246,251,.38),rgba(232,239,248,.24))!important;pointer-events:none!important}
-#bestRow .best-photo img,#list .card .photo img,#favoritesList .card .photo img,#sellerListings .card .photo img{position:relative!important;z-index:1!important;display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important;padding:3px 0!important}
-#detailView #detailContent .detail-photo{position:relative!important;isolation:isolate!important;overflow:hidden!important;background:#edf2f8!important}
-#detailView #detailContent .detail-photo .mm-photo-blur{position:absolute!important;inset:-18px!important;z-index:0!important;background-position:center!important;background-size:cover!important;background-repeat:no-repeat!important;filter:blur(30px) brightness(1.08) saturate(.82)!important;opacity:.48!important;transform:scale(1.1)!important;pointer-events:none!important}
-#detailView #detailContent .detail-photo img{position:relative!important;z-index:1!important;display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important;padding:4px 0!important}
-@media(prefers-reduced-motion:no-preference){#bestRow .best-photo img,#list .card .photo img,#favoritesList .card .photo img,#sellerListings .card .photo img,#detailView #detailContent .detail-photo img{transition:opacity .16s ease}}
-</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option><option value="uk">🇺🇦 UA</option></select><button class="city" id="cityMultiBtn" type="button" aria-haspopup="dialog" aria-expanded="false"><svg class="mm-city-drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-7.1 8-13A8 8 0 1 0 4 9c0 5.9 8 13 8 13Z" fill="url(#mmCityDropGradient)" stroke="#2F80ED" stroke-width="1.15"/><defs><linearGradient id="mmCityDropGradient" x1="7" y1="3" x2="18" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#8CC8FF"/><stop offset="1" stop-color="#2878E8"/></linearGradient></defs><circle cx="12" cy="9" r="2.15" fill="#fff"/></svg><span id="cityMultiBtnText">Cities</span></button><select class="city" id="citySelect" aria-label="City" style="display:none!important"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option><option value="kutaisi">Kutaisi</option><option value="rustavi">Rustavi</option><option value="zugdidi">Zugdidi</option><option value="gori">Gori</option><option value="poti">Poti</option><option value="kobuleti">Kobuleti</option><option value="telavi">Telavi</option><option value="боржоми">Borjomi</option><optgroup id="cityOtherGroup" label="Other cities"><option value="ахалцихе">Akhaltsikhe</option><option value="озургети">Ozurgeti</option><option value="сенаки">Senaki</option><option value="самтредиа">Samtredia</option><option value="зестафони">Zestafoni</option><option value="марнеули">Marneuli</option><option value="хашури">Khashuri</option><option value="чиатура">Chiatura</option><option value="цхалтубо">Tskaltubo</option><option value="сагареджо">Sagarejo</option><option value="гардабани">Gardabani</option><option value="болниси">Bolnisi</option><option value="каспи">Kaspi</option><option value="хони">Khoni</option><option value="ланчхути">Lanchkhuti</option><option value="мцхета">Mtskheta</option><option value="ахалкалаки">Akhalkalaki</option><option value="ниноцминда">Ninotsminda</option><option value="дедоплисцкаро">Dedoplistskaro</option><option value="лагодехи">Lagodekhi</option><option value="кварели">Kvareli</option><option value="гурджаани">Gurjaani</option><option value="сигнахи">Sighnaghi</option><option value="цнори">Tsnori</option><option value="абаша">Abasha</option><option value="мартвили">Martvili</option><option value="хоби">Khobi</option><option value="цаленджиха">Tsalenjikha</option><option value="чхороцку">Chkhorotsku</option><option value="вани">Vani</option><option value="багдати">Baghdati</option><option value="тержола">Terjola</option><option value="сачхере">Sachkhere</option><option value="амбролаури">Ambrolauri</option><option value="они">Oni</option><option value="цагери">Tsageri</option><option value="местиа">Mestia</option><option value="хелвачаури">Khelvachauri</option><option value="кеда">Keda</option><option value="шуахеви">Shuakhevi</option><option value="хуло">Khulo</option></optgroup></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><button class="quick-arrow quick-arrow-left" id="quickArrowLeft" type="button" aria-label="Previous categories" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><div class="quick-actions" aria-label="Категории">
@@ -12465,10 +12453,10 @@ function cardText(x){
  const subtitle=candidate&&description&&candidate.toLocaleLowerCase()!==description.toLocaleLowerCase()?description:'';
  return {title,subtitle,location:cardLocation(x)};
 }
-function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);const thumbUrl='/media/'+encodeURIComponent(x.id)+'/0';return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<div class="mm-photo-blur" aria-hidden="true" style="background-image:url('${thumbUrl}')"></div><img src="${thumbUrl}" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
+function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?`<div class="price">${money(x.price,x.currency)}</div>`:''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 let detailOrigin='home';let currentDetailData=null;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();let r=await apiFetch('/api/listing/'+encodeURIComponent(id));let ownerView=false;if(r.status===404){const ownerResponse=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!ownerResponse.ok)throw 0;r=ownerResponse;ownerView=true;}if(!r.ok)throw 0;const x=await r.json();if(ownerView)x.owner_view=true;currentDetailData=x;renderDetail(x);hideViews();$('detailView').classList.add('show');document.body.classList.add('mm-detail-open');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'auto',block:'start'})))}catch(e){toast(t('open_fail'))}}function leaveDetail(){document.body.classList.remove('mm-detail-open');const origin=detailOrigin; if(origin==='favoritesView'){loadFavorites();return}if(origin==='mineView'){loadMine();return}if(origin==='profileView'){loadProfile();return}showHome()}
-function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const detailDeal=cardDealLabel(x);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const telegramRaw=String(x.telegram_username||x.telegram||'').trim();const telegram=telegramRaw.replace(/^@/,'').replace(/^https?:\/\/(?:t\.me|telegram\.me)\//i,'').replace(/\/$/,'');const telegramValid=/^[A-Za-z0-9_]{5,32}$/.test(telegram);const telegramHref=telegramValid?`https://t.me/${encodeURIComponent(telegram)}`:'';const channelHref=String(x.channel_post_url||'').trim();const channelValid=/^https:\/\/(?:t\.me|telegram\.me)\//i.test(channelHref);const contactPrimary=[];if(phoneDigits.length>=5)contactPrimary.push(`<a class="contact-btn" href="tel:${esc(phone)}" target="_blank" rel="noopener" aria-label="${esc(t('contact_call'))}">${t('contact_call')}</a>`);const contactActions=`<div class="contact-actions-row"><a class="contact-action contact-action-telegram${telegramValid?'':' is-unavailable'}" ${telegramValid?`href="${esc(telegramHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon telegram-brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" role="img" focusable="false"><defs><linearGradient id="mmTelegramBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2AABEE"/><stop offset="1" stop-color="#229ED9"/></linearGradient></defs><circle cx="16" cy="16" r="16" fill="url(#mmTelegramBlue)"/><path d="M25.4 8.1 22.6 23c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.3L10 16.4l-4.9-1.5c-1.1-.3-1.1-1.1.2-1.6l19.1-7.4c.9-.3 1.6.2 1.3 2.2Z" fill="#fff"/></svg></span><span>Telegram</span></a><a class="contact-action contact-action-channel${channelValid?'':' is-unavailable'}" ${channelValid?`href="${esc(channelHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon">📣</span><span>${state.lang==='en'?'Channel':state.lang==='ka'?'არხი':state.lang==='uk'?'Канал':'Канал'}</span></a><button type="button" class="contact-action contact-action-report" id="mmReportOpen"><span class="contact-action-icon">⚑</span><span>${state.lang==='en'?'Report':state.lang==='ka'?'გასაჩივრება':state.lang==='uk'?'Скарга':'Жалоба'}</span></button></div>`;$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<div class="mm-photo-blur" id="detailPhotoBlur" aria-hidden="true" style="background-image:url('/media/${encodeURIComponent(x.id)}/0')"></div><img id="detailImg" src="${x.owner_view?'data:,':'/media/'+encodeURIComponent(x.id)+'/0'}" ${x.owner_view?'':'onerror="this.parentElement.textContent=String.fromCodePoint(128247)"'}>`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div class="detail-kickers" style="min-width:0;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${detailDeal?`<span class="detail-deal-badge deal-${esc(detailDeal.key)}">${esc(detailDeal.label)}</span>`:''}<div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div><div class="detail-action-icons">${favButton(x,true)}<button type="button" class="detail-share" id="mmShareListing" aria-label="${state.lang==='en'?'Share listing':state.lang==='ka'?'განცხადების გაზიარება':state.lang==='uk'?'Поділитися оголошенням':'Поделиться объявлением'}" title="${state.lang==='en'?'Share listing':state.lang==='ka'?'განცხადების გაზიარება':state.lang==='uk'?'Поділитися оголошенням':'Поделиться объявлением'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg></button></div></div><h1 class="detail-listing-title">${esc(localizeListingText(cardText(x).title||localizedCategory(x.category_name||x.category||'')))}</h1>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${x.seller&&x.seller.id?`<button type="button" class="seller-inline-card" data-seller-open="${esc(x.seller.id)}"><span class="seller-avatar small">${esc((x.seller.name||'S').slice(0,1).toLocaleUpperCase())}</span><span class="seller-inline-main"><strong>${esc(x.seller.name||sellerLabel('unknown'))}</strong><small>${esc(sellerLabel('member'))}</small></span><span class="seller-inline-arrow">›</span></button>`:''}<div class="contacts">${contactPrimary.join('')}${contactActions}</div></div>`;
+function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const detailDeal=cardDealLabel(x);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const telegramRaw=String(x.telegram_username||x.telegram||'').trim();const telegram=telegramRaw.replace(/^@/,'').replace(/^https?:\/\/(?:t\.me|telegram\.me)\//i,'').replace(/\/$/,'');const telegramValid=/^[A-Za-z0-9_]{5,32}$/.test(telegram);const telegramHref=telegramValid?`https://t.me/${encodeURIComponent(telegram)}`:'';const channelHref=String(x.channel_post_url||'').trim();const channelValid=/^https:\/\/(?:t\.me|telegram\.me)\//i.test(channelHref);const contactPrimary=[];if(phoneDigits.length>=5)contactPrimary.push(`<a class="contact-btn" href="tel:${esc(phone)}" target="_blank" rel="noopener" aria-label="${esc(t('contact_call'))}">${t('contact_call')}</a>`);const contactActions=`<div class="contact-actions-row"><a class="contact-action contact-action-telegram${telegramValid?'':' is-unavailable'}" ${telegramValid?`href="${esc(telegramHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon telegram-brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" role="img" focusable="false"><defs><linearGradient id="mmTelegramBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2AABEE"/><stop offset="1" stop-color="#229ED9"/></linearGradient></defs><circle cx="16" cy="16" r="16" fill="url(#mmTelegramBlue)"/><path d="M25.4 8.1 22.6 23c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.3L10 16.4l-4.9-1.5c-1.1-.3-1.1-1.1.2-1.6l19.1-7.4c.9-.3 1.6.2 1.3 2.2Z" fill="#fff"/></svg></span><span>Telegram</span></a><a class="contact-action contact-action-channel${channelValid?'':' is-unavailable'}" ${channelValid?`href="${esc(channelHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon">📣</span><span>${state.lang==='en'?'Channel':state.lang==='ka'?'არხი':state.lang==='uk'?'Канал':'Канал'}</span></a><button type="button" class="contact-action contact-action-report" id="mmReportOpen"><span class="contact-action-icon">⚑</span><span>${state.lang==='en'?'Report':state.lang==='ka'?'გასაჩივრება':state.lang==='uk'?'Скарга':'Жалоба'}</span></button></div>`;$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="${x.owner_view?'data:,':'/media/'+encodeURIComponent(x.id)+'/0'}" ${x.owner_view?'':'onerror="this.parentElement.textContent=String.fromCodePoint(128247)"'}>`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div class="detail-kickers" style="min-width:0;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${detailDeal?`<span class="detail-deal-badge deal-${esc(detailDeal.key)}">${esc(detailDeal.label)}</span>`:''}<div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div><div class="detail-action-icons">${favButton(x,true)}<button type="button" class="detail-share" id="mmShareListing" aria-label="${state.lang==='en'?'Share listing':state.lang==='ka'?'განცხადების გაზიარება':state.lang==='uk'?'Поділитися оголошенням':'Поделиться объявлением'}" title="${state.lang==='en'?'Share listing':state.lang==='ka'?'განცხადების გაზიარება':state.lang==='uk'?'Поділитися оголошенням':'Поделиться объявлением'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg></button></div></div><h1 class="detail-listing-title">${esc(localizeListingText(cardText(x).title||localizedCategory(x.category_name||x.category||'')))}</h1>${x.price?`<div class="detail-price">${money(x.price,x.currency)}</div>`:''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${x.seller&&x.seller.id?`<button type="button" class="seller-inline-card" data-seller-open="${esc(x.seller.id)}"><span class="seller-avatar small">${esc((x.seller.name||'S').slice(0,1).toLocaleUpperCase())}</span><span class="seller-inline-main"><strong>${esc(x.seller.name||sellerLabel('unknown'))}</strong><small>${esc(sellerLabel('member'))}</small></span><span class="seller-inline-arrow">›</span></button>`:''}<div class="contacts">${contactPrimary.join('')}${contactActions}</div></div>`;
 const sellerOpen=$('detailContent').querySelector('[data-seller-open]');if(sellerOpen){const sellerId=String(sellerOpen.getAttribute('data-seller-open')||'').trim();const goSeller=e=>{if(e){e.preventDefault();e.stopPropagation();}if(!sellerId||sellerOpen.dataset.opening==='1')return;sellerOpen.dataset.opening='1';Promise.resolve(openSellerProfile(sellerId)).finally(()=>{sellerOpen.dataset.opening='0'});};sellerOpen.addEventListener('click',goSeller,{capture:true});sellerOpen.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){goSeller(e)} });sellerOpen.setAttribute('aria-label',sellerLabel('member')+': '+(x.seller.name||sellerLabel('unknown')));sellerOpen.setAttribute('role','button');sellerOpen.setAttribute('tabindex','0');}
 const shareOpen=$('detailContent').querySelector('#mmShareListing');if(shareOpen)shareOpen.onclick=async()=>{const listingUrl=new URL('/app',window.location.origin);listingUrl.searchParams.set('listing',String(x.id));const listingTitle=localizeListingText(cardText(x).title||localizedCategory(x.category_name||x.category||''));const shareText=listingTitle+(x.price?' · '+money(x.price,x.currency):'')+(x.address?' · '+x.address:'');try{if(navigator.share){await navigator.share({title:'Madloba Market',text:shareText,url:listingUrl.toString()});return}if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(listingUrl.toString());toast(state.lang==='en'?'Link copied':state.lang==='ka'?'ბმული დაკოპირდა':state.lang==='uk'?'Посилання скопійовано':'Ссылка скопирована');return}const field=document.createElement('textarea');field.value=listingUrl.toString();field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();const copied=document.execCommand('copy');field.remove();if(copied){toast(state.lang==='en'?'Link copied':state.lang==='ka'?'ბმული დაკოპირდა':state.lang==='uk'?'Посилання скопійовано':'Ссылка скопирована')}else{window.prompt(state.lang==='en'?'Copy listing link':state.lang==='ka'?'დააკოპირეთ განცხადების ბმული':state.lang==='uk'?'Скопіюйте посилання на оголошення':'Скопируйте ссылку на объявление',listingUrl.toString())}}catch(err){if(err&&err.name==='AbortError')return;toast(state.lang==='en'?'Could not share listing':state.lang==='ka'?'გაზიარება ვერ მოხერხდა':state.lang==='uk'?'Не вдалося поділитися':'Не удалось поделиться')}};
 const reportOpen=$('detailContent').querySelector('#mmReportOpen');if(reportOpen)reportOpen.onclick=()=>openListingReport(x);
@@ -12495,7 +12483,7 @@ if(callLink){
 $('detailContent').querySelectorAll('[data-copy-phone]').forEach(b=>b.addEventListener('click',async function(e){e.stopPropagation();const n=String(this.dataset.copyPhone||'');try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(n);this.textContent='✓ Номер скопирован';return;}}catch(_){}try{const area=document.createElement('textarea');area.value=n;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();const ok=document.execCommand('copy');area.remove();this.textContent=ok?'✓ Номер скопирован':n;}catch(_){this.textContent=n;}}));
 const fav=$('detailContent').querySelector('[data-fav]');if(fav)fav.onclick=e=>{e.stopPropagation();toggleFavorite(x.id,fav,x)};
 if(photos.length){
- let idx=0;const photoUrl=i=>'/media/'+encodeURIComponent(x.id)+'/'+i;const ownerPhotoCache=new Map();const setPhoto=async(img,i)=>{if(!img)return;const syncBackdrop=()=>{const backdrop=$('detailPhotoBlur');if(backdrop)backdrop.style.backgroundImage='url("'+String(img.currentSrc||img.src||'').replace(/["\\]/g,'')+'")';};img.onload=syncBackdrop;if(!x.owner_view){img.src=photoUrl(i);if(img.complete&&img.naturalWidth)syncBackdrop();return;}try{let objectUrl=ownerPhotoCache.get(i);if(!objectUrl){const response=await apiFetch(photoUrl(i));if(!response.ok)throw new Error('photo_unavailable');objectUrl=URL.createObjectURL(await response.blob());ownerPhotoCache.set(i,objectUrl);}img.src=objectUrl;if(img.complete&&img.naturalWidth)syncBackdrop();}catch(_){const frame=$('detailPhoto');if(frame)frame.innerHTML='<span>📷</span>';}};const update=()=>{const mainImg=$('detailImg');if(mainImg)setPhoto(mainImg,idx);const count=$('photoCount');if(count)count.textContent=(idx+1)+'/'+photos.length;const modalImg=document.getElementById('mmPhotoViewerImg');if(modalImg)setPhoto(modalImg,idx);const modalCount=document.getElementById('mmPhotoViewerCount');if(modalCount)modalCount.textContent=(idx+1)+'/'+photos.length;};
+ let idx=0;const photoUrl=i=>'/media/'+encodeURIComponent(x.id)+'/'+i;const ownerPhotoCache=new Map();const setPhoto=async(img,i)=>{if(!img)return;if(!x.owner_view){img.src=photoUrl(i);return;}try{let objectUrl=ownerPhotoCache.get(i);if(!objectUrl){const response=await apiFetch(photoUrl(i));if(!response.ok)throw new Error('photo_unavailable');objectUrl=URL.createObjectURL(await response.blob());ownerPhotoCache.set(i,objectUrl);}img.src=objectUrl;}catch(_){const frame=$('detailPhoto');if(frame)frame.innerHTML='<span>📷</span>';}};const update=()=>{const mainImg=$('detailImg');if(mainImg)setPhoto(mainImg,idx);const count=$('photoCount');if(count)count.textContent=(idx+1)+'/'+photos.length;const modalImg=document.getElementById('mmPhotoViewerImg');if(modalImg)setPhoto(modalImg,idx);const modalCount=document.getElementById('mmPhotoViewerCount');if(modalCount)modalCount.textContent=(idx+1)+'/'+photos.length;};
  const step=delta=>{idx=(idx+delta+photos.length)%photos.length;update()};
  const openViewer=()=>{let modal=document.getElementById('mmPhotoViewer');if(!modal){modal=document.createElement('div');modal.id='mmPhotoViewer';modal.innerHTML='<button type="button" class="mm-pv-close" aria-label="Закрыть фото">×</button><button type="button" class="mm-pv-arrow mm-pv-prev" aria-label="Предыдущее фото">‹</button><img id="mmPhotoViewerImg" alt="Фото объявления"><button type="button" class="mm-pv-arrow mm-pv-next" aria-label="Следующее фото">›</button><span id="mmPhotoViewerCount" class="mm-pv-count"></span>';document.body.appendChild(modal);modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('.mm-pv-close'))modal.classList.remove('show')});modal.querySelector('.mm-pv-prev').addEventListener('click',e=>{e.stopPropagation();step(-1)});modal.querySelector('.mm-pv-next').addEventListener('click',e=>{e.stopPropagation();step(1)});let sx=0,sy=0;modal.addEventListener('touchstart',e=>{if(e.touches.length===1){sx=e.touches[0].clientX;sy=e.touches[0].clientY}},{passive:true});modal.addEventListener('touchend',e=>{if(!sx)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.25)step(dx<0?1:-1);sx=0;sy=0},{passive:true});}modal.classList.add('show');update();};
  const mainImg=$('detailImg');if(mainImg){mainImg.style.cursor='zoom-in';mainImg.setAttribute('role','button');mainImg.setAttribute('aria-label','Открыть фотографию на весь экран');mainImg.onclick=e=>{e.stopPropagation();openViewer()};}
@@ -12548,7 +12536,7 @@ function bindSellerCards(){document.querySelectorAll('#sellerListings [data-id]'
 async function toggleFavorite(id,button,x=null){if(!button||button.disabled)return;button.disabled=true;try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}finally{button.disabled=false}}
 function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if(!$('bestCityName'))return;const label=cityNames[state.city]?.[state.lang]||cityNames[state.city]?.en||state.city;const n=state.selectedCities?.length||0;if(n>1){$('bestCityName').textContent=state.lang==='en'?`in ${{n}} cities`:state.lang==='ka'?`${{n}} ქალაქში`:state.lang==='uk'?`у ${{n}} містах`:`в ${{n}} городах`;return}$('bestCityName').textContent=state.city==='all'?(state.lang==='en'?'in all cities':state.lang==='ka'?'ყველა ქალაქში':state.lang==='uk'?'у всіх містах':'во всех городах'):(state.lang==='en'?'in '+label:state.lang==='ka'?label:state.lang==='uk'?'у '+label:'в '+label)}
-function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);const thumbUrl='/media/'+encodeURIComponent(x.id)+'/0';return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<div class="mm-photo-blur" aria-hidden="true" style="background-image:url('${thumbUrl}')"></div><img src="${thumbUrl}" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}<div class="best-title">${esc(localizeListingText(text.title||''))}</div><div class="best-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
+function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?`<div class="best-price">${money(x.price,x.currency)}</div>`:''}<div class="best-title">${esc(localizeListingText(text.title||''))}</div><div class="best-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindBestCards(){document.querySelectorAll('#bestRow [data-best-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.bestId));document.querySelectorAll('#bestRow [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
@@ -13710,88 +13698,6 @@ html body select,
 html body [contenteditable="true"] {
   font-size: 16px !important;
 }
-
-
-<style id="madloba-photo-fit-final-v3">
-/* Final photo-fit pass: override older cover rules after all legacy styles. */
-#bestRow .best-photo img,
-#list .card .photo img,
-#favoritesList .fav-card>.card>.photo img,
-#sellerListings .card .photo img {
-  position:relative!important;
-  z-index:1!important;
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  object-fit:contain!important;
-  object-position:center center!important;
-  padding:3px 0!important;
-  box-sizing:border-box!important;
-}
-#bestRow .best-photo .mm-photo-blur,
-#list .card .photo .mm-photo-blur,
-#favoritesList .fav-card>.card>.photo .mm-photo-blur,
-#sellerListings .card .photo .mm-photo-blur,
-#detailView #detailContent .detail-photo .mm-photo-blur {
-  filter:blur(34px) brightness(1.13) saturate(.68)!important;
-  opacity:.30!important;
-  transform:scale(1.12)!important;
-}
-#bestRow .best-photo::after,
-#list .card .photo::after,
-#favoritesList .fav-card>.card>.photo::after,
-#sellerListings .card .photo::after,
-#detailView #detailContent .detail-photo::after {
-  content:""!important;
-  position:absolute!important;
-  inset:0!important;
-  z-index:0!important;
-  background:linear-gradient(135deg,rgba(248,250,253,.48),rgba(239,244,250,.38))!important;
-  pointer-events:none!important;
-}
-/* My listings use compact square thumbnails rather than the shared card renderer. */
-#mineList .mine-thumb {
-  position:relative!important;
-  overflow:hidden!important;
-  background:linear-gradient(145deg,#f5f8fc,#eaf0f7)!important;
-}
-#mineList .mine-thumb img {
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  object-fit:contain!important;
-  object-position:center!important;
-  padding:3px!important;
-  box-sizing:border-box!important;
-}
-/* Give portrait originals more room in the detail gallery without cropping. */
-#detailView #detailContent .detail-photo {
-  height:clamp(250px,72vw,360px)!important;
-  min-height:250px!important;
-  max-height:360px!important;
-  background:#edf2f8!important;
-}
-#detailView #detailContent .detail-photo img {
-  position:relative!important;
-  z-index:1!important;
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  object-fit:contain!important;
-  object-position:center center!important;
-  padding:4px 0!important;
-  box-sizing:border-box!important;
-}
-@media(max-width:390px){
-  #detailView #detailContent .detail-photo {
-    height:clamp(250px,72vw,330px)!important;
-    min-height:250px!important;
-    max-height:330px!important;
-  }
-}
-</style>
 
 </style>
 
@@ -15419,136 +15325,6 @@ def listing_picker_mini_app():
 </style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span id="rangeMin">0</span><span id="rangeMax">500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
 const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(['mileage','area','experience'].includes(kind)){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue'),min=document.getElementById('rangeMin'),max=document.getElementById('rangeMax'),button=document.getElementById('chooseMileage');if(kind==='child_age'){range.min='0';range.max='18';range.step='1';range.value='1';out.textContent='1 год';min.textContent='0 лет';max.textContent='18 лет';button.textContent='Выбрать возраст'}else if(kind==='experience'){range.min='0';range.max='40';range.step='1';range.value='1';out.textContent='1 год';min.textContent='Без опыта';max.textContent='40 лет';button.textContent='Выбрать опыт'}else if(kind==='area'){const limits={"apartment":500,"house":1000,"room":300,"commercial":5000,"land":10000,"garage":500};const maxArea=limits[__AREA_SUBCATEGORY__]||500;range.min='1';range.max=String(maxArea);range.step='1';range.value=String(Math.min(70,maxArea));out.textContent=range.value+' м²';min.textContent='1 м²';max.textContent=Number(maxArea).toLocaleString('ru-RU').replace(/[\u00a0\u202f]/g,' ')+' м²';button.textContent='Выбрать площадь'}else{range.min='0';range.max='500000';range.step='1000';range.value='0';out.textContent='0 км';min.textContent='0 км';max.textContent='500 000 км';button.textContent='Выбрать пробег'}function fmt(n){const v=Number(n).toLocaleString('ru-RU').replace(/[\u00a0\u202f]/g,' ');if(kind==='area')return v+' м²';if(kind==='child_age'||kind==='experience')return v+(Number(n)===1?' год':(Number(n)>=2&&Number(n)<=4?' года':' лет'));return v+' км'}range.addEventListener('input',()=>out.textContent=fmt(range.value));button.addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
 </script>
-<style id="madloba-market-photo-grid-square-contain-v4">
-/* PHOTO-01 V4: marketplace-standard square media tiles. Preserve every pixel of
-   portrait, landscape and screenshot uploads; use a quiet neutral canvas instead
-   of duplicating the same photo as a blurred background. Detail gallery untouched. */
-#bestRow .best-photo,
-#list .card .photo,
-#favoritesList .fav-card > .card > .photo,
-#favoritesList .card > .photo,
-#sellerListings .card .photo,
-.mm-seller-sheet #mmSellerListings .card .photo {
-  position:relative!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  width:100%!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  aspect-ratio:1 / 1!important;
-  flex:0 0 auto!important;
-  overflow:hidden!important;
-  isolation:isolate!important;
-  background:#f1f4f8!important;
-}
-#bestRow .best-photo .mm-photo-blur,
-#list .card .photo .mm-photo-blur,
-#favoritesList .fav-card > .card > .photo .mm-photo-blur,
-#favoritesList .card > .photo .mm-photo-blur,
-#sellerListings .card .photo .mm-photo-blur,
-.mm-seller-sheet #mmSellerListings .card .photo .mm-photo-blur {
-  display:none!important;
-}
-#bestRow .best-photo img,
-#list .card .photo img,
-#favoritesList .fav-card > .card > .photo img,
-#favoritesList .card > .photo img,
-#sellerListings .card .photo img,
-.mm-seller-sheet #mmSellerListings .card .photo img {
-  position:relative!important;
-  z-index:1!important;
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:100%!important;
-  max-height:100%!important;
-  object-fit:contain!important;
-  object-position:center center!important;
-  padding:8px!important;
-  box-sizing:border-box!important;
-}
-
-#mineList .mine-thumb img {
-  width:100%!important;
-  height:100%!important;
-  object-fit:contain!important;
-  object-position:center center!important;
-  padding:4px!important;
-  box-sizing:border-box!important;
-}
-</style>
-<style id="madloba-market-photo-blur-strong-v5">
-/* PHOTO-01 V5: restore a strong, soft-focus duplicate backdrop behind the
-   untouched original. The original remains fully visible (contain); the
-   enlarged duplicate only fills the unused media canvas. */
-#bestRow .best-photo,
-#list .card .photo,
-#favoritesList .fav-card > .card > .photo,
-#favoritesList .card > .photo,
-#sellerListings .card .photo,
-.mm-seller-sheet #mmSellerListings .card .photo,
-#detailView #detailContent .detail-photo {
-  position:relative!important;
-  overflow:hidden!important;
-  isolation:isolate!important;
-  background:#e9eef5!important;
-}
-#bestRow .best-photo .mm-photo-blur,
-#list .card .photo .mm-photo-blur,
-#favoritesList .fav-card > .card > .photo .mm-photo-blur,
-#favoritesList .card > .photo .mm-photo-blur,
-#sellerListings .card .photo .mm-photo-blur,
-.mm-seller-sheet #mmSellerListings .card .photo .mm-photo-blur,
-#detailView #detailContent .detail-photo .mm-photo-blur {
-  display:block!important;
-  position:absolute!important;
-  inset:-28px!important;
-  z-index:0!important;
-  background-position:center!important;
-  background-size:cover!important;
-  background-repeat:no-repeat!important;
-  filter:blur(42px) brightness(1.08) saturate(.52)!important;
-  opacity:.92!important;
-  transform:scale(1.20)!important;
-  pointer-events:none!important;
-}
-#bestRow .best-photo::after,
-#list .card .photo::after,
-#favoritesList .fav-card > .card > .photo::after,
-#favoritesList .card > .photo::after,
-#sellerListings .card .photo::after,
-.mm-seller-sheet #mmSellerListings .card .photo::after,
-#detailView #detailContent .detail-photo::after {
-  content:""!important;
-  position:absolute!important;
-  inset:0!important;
-  z-index:1!important;
-  background:rgba(242,246,251,.34)!important;
-  pointer-events:none!important;
-}
-#bestRow .best-photo img,
-#list .card .photo img,
-#favoritesList .fav-card > .card > .photo img,
-#favoritesList .card > .photo img,
-#sellerListings .card .photo img,
-.mm-seller-sheet #mmSellerListings .card .photo img,
-#detailView #detailContent .detail-photo img {
-  position:relative!important;
-  z-index:2!important;
-  display:block!important;
-  object-fit:contain!important;
-  object-position:center center!important;
-}
-/* Keep gallery controls above both image layers and fully tappable. */
-#detailView #detailContent .detail-photo .gallery-btn,
-#detailView #detailContent .detail-photo .gallery-count {
-  z-index:4!important;
-}
-</style>
 </body></html>'''
     area_subcategory_json = json.dumps(subcategory if subcategory in {"apartment","house","room","commercial","land","garage"} else "apartment")
     html_page = html_page.replace("__OPTIONS__", options_json).replace("__KIND__", kind_json).replace("__TITLE__", title_json).replace("__AREA_SUBCATEGORY__", area_subcategory_json)
