@@ -15481,6 +15481,74 @@ const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS
   box-sizing:border-box!important;
 }
 </style>
+<style id="madloba-market-photo-blur-strong-v5">
+/* PHOTO-01 V5: restore a strong, soft-focus duplicate backdrop behind the
+   untouched original. The original remains fully visible (contain); the
+   enlarged duplicate only fills the unused media canvas. */
+#bestRow .best-photo,
+#list .card .photo,
+#favoritesList .fav-card > .card > .photo,
+#favoritesList .card > .photo,
+#sellerListings .card .photo,
+.mm-seller-sheet #mmSellerListings .card .photo,
+#detailView #detailContent .detail-photo {
+  position:relative!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  background:#e9eef5!important;
+}
+#bestRow .best-photo .mm-photo-blur,
+#list .card .photo .mm-photo-blur,
+#favoritesList .fav-card > .card > .photo .mm-photo-blur,
+#favoritesList .card > .photo .mm-photo-blur,
+#sellerListings .card .photo .mm-photo-blur,
+.mm-seller-sheet #mmSellerListings .card .photo .mm-photo-blur,
+#detailView #detailContent .detail-photo .mm-photo-blur {
+  display:block!important;
+  position:absolute!important;
+  inset:-28px!important;
+  z-index:0!important;
+  background-position:center!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+  filter:blur(42px) brightness(1.08) saturate(.52)!important;
+  opacity:.92!important;
+  transform:scale(1.20)!important;
+  pointer-events:none!important;
+}
+#bestRow .best-photo::after,
+#list .card .photo::after,
+#favoritesList .fav-card > .card > .photo::after,
+#favoritesList .card > .photo::after,
+#sellerListings .card .photo::after,
+.mm-seller-sheet #mmSellerListings .card .photo::after,
+#detailView #detailContent .detail-photo::after {
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:1!important;
+  background:rgba(242,246,251,.34)!important;
+  pointer-events:none!important;
+}
+#bestRow .best-photo img,
+#list .card .photo img,
+#favoritesList .fav-card > .card > .photo img,
+#favoritesList .card > .photo img,
+#sellerListings .card .photo img,
+.mm-seller-sheet #mmSellerListings .card .photo img,
+#detailView #detailContent .detail-photo img {
+  position:relative!important;
+  z-index:2!important;
+  display:block!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+}
+/* Keep gallery controls above both image layers and fully tappable. */
+#detailView #detailContent .detail-photo .gallery-btn,
+#detailView #detailContent .detail-photo .gallery-count {
+  z-index:4!important;
+}
+</style>
 </body></html>'''
     area_subcategory_json = json.dumps(subcategory if subcategory in {"apartment","house","room","commercial","land","garage"} else "apartment")
     html_page = html_page.replace("__OPTIONS__", options_json).replace("__KIND__", kind_json).replace("__TITLE__", title_json).replace("__AREA_SUBCATEGORY__", area_subcategory_json)
