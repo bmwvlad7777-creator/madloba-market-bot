@@ -15419,6 +15419,68 @@ def listing_picker_mini_app():
 </style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span id="rangeMin">0</span><span id="rangeMax">500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
 const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(['mileage','area','experience'].includes(kind)){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue'),min=document.getElementById('rangeMin'),max=document.getElementById('rangeMax'),button=document.getElementById('chooseMileage');if(kind==='child_age'){range.min='0';range.max='18';range.step='1';range.value='1';out.textContent='1 год';min.textContent='0 лет';max.textContent='18 лет';button.textContent='Выбрать возраст'}else if(kind==='experience'){range.min='0';range.max='40';range.step='1';range.value='1';out.textContent='1 год';min.textContent='Без опыта';max.textContent='40 лет';button.textContent='Выбрать опыт'}else if(kind==='area'){const limits={"apartment":500,"house":1000,"room":300,"commercial":5000,"land":10000,"garage":500};const maxArea=limits[__AREA_SUBCATEGORY__]||500;range.min='1';range.max=String(maxArea);range.step='1';range.value=String(Math.min(70,maxArea));out.textContent=range.value+' м²';min.textContent='1 м²';max.textContent=Number(maxArea).toLocaleString('ru-RU').replace(/[\u00a0\u202f]/g,' ')+' м²';button.textContent='Выбрать площадь'}else{range.min='0';range.max='500000';range.step='1000';range.value='0';out.textContent='0 км';min.textContent='0 км';max.textContent='500 000 км';button.textContent='Выбрать пробег'}function fmt(n){const v=Number(n).toLocaleString('ru-RU').replace(/[\u00a0\u202f]/g,' ');if(kind==='area')return v+' м²';if(kind==='child_age'||kind==='experience')return v+(Number(n)===1?' год':(Number(n)>=2&&Number(n)<=4?' года':' лет'));return v+' км'}range.addEventListener('input',()=>out.textContent=fmt(range.value));button.addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
 </script>
+<style id="madloba-market-photo-grid-square-contain-v4">
+/* PHOTO-01 V4: marketplace-standard square media tiles. Preserve every pixel of
+   portrait, landscape and screenshot uploads; use a quiet neutral canvas instead
+   of duplicating the same photo as a blurred background. Detail gallery untouched. */
+#bestRow .best-photo,
+#list .card .photo,
+#favoritesList .fav-card > .card > .photo,
+#favoritesList .card > .photo,
+#sellerListings .card .photo,
+.mm-seller-sheet #mmSellerListings .card .photo {
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  aspect-ratio:1 / 1!important;
+  flex:0 0 auto!important;
+  overflow:hidden!important;
+  isolation:isolate!important;
+  background:#f1f4f8!important;
+}
+#bestRow .best-photo .mm-photo-blur,
+#list .card .photo .mm-photo-blur,
+#favoritesList .fav-card > .card > .photo .mm-photo-blur,
+#favoritesList .card > .photo .mm-photo-blur,
+#sellerListings .card .photo .mm-photo-blur,
+.mm-seller-sheet #mmSellerListings .card .photo .mm-photo-blur {
+  display:none!important;
+}
+#bestRow .best-photo img,
+#list .card .photo img,
+#favoritesList .fav-card > .card > .photo img,
+#favoritesList .card > .photo img,
+#sellerListings .card .photo img,
+.mm-seller-sheet #mmSellerListings .card .photo img {
+  position:relative!important;
+  z-index:1!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  padding:8px!important;
+  box-sizing:border-box!important;
+}
+
+#mineList .mine-thumb img {
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  padding:4px!important;
+  box-sizing:border-box!important;
+}
+</style>
 </body></html>'''
     area_subcategory_json = json.dumps(subcategory if subcategory in {"apartment","house","room","commercial","land","garage"} else "apartment")
     html_page = html_page.replace("__OPTIONS__", options_json).replace("__KIND__", kind_json).replace("__TITLE__", title_json).replace("__AREA_SUBCATEGORY__", area_subcategory_json)
