@@ -14,6 +14,7 @@ import urllib.parse
 import re
 import difflib
 import unicodedata
+from collections import OrderedDict
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -88,6 +89,67 @@ HTTP_SESSION.mount("https://", _HTTP_ADAPTER)
 # a new thread pool for every request.
 LISTING_READ_EXECUTOR = ThreadPoolExecutor(max_workers=8)
 HTTP_SESSION.mount("http://", _HTTP_ADAPTER)
+
+# Bounded in-process media cache. Authorization and listing visibility are
+# checked on every /media request before this cache is consulted.
+_MEDIA_CACHE_MAX_BYTES = 64 * 1024 * 1024
+_MEDIA_CACHE_TTL_SECONDS = 60 * 60
+_MEDIA_CACHE = OrderedDict()
+_MEDIA_CACHE_BYTES = 0
+_MEDIA_CACHE_LOCK = threading.Lock()
+_TELEGRAM_FILE_PATH_CACHE = {}
+_TELEGRAM_FILE_PATH_CACHE_TTL = 60 * 60
+
+def _media_cache_get(cache_key):
+    now = time.monotonic()
+    global _MEDIA_CACHE_BYTES
+    with _MEDIA_CACHE_LOCK:
+        item = _MEDIA_CACHE.pop(cache_key, None)
+        if item is None:
+            return None
+        expires_at, image_bytes, content_type = item
+        if expires_at <= now:
+            _MEDIA_CACHE_BYTES = max(0, _MEDIA_CACHE_BYTES - len(image_bytes))
+            return None
+        _MEDIA_CACHE[cache_key] = item
+        return image_bytes, content_type
+
+def _media_cache_put(cache_key, image_bytes, content_type):
+    global _MEDIA_CACHE_BYTES
+    if not image_bytes or len(image_bytes) > _MEDIA_CACHE_MAX_BYTES:
+        return
+    now = time.monotonic()
+    with _MEDIA_CACHE_LOCK:
+        previous = _MEDIA_CACHE.pop(cache_key, None)
+        if previous is not None:
+            _MEDIA_CACHE_BYTES = max(0, _MEDIA_CACHE_BYTES - len(previous[1]))
+        while _MEDIA_CACHE and _MEDIA_CACHE_BYTES + len(image_bytes) > _MEDIA_CACHE_MAX_BYTES:
+            _, oldest = _MEDIA_CACHE.popitem(last=False)
+            _MEDIA_CACHE_BYTES = max(0, _MEDIA_CACHE_BYTES - len(oldest[1]))
+        _MEDIA_CACHE[cache_key] = (now + _MEDIA_CACHE_TTL_SECONDS, image_bytes, content_type)
+        _MEDIA_CACHE_BYTES += len(image_bytes)
+
+def _telegram_file_path_get(file_id):
+    now = time.monotonic()
+    with _MEDIA_CACHE_LOCK:
+        cached = _TELEGRAM_FILE_PATH_CACHE.get(file_id)
+        if cached and cached[0] > now:
+            return cached[1]
+        if cached:
+            _TELEGRAM_FILE_PATH_CACHE.pop(file_id, None)
+    # Reuse the shared keep-alive session for Telegram Bot API calls.
+    try:
+        response = HTTP_SESSION.post(f"{API}/getFile", json={"file_id": file_id}, timeout=15)
+        payload = response.json() if response.ok else {}
+        result = payload.get("result") if isinstance(payload, dict) and payload.get("ok") else None
+        file_path = result.get("file_path") if isinstance(result, dict) else None
+    except Exception as error:
+        print("MEDIA GETFILE ERROR:", repr(error))
+        return None
+    if file_path:
+        with _MEDIA_CACHE_LOCK:
+            _TELEGRAM_FILE_PATH_CACHE[file_id] = (now + _TELEGRAM_FILE_PATH_CACHE_TTL, file_path)
+    return file_path
 
 # Состояния пользователей кэшируются в памяти и сохраняются в Supabase.
 states = {}
@@ -18209,6 +18271,17 @@ def mini_app_media(listing_id, index):
     if index >= len(rows):return "Not found",404
     photo_ref=str(rows[index].get("photo_url") or "")
     if not photo_ref:return "Not found",404
+    media_cache_policy = "private, max-age=3600" if owner_media_authorized else "public, max-age=86400"
+    cached_media = _media_cache_get(photo_ref)
+    if cached_media is not None:
+        cached_bytes, cached_type = cached_media
+        elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+        print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(cached_bytes)} cache=hit")
+        cached_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={elapsed_ms:.1f}"}
+        if owner_media_authorized:
+            cached_headers["Vary"] = "X-Telegram-Init-Data"
+        return Response(cached_bytes,content_type=cached_type,headers=cached_headers)
+    _media_download_started = time.perf_counter()
     try:
         if photo_ref.startswith("http://") or photo_ref.startswith("https://"):
             # Treat photo_url as untrusted data: only fetch HTTPS URLs from the
@@ -18226,14 +18299,14 @@ def mini_app_media(listing_id, index):
                 or photo_url.port not in (None, 443)
             ):
                 return "Not found", 404
-            upstream=requests.get(photo_ref,timeout=(5, 15),allow_redirects=False,stream=True)
+            upstream=HTTP_SESSION.get(photo_ref,timeout=(5, 15),allow_redirects=False,stream=True)
             if 300 <= upstream.status_code < 400:
                 upstream.close()
                 return "Not found",404
         else:
-            file_info=api("getFile",{"file_id":photo_ref});result=file_info.get("result") if isinstance(file_info,dict) else None;file_path=result.get("file_path") if isinstance(result,dict) else None
+            file_path = _telegram_file_path_get(photo_ref)
             if not file_path:return "Not found",404
-            upstream=requests.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=(5, 20),stream=True)
+            upstream=HTTP_SESSION.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=(5, 20),stream=True)
         if not upstream.ok:
             upstream.close()
             return "Not found",404
@@ -18277,10 +18350,14 @@ def mini_app_media(listing_id, index):
         else:
             return "Unsupported media type", 415
 
+        _media_cache_put(photo_ref, image_bytes, media_content_type)
         _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
-        print(f"PERF media ms={_perf_elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={image_size}")
-        media_cache = "private, no-store" if owner_media_authorized else "public, max-age=86400"
-        return Response(image_bytes,content_type=media_content_type,headers={"Cache-Control":media_cache,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"})
+        _download_ms = (time.perf_counter() - _media_download_started) * 1000
+        print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
+        media_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"}
+        if owner_media_authorized:
+            media_headers["Vary"] = "X-Telegram-Init-Data"
+        return Response(image_bytes,content_type=media_content_type,headers=media_headers)
     except Exception as error:
         print("MEDIA ERROR:",repr(error));return "Media unavailable",503
 
