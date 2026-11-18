@@ -5567,26 +5567,14 @@ def process_text(
         "district",
         "edit_district"
     ):
-
-        data[
-            "district"
-        ] = text
-
-
-        if step == "district":
-
-            if data.get("category_key") == "realestate":
-                ask_realestate_district(chat_id)
-            else:
-                ask_description(chat_id)
-
-        else:
-
-            preview(
-                chat_id
-            )
-
-
+        # A city may only be accepted through the authenticated listing-picker
+        # Web App payload handled above. Never treat ordinary chat text as a city.
+        send(
+            chat_id,
+            "⚠️ Пожалуйста, выберите город только из списка. "
+            "Вводить название города сообщением нельзя."
+        )
+        ask_district(chat_id)
         return True
 
 
