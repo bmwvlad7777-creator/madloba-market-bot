@@ -1179,6 +1179,205 @@ def load_supabase_catalog_page(key, sub, page=0, per_page=20):
     has_next = len(rows) > offset + per_page
     return _attach_catalog_photos(page_rows), has_next
 
+def validate_structured_listing_data(data):
+    """Fail-closed validation for structured attributes before a listing is posted."""
+    data = data if isinstance(data, dict) else {}
+    category = str(data.get("category_key") or "")
+    subcategory = str(data.get("subcategory_key") or "")
+    details = data.get("details") if isinstance(data.get("details"), dict) else {}
+
+    def present(key):
+        return str(details.get(key) or "").strip()
+
+    def invalid(message):
+        return message
+
+    # City is always selected from the canonical Georgia city list.
+    city_slug = str(data.get("city_slug") or "").strip().lower()
+    valid_city_slugs = set(GEORGIA_CITY_SLUGS.values())
+    if not city_slug:
+        return invalid("Не указан город. Выберите город из списка.")
+    if city_slug not in valid_city_slugs:
+        return invalid("Неизвестный город. Выберите город из списка.")
+
+    # Contact must be checked again at the publication boundary, not only in
+    # the conversational input handler: moderation payloads may be replayed
+    # or edited outside that handler.
+    contact = str(data.get("contact") or "").strip()
+    if contact:
+        contact_lower = contact.lower()
+        is_social_contact = (
+            contact.startswith("@")
+            or "t.me/" in contact_lower
+            or "wa.me/" in contact_lower
+            or "whatsapp" in contact_lower
+        )
+        if not is_social_contact and re.search(r"\d", contact):
+            compact_contact = re.sub(r"[\s()\-]", "", contact)
+            if not re.fullmatch(r"\+9955\d{8}", compact_contact):
+                return invalid("Телефон должен быть грузинским мобильным номером в формате +995 5XX XX XX XX.")
+
+    if present("dimensions") and not _valid_dimensions_value(present("dimensions")):
+        return invalid("Размеры укажите числами: например, 120×60×40 см или 1.2 м.")
+
+    if category == "realestate":
+        if present("rooms") and present("rooms") not in REALESTATE_ROOM_OPTIONS:
+            return invalid("Количество комнат должно быть выбрано из списка.")
+        if present("floor") and present("floor") not in REALESTATE_FLOOR_OPTIONS:
+            return invalid("Этаж должен быть выбран из списка.")
+        if present("area"):
+            raw = re.sub(r"[\s,]", "", present("area"))
+            if not raw.isdigit():
+                return invalid("Площадь должна быть числом.")
+            area = int(raw)
+            limits = {"apartment": 500, "house": 1000, "room": 300,
+                      "commercial": 5000, "land": 10000, "garage": 500}
+            if area < 1 or area > limits.get(subcategory, 500):
+                return invalid("Площадь вне допустимого диапазона.")
+        district_key = str(data.get("district_key") or "").strip().lower()
+        if district_key:
+            valid_keys = {key for key, _label in realestate_districts_for_data(data)}
+            if district_key not in valid_keys:
+                return invalid("Район должен быть выбран из списка для выбранного города.")
+
+    elif category == "auto" and subcategory not in {"cars", "suv"}:
+        # Until verified MyAuto catalogues and dedicated pickers are available,
+        # do not accept passenger-car attributes for motorcycles, commercial
+        # vehicles, parts, or rental listings. Their titles/descriptions remain
+        # available and are not forced into an incorrect car taxonomy.
+        unsupported_auto_fields = ("make", "model", "make_model", "year", "mileage", "color", "drivetrain")
+        if any(present(field) for field in unsupported_auto_fields):
+            return invalid("Для этой подкатегории пока нельзя указывать характеристики легкового автомобиля.")
+
+    elif category == "auto" and subcategory in {"cars", "suv"}:
+        make = present("make")
+        model = present("model")
+        combined = present("make_model")
+
+        # The current Telegram picker stores both split values and a combined
+        # display value. Validate the combined value too, because a crafted
+        # moderation payload can omit make/model and otherwise bypass checks.
+        catalog_by_fold = {
+            str(catalog_make).strip().casefold(): (str(catalog_make), models)
+            for catalog_make, models in AUTO_FALLBACK_DATA.items()
+        }
+        if make:
+            catalog_entry = catalog_by_fold.get(make.casefold())
+            if not catalog_entry:
+                return invalid("Марка автомобиля отсутствует в каталоге.")
+            canonical_make, models = catalog_entry
+            if model and not any(str(option).strip().casefold() == model.casefold() for option in models):
+                return invalid("Модель не соответствует выбранной марке.")
+            if combined:
+                expected = f"{canonical_make} {model}".strip() if model else canonical_make
+                if combined.casefold() != expected.casefold():
+                    return invalid("Марка и модель автомобиля не совпадают.")
+        elif model:
+            return invalid("Для проверки модели необходимо выбрать марку.")
+        elif combined:
+            # Match the longest known manufacturer prefix, then validate the
+            # remaining model against that manufacturer's actual model list.
+            normalized_combined = " ".join(combined.split()).casefold()
+            matched = False
+            for folded_make in sorted(catalog_by_fold, key=len, reverse=True):
+                canonical_make, models = catalog_by_fold[folded_make]
+                if normalized_combined == folded_make:
+                    # Preserve the existing fallback for catalog makes that
+                    # legitimately have no model list.
+                    if not models:
+                        matched = True
+                        break
+                    continue
+                prefix = folded_make + " "
+                if normalized_combined.startswith(prefix):
+                    candidate_model = normalized_combined[len(prefix):].strip()
+                    if any(str(option).strip().casefold() == candidate_model for option in models):
+                        matched = True
+                    break
+            if not matched:
+                return invalid("Марка и модель автомобиля должны соответствовать каталогу.")
+        if present("year") and present("year") not in AUTO_YEAR_OPTIONS:
+            return invalid("Год выпуска должен быть выбран из списка.")
+        if present("mileage"):
+            raw = re.sub(r"\D", "", present("mileage"))
+            if not raw or int(raw) > AUTO_MILEAGE_MAX or int(raw) % 1000:
+                return invalid("Пробег вне допустимого диапазона.")
+        if present("color") and present("color") not in AUTO_COLOR_OPTIONS:
+            return invalid("Цвет автомобиля должен быть выбран из списка.")
+        if present("drivetrain") and present("drivetrain") not in AUTO_DRIVETRAIN_OPTIONS:
+            return invalid("Привод должен быть выбран из списка.")
+
+    elif category == "tech":
+        brand = present("brand")
+        model = present("model")
+        combined = present("brand_model")
+        available_brands = tech_brand_options(subcategory)
+        brand_by_fold = {str(option).strip().casefold(): str(option) for option in available_brands}
+
+        if brand:
+            canonical_brand = brand_by_fold.get(brand.casefold())
+            if not canonical_brand:
+                return invalid("Производитель техники отсутствует в каталоге.")
+            available_models = tech_model_options(subcategory, canonical_brand)
+            model_by_fold = {str(option).strip().casefold(): str(option) for option in available_models}
+            if model and model.casefold() not in model_by_fold:
+                return invalid("Модель техники не соответствует производителю.")
+            if combined:
+                expected = f"{canonical_brand} {model}".strip() if model else canonical_brand
+                if combined.casefold() != expected.casefold():
+                    return invalid("Марка и модель техники не совпадают.")
+        elif model:
+            return invalid("Для проверки модели техники необходимо выбрать производителя.")
+        elif combined:
+            # A direct text payload can contain only the combined display value.
+            # Validate it against the selected subcategory's actual catalogue.
+            normalized_combined = " ".join(combined.split()).casefold()
+            matched = False
+            for folded_brand in sorted(brand_by_fold, key=len, reverse=True):
+                canonical_brand = brand_by_fold[folded_brand]
+                if normalized_combined == folded_brand:
+                    if not tech_model_options(subcategory, canonical_brand):
+                        matched = True
+                        break
+                    continue
+                prefix = folded_brand + " "
+                if normalized_combined.startswith(prefix):
+                    candidate_model = normalized_combined[len(prefix):].strip()
+                    if any(str(option).strip().casefold() == candidate_model
+                           for option in tech_model_options(subcategory, canonical_brand)):
+                        matched = True
+                    break
+            if not matched:
+                return invalid("Марка и модель техники должны соответствовать каталогу.")
+        if present("warranty") and present("warranty") not in {"Есть гарантия", "Нет гарантии"}:
+            return invalid("Гарантия должна быть выбрана из вариантов.")
+
+    elif category == "pets":
+        if present("age") and present("age") not in {label for _key, label in PET_AGE_OPTIONS}:
+            return invalid("Возраст животного должен быть выбран из списка.")
+        if present("gender") and present("gender") not in {label for _key, label in PET_GENDER_OPTIONS}:
+            return invalid("Пол животного должен быть выбран из списка.")
+
+    elif category == "kids":
+        child_age_options = ["До 1 года", "1 год", "2 года", "3 года", "4 года"] + [f"{age} лет" for age in range(5, 19)]
+        if present("age") and present("age") not in child_age_options:
+            return invalid("Возраст должен быть выбран из списка.")
+
+    elif category in {"work", "services"}:
+        if present("experience"):
+            try:
+                experience = int(present("experience"))
+            except ValueError:
+                return invalid("Опыт работы должен быть выбран из списка.")
+            if experience < 0 or experience > 40:
+                return invalid("Опыт работы вне допустимого диапазона.")
+
+    if present("condition") and present("condition") not in {"Новое", "Б/у"}:
+        return invalid("Состояние товара должно быть выбрано из списка.")
+
+    return None
+
+
 def save_listing_to_supabase(data, publish_result, user_chat_id=None):
     """Создаёт объявление в Supabase; любая ошибка означает отказ публикации в каталоге."""
 
@@ -2043,7 +2242,10 @@ def category_fields(data):
             ("drivetrain", "⚙️ Привод"),
         ]
     if category_key == "auto" and subcategory_key not in {"cars", "suv"}:
-        return CATEGORIES.get(category_key, {}).get("fields", [])
+        # Never show passenger-car-only fields for motorcycles, commercial
+        # vehicles, parts, or rentals. Add dedicated fields only with verified
+        # catalogues and matching server-side validators.
+        return []
     if category_key == "realestate":
         fields = list(CATEGORIES.get(category_key, {}).get("fields", []))
         if subcategory_key in {"land", "garage"}:
@@ -2876,6 +3078,22 @@ def normalize_pet_age(value):
     return raw
 
 
+def _valid_dimensions_value(value):
+    """Accept numeric dimensions (one to three measures), optionally with units."""
+    raw = str(value or "").strip().lower().replace("×", "x").replace("✕", "x").replace("х", "x")
+    raw = re.sub(r"\s+", " ", raw)
+    # Examples: 120x60x40 см, 120 x 60 cm, 120 см, 1.2 м.
+    number = r"\d{1,6}(?:[.,]\d{1,3})?"
+    pattern = rf"^{number}(?:\s*x\s*{number}){{0,2}}\s*(?:мм|миллиметр(?:а|ов)?|mm|см|сантиметр(?:а|ов)?|cm|м|метр(?:а|ов)?|m)?$"
+    if not re.fullmatch(pattern, raw):
+        return False
+    values = re.findall(number, raw)
+    try:
+        return all(0 < float(item.replace(",", ".")) <= 100000 for item in values)
+    except ValueError:
+        return False
+
+
 def normalize_detail_value(category_key, field_key, value):
     value = str(value or "").strip()
     if category_key == "pets":
@@ -2924,7 +3142,7 @@ def display_detail_value(field_key, value):
 # Каталог техники: бренды и популярные линейки моделей по типу устройства.
 TECH_CATALOG = {
     "phones": {
-        "Apple": ["iPhone 17 Pro Max", "iPhone 17 Pro", "iPhone 17", "iPhone 16 Pro Max", "iPhone 16 Pro", "iPhone 16 Plus", "iPhone 16", "iPhone 15 Pro Max", "iPhone 15 Pro", "iPhone 15 Plus", "iPhone 15", "iPhone 14 Pro Max", "iPhone 14 Pro", "iPhone 14", "iPhone 13 Pro Max", "iPhone 13 Pro", "iPhone 13", "iPhone 12", "iPhone 11", "iPhone SE"],
+        "Apple": ["iPhone 18 Pro Max", "iPhone 18 Pro", "iPhone Air", "iPhone 17e", "iPhone 17 Pro Max", "iPhone 17 Pro", "iPhone 17", "iPhone 16 Pro Max", "iPhone 16 Pro", "iPhone 16 Plus", "iPhone 16", "iPhone 15 Pro Max", "iPhone 15 Pro", "iPhone 15 Plus", "iPhone 15", "iPhone 14 Pro Max", "iPhone 14 Pro", "iPhone 14", "iPhone 13 Pro Max", "iPhone 13 Pro", "iPhone 13", "iPhone 12", "iPhone 11", "iPhone SE"],
         "Samsung": ["Galaxy S26 Ultra", "Galaxy S26+", "Galaxy S26", "Galaxy S25 Ultra", "Galaxy S25+", "Galaxy S25", "Galaxy S24 Ultra", "Galaxy S24+", "Galaxy S24", "Galaxy S23 Ultra", "Galaxy S23", "Galaxy Z Fold7", "Galaxy Z Flip7", "Galaxy A56", "Galaxy A55", "Galaxy A36", "Galaxy A35", "Galaxy A26", "Galaxy A16"],
         "Xiaomi": ["Xiaomi 17 Ultra", "Xiaomi 17", "Xiaomi 15 Ultra", "Xiaomi 15", "Xiaomi 14 Ultra", "Xiaomi 14", "Xiaomi 13", "Redmi Note 15 Pro+", "Redmi Note 15 Pro", "Redmi Note 14 Pro+", "Redmi Note 14 Pro", "Redmi Note 14", "Redmi 14C", "POCO F7 Pro", "POCO F7", "POCO X7 Pro", "POCO X7", "POCO M7"],
         "Huawei": ["Pura 80 Pro", "Pura 80", "Pura 70 Pro", "Pura 70", "Mate  X6", "Mate 70 Pro", "Mate 60 Pro", "Nova 13 Pro", "Nova 13", "Nova 12", "P60 Pro", "Y9a"],
@@ -3467,25 +3685,27 @@ def make_title(
 
     if category == "auto":
 
-        model = (
-            details.get(
-                "make_model",
-                ""
-            )
-            or "автомобиль"
-        )
+        subcategory = str(data.get("subcategory_key") or "")
+        model = str(details.get("make_model") or "").strip()
+        year = str(details.get("year") or "").strip()
 
-        year = details.get(
-            "year",
-            ""
-        )
+        # Cars keep their validated make/model + year title. Other vehicle
+        # subcategories have no passenger-car fields, so use an accurate
+        # category-specific fallback instead of incorrectly calling every
+        # listing an "автомобиль".
+        if subcategory in {"cars", "suv"}:
+            title = model or ("Кроссовер / SUV" if subcategory == "suv" else "Автомобиль")
+            if year:
+                title += f" · {year}"
+            return title
 
-        title = model
-
-        if year:
-            title += f" · {year}"
-
-        return title
+        fallback_titles = {
+            "commercial": "Коммерческий транспорт",
+            "moto": "Мотоцикл",
+            "parts": "Автозапчасти",
+            "rental": "Аренда автомобиля",
+        }
+        return fallback_titles.get(subcategory, "Транспорт")
 
     if category == "tech":
 
@@ -4969,7 +5189,18 @@ def process_moderator_text(admin_chat_id, text):
             return True
         data["price"] = numeric_price
     elif step == "district":
-        data["district"] = text
+        # The admin text-edit flow must enforce the same city allowlist as
+        # the regular listing picker. `district` stores the selected city;
+        # street/address details remain a separate free-form address field.
+        city_by_fold = {str(city).strip().casefold(): str(city) for city in GEORGIA_CITIES}
+        canonical_city = city_by_fold.get(text.casefold())
+        if not canonical_city:
+            send(admin_chat_id, "⚠️ Город нужно выбрать из списка городов Грузии. Произвольный текст не принимается.")
+            return True
+        data["district"] = canonical_city
+        data["city_slug"] = _canonical_city_slug(canonical_city)
+        if data.get("city_slug") not in {"batumi", "tbilisi"}:
+            data.pop("district_key", None)
     elif step == "description":
         data["description"] = "" if text.lower() in {"ничего", "нет", "нечего", "без описания", "пропустить", "-"} else text
     elif step == "contact":
@@ -5003,6 +5234,9 @@ def process_moderator_text(admin_chat_id, text):
         fields = category_fields(data)
         if index < len(fields):
             field_key = fields[index][0]
+            if field_key == "dimensions" and not _valid_dimensions_value(text):
+                send(admin_chat_id, "⚠️ Укажите размеры числами: например, <code>120×60×40 см</code> или <code>1.2 м</code>.")
+                return True
             data["details"][field_key] = normalize_detail_value(data.get("category_key", ""), field_key, text)
     else:
         return False
@@ -5082,6 +5316,17 @@ def moderate_publish(
     data = item.get("data")
     if not isinstance(data, dict):
         _moderation_callback_answer(callback_id, "Заявка не содержит сохранённых данных. Откройте её заново.", True)
+        return
+
+    validation_error = validate_structured_listing_data(data)
+    if validation_error:
+        _moderation_callback_answer(callback_id, "Нельзя опубликовать: проверьте характеристики объявления.", True)
+        send(
+            admin_user_id,
+            "<b>⚠️ Объявление не прошло проверку характеристик.</b>\\n\\n"
+            + esc(validation_error)
+            + "\\nИсправьте значение в заявке и повторите публикацию."
+        )
         return
 
     # Persist a publish-attempt marker BEFORE calling Telegram. If the process
@@ -5465,6 +5710,9 @@ def process_text(
             if data.get("category_key") == "auto" and data.get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
                 send_auto_make_picker(chat_id, index)
                 return True
+            if field_key == "dimensions" and not _valid_dimensions_value(text):
+                send(chat_id, "⚠️ Укажите размеры числами: например, <code>120×60×40 см</code> или <code>1.2 м</code>.")
+                return True
             data["details"][field_key] = normalize_detail_value(
                 data.get("category_key", ""), field_key, text
             )
@@ -5508,6 +5756,9 @@ def process_text(
             field_key = fields[index][0]
             if field_key == "condition":
                 send(chat_id, "Выберите состояние товара — только «Новое» или «Б/у»:", condition_choice_keyboard())
+                return True
+            if field_key == "dimensions" and not _valid_dimensions_value(text):
+                send(chat_id, "⚠️ Укажите размеры числами: например, <code>120×60×40 см</code> или <code>1.2 м</code>.")
                 return True
             data["details"][field_key] = normalize_detail_value(
                 data.get("category_key", ""), field_key, text
@@ -7656,18 +7907,36 @@ def _handle_update_core(
 
 
             field_key = fields[index][0]
+            listing_data = states[chat_id]["data"]
+            category_key = str(listing_data.get("category_key") or "")
+            subcategory_key = str(listing_data.get("subcategory_key") or "")
             prompt = f"<b>{esc(fields[index][1])}</b>\n\n"
-            if states[chat_id]["data"].get("category_key") == "pets" and field_key in {"age", "gender"}:
-                states[chat_id]["step"] = f"edit_detail_{index}"
+            # Structured attributes must be edited through the same validated
+            # pickers as during listing creation; only descriptive fields stay free text.
+            if category_key == "pets" and field_key in {"age", "gender"}:
                 send(chat_id, prompt + "Выберите вариант.", pet_choice_keyboard(field_key, "petpick"))
-            elif states[chat_id]["data"].get("category_key") == "auto" and states[chat_id]["data"].get("subcategory_key") in {"cars", "suv"} and field_key == "make_model":
-                states[chat_id]["step"] = f"edit_detail_{index}"
+            elif category_key == "auto" and subcategory_key in {"cars", "suv"} and field_key == "make_model":
                 send_auto_make_picker(chat_id, index)
-            elif states[chat_id]["data"].get("category_key") == "auto" and states[chat_id]["data"].get("subcategory_key") in {"cars", "suv"} and field_key in {"color", "drivetrain"}:
-                states[chat_id]["step"] = f"edit_detail_{index}"
+            elif category_key == "auto" and subcategory_key in {"cars", "suv"} and field_key in {"year", "mileage"}:
+                title = "год выпуска" if field_key == "year" else "пробег автомобиля"
+                send_listing_picker(chat_id, f"<b>🚗 Выберите {title}</b>", field_key, index)
+            elif category_key == "auto" and subcategory_key in {"cars", "suv"} and field_key in {"color", "drivetrain"}:
                 send_auto_attribute_picker(chat_id, index, field_key)
+            elif category_key == "realestate" and field_key in {"rooms", "floor", "area"}:
+                title = {"rooms":"количество комнат", "floor":"этаж", "area":"площадь объекта"}[field_key]
+                send_listing_picker(chat_id, f"<b>🏠 Выберите {title}</b>", field_key, index)
+            elif category_key == "tech" and field_key == "brand_model":
+                send_listing_picker(chat_id, "<b>📱 Выберите производителя техники</b>", "tech_brand", index)
+            elif category_key == "tech" and field_key == "warranty":
+                send(chat_id, prompt + "Выберите наличие гарантии:", [[{"text":"✅ Есть гарантия","callback_data":"warrantypick_yes"},{"text":"❌ Нет гарантии","callback_data":"warrantypick_no"}]])
+            elif category_key == "kids" and field_key == "age":
+                send_listing_picker(chat_id, "<b>👶 Выберите возраст ребёнка</b>", "child_age", index)
+            elif category_key in {"work", "services"} and field_key == "experience":
+                send_listing_picker(chat_id, "<b>⭐ Выберите опыт работы</b>", "experience", index)
+            elif field_key == "condition":
+                send(chat_id, prompt + "Выберите состояние товара:", condition_choice_keyboard())
             else:
-                send(chat_id, prompt + "Введите новое значение. Опечатки в известных названиях будут исправлены автоматически.")
+                send(chat_id, prompt + "Введите новое значение. Это поле предназначено для свободного описания.")
 
 
         return
