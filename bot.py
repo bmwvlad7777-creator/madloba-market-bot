@@ -15809,6 +15809,12 @@ def mini_app_update_listing(listing_id):
     description = str(payload.get("description", "")).strip()[:5000]
     address = str(payload.get("address", "")).strip()[:300]
     phone = str(payload.get("phone", "")).strip()[:80]
+    # Enforce the same Georgian mobile format on the server as in the Mini App UI.
+    # The client-side check is for convenience; this check also protects direct API calls.
+    compact_phone = re.sub(r"[\s()\-]", "", phone)
+    if compact_phone and not re.fullmatch(r"\+9955\d{8}", compact_phone):
+        return jsonify({"error":"invalid_phone","detail":"Телефон должен быть в формате +995 и ещё 9 цифр."}), 400
+    phone = compact_phone
     whatsapp = str(payload.get("whatsapp", "")).strip()[:80]
     telegram = str(payload.get("telegram", "")).strip()[:80]
     currency = str(payload.get("currency", row.get("currency") or "USD")).upper().strip()
