@@ -1910,18 +1910,20 @@ ADMIN_REPLY_KEYBOARD_MARKUP = {
 
 
 def send_admin_reply_keyboard(chat_id):
-    """Re-assert the persistent admin keyboard on every admin entry/action."""
+    """Install the persistent admin keyboard once, without blank anchor messages."""
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
 
-    # Telegram attaches a reply keyboard to the sent message. Keep this
-    # anchor message: deleting the message immediately after sending the
-    # keyboard can make Telegram clients dismiss the keyboard again.
+    # The reply keyboard remains active after a button is pressed. Re-sending
+    # it on every /start, /admin or picker completion created blank chat bubbles.
+    if str(chat_id) in ADMIN_REPLY_KEYBOARD_INSTALLED:
+        return {"ok": True, "description": "Admin keyboard already installed"}
+
     result = api(
         "sendMessage",
         {
             "chat_id": chat_id,
-            "text": "\u2063",
+            "text": "🛡 Панель администратора активна.",
             "reply_markup": ADMIN_REPLY_KEYBOARD_MARKUP,
         },
     )
