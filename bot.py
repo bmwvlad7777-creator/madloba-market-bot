@@ -5006,6 +5006,12 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
     if not moderator_is_allowed(admin_chat_id):
         return
 
+    # The persistent admin reply keyboard can be replaced by temporary
+    # listing pickers (for example, the city selector). Re-assert it whenever
+    # the administrator returns to the main menu, including /start.
+    if str(admin_chat_id) not in ADMIN_REPLY_KEYBOARD_INSTALLED:
+        send_admin_reply_keyboard(admin_chat_id)
+
     menu_key = _runtime_key("admin_queue", "main")
     found, saved, ok = runtime_state_load(menu_key)
     message_id = message_id or (saved.get("message_id") if found and isinstance(saved, dict) else None)
