@@ -61,7 +61,7 @@ MAX_PHOTOS = 8
 app = Flask(__name__)
 # Reject oversized inbound HTTP bodies before route handlers parse them.
 # Listing photos are stored as Telegram file IDs, not multipart uploads.
-app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 18 * 1024 * 1024
 
 # Reuse outbound HTTP connections instead of opening a new TCP/TLS connection
 # for every Supabase/Telegram request. Automatic retries are restricted to
@@ -4776,9 +4776,11 @@ def submit_for_moderation(
     # Нужен для связи объявления с пользователем в Supabase.
     data["_telegram_id"] = chat_id
 
-    request_id = next_moderation_id
-
-    next_moderation_id += 1
+    # Share the Mini App submission lock so Telegram and Mini App requests
+    # cannot allocate the same in-process moderation ID concurrently.
+    with _MM_MODERATION_SUBMIT_LOCK:
+        request_id = next_moderation_id
+        next_moderation_id += 1
 
     # Each moderation request owns an immutable snapshot of its listing data.
     # A user's next draft must not overwrite or invalidate this request.
@@ -12315,7 +12317,8 @@ body.mm-detail-open #detailView .detail-top{margin-top:0!important;}
 </div><div class="filter-actions"><button class="filter-reset" id="filterReset" type="button" data-i18n="reset">Сбросить</button><button class="filter-apply" id="filterApply" type="button" data-i18n="apply">Применить</button></div></div></div></div><button class="back" id="backBtn" data-i18n="all_categories">← Все категории</button><section id="homeView"><section class="best-section" id="bestSection"><div class="section-head"><h2 data-i18n="popular_listings">Популярные</h2></div><div class="best-row" id="bestRow"></div></section><div id="categoriesBlock"><div class="section-head"><h2 data-i18n="all_categories_section">Все категории</h2><button class="section-link" id="categoriesToggle" type="button" data-i18n="collapse_categories">Свернуть ↑</button></div><div class="cats" id="cats"></div></div><div class="results-head"><div class="section-head"><h2 id="resultsTitle" data-i18n="fresh_listings">Свежие объявления</h2><small id="resultsCount"></small></div><select id="sortSelect" class="sort-select" aria-label="Sort"><option value="new" data-i18n="sort_new">🆕 Сначала новые</option><option value="price_asc" data-i18n="sort_price_asc">💰 Цена: дешевле</option><option value="price_desc" data-i18n="sort_price_desc">💰 Цена: дороже</option></select></div><div class="list" id="list"></div><div class="more" id="pager" style="display:none"><button id="prevBtn" type="button">← Назад</button><span id="pageLabel">Страница 1</span><button id="nextBtn" type="button">Вперёд →</button></div>
 <div class="mm-about-footer"><button type="button" id="mmAboutOpen" data-i18n="about_button">ℹ️ О проекте Madloba Market</button></div>
 <div class="mm-about-overlay" id="mmAboutModal" aria-hidden="true"><section class="mm-about-dialog" role="dialog" aria-modal="true" aria-labelledby="mmAboutTitle"><button type="button" class="mm-about-x" id="mmAboutX" aria-label="Close">×</button><div class="mm-about-mark">MADLOBA <span>MARKET</span></div><h2 id="mmAboutTitle" data-i18n="about_project_title">О проекте Madloba Market</h2><div class="mm-about-copy" id="mmAboutCopy" data-i18n="about_project_text"></div><button type="button" class="mm-about-close" id="mmAboutClose" data-i18n="about_close">Понятно</button></section></div>
-</section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section></div>
+</section><section class="detail" id="detailView"><div class="detail-top"><button class="detail-back" id="detailBack" data-i18n="back">← Назад</button><div class="section-head" style="margin:0"><h2 data-i18n="listing">Объявление</h2></div></div><div id="detailContent"></div></section><section class="view" id="favoritesView"><button class="view-back" id="favoritesBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="favorites">Избранное</div><div class="list" id="favoritesList"></div></section><section class="view" id="mineView"><button class="view-back" id="mineBack" data-i18n="back">← Назад</button><div class="view-title" data-i18n="my_listings">Мои объявления</div><div class="mine-list" id="mineList"></div></section><section class="view" id="profileView"><button class="view-back" id="profileBack" data-i18n="profile">← Назад</button><div class="view-title" data-i18n="profile">Профиль</div><div id="profileContent"></div></section>
+<section class="mm-post-view" id="listingPostView"><button class="view-back" id="listingPostBack" type="button">← Назад</button><div class="mm-post-card"><div class="mm-post-title" id="mmPostTitle">Создать объявление</div><p class="mm-post-sub" id="mmPostSubtitle">Заполните все поля на одной странице. Объявление сначала попадёт на модерацию.</p><div class="mm-post-grid"><div class="mm-post-field"><label for="mmPostCategory">Категория</label><select id="mmPostCategory" required></select></div><div class="mm-post-field"><label for="mmPostSubcategory">Подкатегория</label><select id="mmPostSubcategory" required></select></div><div class="mm-post-field"><label for="mmPostType">Тип объявления</label><select id="mmPostType" required></select></div><div class="mm-post-field"><label for="mmPostCity">Город</label><select id="mmPostCity" required></select></div></div><div class="mm-post-section">Характеристики</div><div class="mm-post-grid" id="mmPostDetails"></div><div class="mm-post-section">Цена и контакты</div><div class="mm-post-grid"><div class="mm-post-field"><label for="mmPostPrice">Цена</label><input id="mmPostPrice" inputmode="decimal" pattern="[0-9 .]*" placeholder="Например, 12500" required></div><div class="mm-post-field"><label for="mmPostCurrency">Валюта</label><select id="mmPostCurrency"><option value="USD">USD</option><option value="GEL">GEL</option><option value="EUR">EUR</option></select></div><div class="mm-post-field full"><label for="mmPostContact">Телефон или Telegram / WhatsApp</label><input id="mmPostContact" autocomplete="tel" placeholder="+995 5XX XX XX XX" required></div><div class="mm-post-field full" id="mmPostDistrictSelectWrap" style="display:none"><label for="mmPostDistrictSelect">Район</label><select id="mmPostDistrictSelect"><option value="">Не указывать</option></select></div><div class="mm-post-field full"><label for="mmPostDistrict">Адрес / улица / ориентир (необязательно)</label><input id="mmPostDistrict" maxlength="180" placeholder="Улица, ориентир"></div></div><div class="mm-post-section">Фотографии</div><div class="mm-post-photos"><input id="mmPostPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple><div class="mm-post-note">До 8 фотографий JPG, PNG или WebP. Максимум 2 МБ на фото.</div><div class="mm-post-photo-grid" id="mmPostPhotoGrid"></div></div><div class="mm-post-section">Описание</div><div class="mm-post-field"><textarea id="mmPostDescription" maxlength="3000" placeholder="Расскажите подробнее об объявлении"></textarea></div><div class="mm-post-error" id="mmPostError" role="alert"></div><div class="mm-post-preview" id="mmPostPreview"></div><div class="mm-post-actions"><button class="mm-post-secondary" id="mmPostCancel" type="button">Отмена</button><button class="mm-post-primary" id="mmPostNext" type="button">Предпросмотр</button></div></div></section></div>
 <button class="mm-support-fab" id="mmSupportOpen" type="button" aria-label="Поддержка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 16 0v5a2 2 0 0 1-2 2h-2v-6h4M4 13h4v6H6a2 2 0 0 1-2-2z"/><path d="M9 20h3"/></svg><span data-i18n="support_button">Поддержка</span></button>
 <div class="mm-support-overlay" id="mmSupportOverlay" role="dialog" aria-modal="true" aria-labelledby="mmSupportTitle">
  <form class="mm-support-sheet" id="mmSupportForm">
@@ -12381,8 +12384,8 @@ function priceMarkup(x,cls){return `<div class=\"${cls}\" data-mm-price-toggle d
 function apiFetch(url,options={}){const headers=new Headers(options.headers||{});const init=tgInit();if(init)headers.set('X-Telegram-Init-Data',init);return fetch(url,{...options,headers})}
 function setActiveNav(name){document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));}
 function navTap(button){document.querySelectorAll('.nav').forEach(b=>b.classList.remove('tap'));button.classList.add('tap');setTimeout(()=>button.classList.remove('tap'),180)}
-function hideViews(){['homeView','detailView','favoritesView','mineView','profileView'].forEach(id=>$(id).classList.remove('show'));document.body.classList.remove('mm-seller-view-open');$('homeView').style.display='none'}
-function showHome(){setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');$('backBtn').classList.toggle('show',!!state.category);resetHomeCarousels();setQuickActive(state.category||'');$('sortSelect').value=state.sort||'new';syncFilterUI();updateFilterVisibility();load(true)}
+function hideViews(){$('listingPostView')?.classList.remove('show');['homeView','detailView','favoritesView','mineView','profileView'].forEach(id=>$(id).classList.remove('show'));document.body.classList.remove('mm-seller-view-open');$('homeView').style.display='none'}
+function showHome(){$('listingPostView')?.classList.remove('show');$('homeView').style.display='block';setActiveNav('home');hideViews();$('homeView').style.display='block';$('detailView').classList.remove('show');$('backBtn').classList.toggle('show',!!state.category);resetHomeCarousels();setQuickActive(state.category||'');$('sortSelect').value=state.sort||'new';syncFilterUI();updateFilterVisibility();load(true)}
 function showView(id){hideViews();$(id).classList.add('show')}
 function realEstateFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','sub','min_price','max_price','rooms','min_area','max_area','district'].includes(k)&&String(v||'').trim()!=='')}
 function autoFiltersActive(){return Object.entries(state.filters).some(([k,v])=>['deal','make','model','min_price','max_price','min_year','max_year','min_mileage','max_mileage'].includes(k)&&String(v||'').trim()!=='')}
@@ -12903,7 +12906,28 @@ $('detailBack').onclick=()=>leaveDetail();
 $('favoritesBack').onclick=()=>showHome();
 $('mineBack').onclick=()=>showHome();
 $('profileBack').onclick=()=>showHome();
-document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home'){state.category='';state.q='';state.sort='new';state.page=0;state.cursorIds=[null];state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''};$('search').value='';$('sortSelect').value='new';$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');$('backBtn').classList.remove('show');showHome()}else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){const botUrl='https://t.me/MadlobaMarketBot?start=post';try{if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(botUrl)}else{window.location.href=botUrl}}catch(e){window.location.href=botUrl}}else if(n==='favorites')loadFavorites()});
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{navTap(b);const n=b.dataset.nav;if(n==='home'){state.category='';state.q='';state.sort='new';state.page=0;state.cursorIds=[null];state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:'',pet_age:'',pet_breed:'',pet_gender:''};$('search').value='';$('sortSelect').value='new';$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');$('backBtn').classList.remove('show');showHome()}else if(n==='mine')loadMine();else if(n==='profile')loadProfile();else if(n==='add'){showListingPostForm()}else if(n==='favorites')loadFavorites()});
+// In-app listing creation: ordinary users stay inside Mini App; Telegram bot remains the admin/moderation tool.
+let mmPostConfig=null,mmPostPhotos=[],mmPostPreviewMode=false;
+const mmPostLabels={ru:{rooms:'Комнаты',area:'Площадь, м²',floor:'Этаж',make_model:'Марка и модель',year:'Год выпуска',mileage:'Пробег, км',color:'Цвет',drivetrain:'Привод',brand_model:'Марка и модель',condition:'Состояние',warranty:'Гарантия',dimensions:'Размеры',age:'Возраст',breed:'Порода',gender:'Пол',service:'Услуга',experience:'Опыт',requirements:'Что именно ищете'},en:{rooms:'Rooms',area:'Area, m²',floor:'Floor',make_model:'Make and model',year:'Year',mileage:'Mileage, km',color:'Color',drivetrain:'Drivetrain',brand_model:'Brand and model',condition:'Condition',warranty:'Warranty',dimensions:'Dimensions',age:'Age',breed:'Breed',gender:'Gender',service:'Service',experience:'Experience',requirements:'What are you looking for'},ka:{rooms:'ოთახები',area:'ფართობი, მ²',floor:'სართული',make_model:'მარკა და მოდელი',year:'გამოშვების წელი',mileage:'გარბენი, კმ',color:'ფერი',drivetrain:'წამყვანი თვლები',brand_model:'ბრენდი და მოდელი',condition:'მდგომარეობა',warranty:'გარანტია',dimensions:'ზომები',age:'ასაკი',breed:'ჯიში',gender:'სქესი',service:'მომსახურება',experience:'გამოცდილება',requirements:'რას ეძებთ'},uk:{rooms:'Кімнати',area:'Площа, м²',floor:'Поверх',make_model:'Марка і модель',year:'Рік випуску',mileage:'Пробіг, км',color:'Колір',drivetrain:'Привід',brand_model:'Марка і модель',condition:'Стан',warranty:'Гарантія',dimensions:'Розміри',age:'Вік',breed:'Порода',gender:'Стать',service:'Послуга',experience:'Досвід',requirements:'Що саме шукаєте'}};
+function mmPostText(key){const l=state.lang||'ru';const m={ru:{title:'Создать объявление',subtitle:'Заполните форму на одной странице. Объявление отправится на модерацию.',category:'Категория',subcategory:'Подкатегория',type:'Тип объявления',city:'Город',price:'Цена',currency:'Валюта',contact:'Телефон или Telegram / WhatsApp',district:'Адрес / район (необязательно)',photos:'Фотографии',description:'Описание',preview:'Предпросмотр',send:'Отправить на модерацию',back:'Назад',cancel:'Отмена',required:'Заполните обязательные поля.',phone:'Укажите грузинский номер +995 5XX XX XX XX или Telegram/WhatsApp.',photoFail:'Не удалось загрузить фотографию.',sent:'Объявление отправлено на модерацию. Заявка №',sending:'Отправляем…',empty:'Выберите значение',condition:['Новое','Отличное','Хорошее','Удовлетворительное','На запчасти'],warranty:['Есть','Нет'],gender:['Мужской','Женский','Не указан'],drivetrain:['Передний','Задний','Полный'],color:['Белый','Чёрный','Серый','Серебристый','Синий','Красный','Зелёный','Коричневый','Другой']},en:{title:'Create listing',subtitle:'Fill in this single-page form. Your listing will be reviewed by a moderator.',category:'Category',subcategory:'Subcategory',type:'Listing type',city:'City',price:'Price',currency:'Currency',contact:'Phone or Telegram / WhatsApp',district:'Address / district (optional)',photos:'Photos',description:'Description',preview:'Preview',send:'Send for moderation',back:'Back',cancel:'Cancel',required:'Complete the required fields.',phone:'Enter a Georgian mobile +995 5XX XX XX XX or Telegram/WhatsApp.',photoFail:'Photo upload failed.',sent:'Listing sent for moderation. Request #',sending:'Sending…',empty:'Choose an option',condition:['New','Excellent','Good','Fair','For parts'],warranty:['Yes','No'],gender:['Male','Female','Not specified'],drivetrain:['Front','Rear','All-wheel'],color:['White','Black','Gray','Silver','Blue','Red','Green','Brown','Other']},ka:{title:'განცხადების დამატება',subtitle:'შეავსეთ ერთგვერდიანი ფორმა. განცხადება მოდერაციაზე გაიგზავნება.',category:'კატეგორია',subcategory:'ქვეკატეგორია',type:'განცხადების ტიპი',city:'ქალაქი',price:'ფასი',currency:'ვალუტა',contact:'ტელეფონი ან Telegram / WhatsApp',district:'მისამართი / რაიონი (არასავალდებულო)',photos:'ფოტოები',description:'აღწერა',preview:'გადახედვა',send:'მოდერაციაზე გაგზავნა',back:'უკან',cancel:'გაუქმება',required:'შეავსეთ სავალდებულო ველები.',phone:'მიუთითეთ ქართული ნომერი +995 5XX XX XX XX ან Telegram/WhatsApp.',photoFail:'ფოტოს ატვირთვა ვერ მოხერხდა.',sent:'განცხადება მოდერაციაზე გაიგზავნა. №',sending:'იგზავნება…',empty:'აირჩიეთ',condition:['ახალი','შესანიშნავი','კარგი','დამაკმაყოფილებელი','ნაწილებად'],warranty:['კი','არა'],gender:['მამრობითი','მდედრობითი','არ არის მითითებული'],drivetrain:['წინა','უკანა','სრული'],color:['თეთრი','შავი','ნაცრისფერი','ვერცხლისფერი','ლურჯი','წითელი','მწვანე','ყავისფერი','სხვა']},uk:{title:'Створити оголошення',subtitle:'Заповніть форму на одній сторінці. Оголошення надійде на модерацію.',category:'Категорія',subcategory:'Підкатегорія',type:'Тип оголошення',city:'Місто',price:'Ціна',currency:'Валюта',contact:'Телефон або Telegram / WhatsApp',district:'Адреса / район (необов’язково)',photos:'Фотографії',description:'Опис',preview:'Попередній перегляд',send:'Надіслати на модерацію',back:'Назад',cancel:'Скасувати',required:'Заповніть обов’язкові поля.',phone:'Вкажіть грузинський номер +995 5XX XX XX XX або Telegram/WhatsApp.',photoFail:'Не вдалося завантажити фото.',sent:'Оголошення надіслано на модерацію. Заявка №',sending:'Надсилаємо…',empty:'Оберіть значення',condition:['Новий','Відмінний','Хороший','Задовільний','На запчастини'],warranty:['Є','Немає'],gender:['Чоловіча','Жіноча','Не вказано'],drivetrain:['Передній','Задній','Повний'],color:['Білий','Чорний','Сірий','Сріблястий','Синій','Червоний','Зелений','Коричневий','Інший']}};return (m[l]||m.ru)[key]||m.ru[key]||key}
+function mmPostLabel(k){return (mmPostLabels[state.lang]||mmPostLabels.ru)[k]||k}
+function mmPostSelect(id,label,values,required=true){return `<div class="mm-post-field"><label for="${id}">${label}</label><select id="${id}" ${required?'required':''}><option value="">${mmPostText('empty')}</option>${values.map(v=>`<option value="${String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}">${String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</option>`).join('')}</select></div>`}
+function mmPostInput(key){const label=mmPostLabel(key),id='mmPostField_'+key;const numeric=['year','mileage','area','floor','experience','age','rooms'].includes(key);let options=null;if(key==='condition')options=['Новое','Б/у'];if(key==='warranty')options=['Есть гарантия','Нет гарантии'];if(key==='gender')options=['Мужской','Женский','Не указан'];if(key==='drivetrain')options=['Передний (FWD)','Задний (RWD)','Полный (AWD/4WD)','Другой / не знаю'];if(key==='color')options=['Белый','Чёрный','Серебристый','Серый','Красный','Синий','Тёмно-синий','Голубой','Зелёный','Коричневый','Бежевый','Жёлтый','Оранжевый','Фиолетовый','Золотистый','Другой'];if(key==='year')options=Array.from({length:47},(_,i)=>String(2026-i));if(key==='mileage')options=Array.from({length:501},(_,i)=>String(i*1000));if(key==='color')options=mmPostConfig.auto_colors;if(key==='drivetrain')options=mmPostConfig.auto_drivetrains;if(key==='age'&&$('mmPostCategory').value==='pets')options=mmPostConfig.pet_ages;if(key==='gender'&&$('mmPostCategory').value==='pets')options=mmPostConfig.pet_genders;if(key==='age'&&$('mmPostCategory').value==='kids')options=mmPostConfig.kid_ages;if(key==='rooms')options=['Студия',...Array.from({length:10},(_,i)=>String(i+1)),'11+'];if(key==='floor')options=[...Array.from({length:50},(_,i)=>String(i+1)),'Последний этаж','Цокольный этаж','Подвальный этаж','Не указан'];if(key==='experience')options=Array.from({length:41},(_,i)=>String(i));if(key==='age'&&['pets'].includes($('mmPostCategory').value))options=['До 1 месяца','1–3 месяца','3–6 месяцев','6–12 месяцев','1 год','2 года','3 года','4 года','5+ лет'];if(key==='make_model'&&$('mmPostCategory').value==='auto'){return `<div class="mm-post-field"><label>Марка</label><select id="mmPostField_make" required><option value="">${mmPostText('empty')}</option>${(mmPostConfig.auto_makes||[]).map(x=>`<option>${x}</option>`).join('')}</select></div><div class="mm-post-field"><label>Модель</label><select id="mmPostField_model" required disabled><option value="">Сначала выберите марку</option></select></div>`}if(key==='brand_model'&&$('mmPostCategory').value==='tech'){const sub=$('mmPostSubcategory').value,brands=(mmPostConfig.tech_brands||{})[sub]||[];return `<div class="mm-post-field"><label>Бренд</label><select id="mmPostField_brand" required><option value="">${mmPostText('empty')}</option>${brands.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="mm-post-field"><label>Модель</label><select id="mmPostField_model" required><option value="">${mmPostText('empty')}</option></select></div>`}if(options)return mmPostSelect(id,label,options,true);return `<div class="mm-post-field"><label for="${id}">${label}</label><input id="${id}" ${numeric?'inputmode="numeric" pattern="[0-9]*"':''} ${numeric?'maxlength="8"':''} maxlength="160" ${numeric?'':'type="text"'} required></div>`}
+function mmPostFields(){const category=$('mmPostCategory').value,sub=$('mmPostSubcategory').value;const categoryDef=mmPostConfig?.categories?.[category];let fields=[];if(category==='auto'){fields=(sub==='cars'||sub==='suv')?['make_model','year','mileage','color','drivetrain']:[]}else if(category==='realestate'){fields=['rooms','area','floor'];if(sub==='land'||sub==='garage')fields=['area'];if(sub==='room')fields=['area','floor']}else if(category==='pets'){fields=['age','breed','gender'];if(sub==='supplies')fields=['condition'];if(sub==='services')fields=['service','experience']}else fields=(categoryDef?.fields||[]).map(x=>x[0]);if(category==='tech')fields=['brand_model','condition','warranty'];$('mmPostDetails').innerHTML=fields.map(mmPostInput).join('');if(category==='auto'&&['cars','suv'].includes(sub)){$('mmPostField_make')?.addEventListener('change',()=>{const models=autoModelsForMake($('mmPostField_make').value);$('mmPostField_model').innerHTML='<option value="">'+mmPostText('empty')+'</option>'+models.map(x=>`<option>${x}</option>`).join('');$('mmPostField_model').disabled=!models.length})}if(category==='tech')$('mmPostField_brand')?.addEventListener('change',()=>{const models=mmPostConfig?.tech_models?.[sub]?.[$('mmPostField_brand').value]||[];$('mmPostField_model').innerHTML='<option value="">'+mmPostText('empty')+'</option>'+models.map(x=>`<option>${x}</option>`).join('')});}
+function autoModelsForMake(make){return (mmPostConfig?.auto_models?.[make])||[]}
+function mmPostSetOptions(){const cat=$('mmPostCategory'),sub=$('mmPostSubcategory'),type=$('mmPostType');cat.innerHTML=Object.entries(mmPostConfig.categories).map(([k,v])=>`<option value="${k}">${v.name}</option>`).join('');function updateSub(){const c=mmPostConfig.categories[cat.value];sub.innerHTML=Object.entries(c.subs||{}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');type.innerHTML=(c.types||[]).map(x=>`<option value="${x.key}">${x.label}</option>`).join('');mmPostFields()}cat.onchange=()=>{updateSub();mmPostUpdateDistricts()};sub.onchange=()=>{mmPostFields();mmPostUpdateDistricts()};updateSub();$('mmPostCity').innerHTML=mmPostConfig.cities.map(x=>`<option value="${x}">${x}</option>`).join('');$('mmPostCity').value=state.city==='all'?'Батуми':(CITY_SLUG_TO_ALIAS[state.city]||'Батуми');$('mmPostCity').onchange=mmPostUpdateDistricts;mmPostUpdateDistricts()}
+function mmPostUpdateDistricts(){const wrap=$('mmPostDistrictSelectWrap'),sel=$('mmPostDistrictSelect');if(!wrap||!sel)return;const enabled=$('mmPostCategory').value==='realestate'&&['batumi','tbilisi'].includes(CITY_ALIAS_TO_SLUG[$('mmPostCity').value]);wrap.style.display=enabled?'flex':'none';const slug=CITY_ALIAS_TO_SLUG[$('mmPostCity').value];const rows=mmPostConfig?.realestate_districts?.[slug]||[];sel.innerHTML='<option value="">Не указывать</option>'+rows.map(x=>`<option value="${x.key}">${x.label}</option>`).join('')}
+function mmPostHideOtherViews(){['homeView','detailView','favoritesView','mineView','profileView'].forEach(id=>$(id)?.classList.remove('show'));$('homeView').style.display='none';$('detailView').style.display='none';$('favoritesView').style.display='none';$('mineView').style.display='none';$('profileView').style.display='none';$('listingPostView').classList.add('show');$('backBtn').classList.remove('show');window.scrollTo({top:0,behavior:'instant'})}
+async function showListingPostForm(){try{if(!tgInit()){toast(mmPostText('login_telegram'));return}if(!mmPostConfig){const r=await apiFetch('/api/listing-form-config');mmPostConfig=await r.json();if(!r.ok||!mmPostConfig.ok)throw new Error('config')}if(!mmPostConfig.auto_models){mmPostConfig.auto_models={};for(const make of mmPostConfig.auto_makes||[]){try{const r=await apiFetch('/api/auto-options?make='+encodeURIComponent(make));const d=await r.json();mmPostConfig.auto_models[make]=d.models||[]}catch(e){mmPostConfig.auto_models[make]=[]}}}mmPostSetOptions();mmPostPhotos=[];mmPostPreviewMode=false;const tgUser=tg?.initDataUnsafe?.user||{};if(!$('mmPostContact').value&&tgUser.username)$('mmPostContact').value='@'+tgUser.username;$('mmPostPhotoGrid').innerHTML='';$('mmPostError').textContent='';$('mmPostPreview').classList.remove('show');$('mmPostNext').textContent=mmPostText('preview');$('mmPostTitle').textContent=mmPostText('title');$('mmPostSubtitle').textContent=mmPostText('subtitle');$('listingPostView').querySelector('#mmPostCancel').textContent=mmPostText('cancel');$('listingPostView').querySelector('#listingPostBack').textContent=mmPostText('back');$('listingPostView').classList.add('show');mmPostHideOtherViews();document.querySelectorAll('.nav').forEach(x=>x.classList.toggle('active',x.dataset.nav==='add'));}catch(e){console.error('MM POST CONFIG',e);toast('Не удалось открыть форму. Попробуйте ещё раз.')}}
+function mmPostCollect(){const category=$('mmPostCategory').value,subcategory=$('mmPostSubcategory').value;const details={};$('mmPostDetails').querySelectorAll('[id^="mmPostField_"]').forEach(el=>{const key=el.id.replace('mmPostField_','');if(el.value)details[key]=el.value});if(category==='auto'&&['cars','suv'].includes(subcategory)){details.make=$('mmPostField_make')?.value||'';details.model=$('mmPostField_model')?.value||'';details.make_model=[details.make,details.model].filter(Boolean).join(' ')}if(category==='tech'){details.brand=$('mmPostField_brand')?.value||'';details.model=$('mmPostField_model')?.value||'';details.brand_model=[details.brand,details.model].filter(Boolean).join(' ')}return {category_key:category,subcategory_key:subcategory,type_key:$('mmPostType').value,city:$('mmPostCity').value,price:$('mmPostPrice').value,currency:$('mmPostCurrency').value,contact:$('mmPostContact').value,district:[$('mmPostDistrictSelect')?.selectedOptions?.[0]?.textContent||'', $('mmPostDistrict').value].filter(x=>x&&x!=='Не указывать').join(', '),district_key:$('mmPostDistrictSelect')?.value||'',description:$('mmPostDescription').value,details,photos:mmPostPhotos.slice()}}
+function mmPostValidate(d){if(!d.category_key||!d.subcategory_key||!d.type_key||!d.city||!d.contact)return mmPostText('required');if(!d.price.trim()&&d.type_key!=='give'&&d.type_key!=='seek'&&d.category_key!=='search')return mmPostText('required');if(d.price.trim()&&!/^\d+(?:[ .,]\d{3})*(?:[.,]\d{1,2})?$/.test(d.price.trim()))return 'Цена должна содержать только цифры.';const contact=d.contact.trim(),compact=contact.replace(/[\s()\-]/g,'');if(!(/^\+9955\d{8}$/.test(compact)||contact.startsWith('@')||/t\.me\/|wa\.me\/|whatsapp/i.test(contact)))return mmPostText('phone');for(const [k,v] of Object.entries(d.details)){if(['area','floor','year','mileage','experience'].includes(k)&&!/^\d+$/.test(v))return 'Поле «'+mmPostLabel(k)+'» должно содержать только цифры.'}if(d.category_key==='auto'&&['cars','suv'].includes(d.subcategory_key)&&(!d.details.make||!d.details.model))return 'Выберите марку и модель автомобиля.';if(d.category_key==='tech'&&(!d.details.brand||!d.details.model))return 'Выберите бренд и укажите модель.';return ''}
+function mmPostPreview(d){const c=mmPostConfig.categories[d.category_key];const sub=c.subs[d.subcategory_key];const type=c.types.find(x=>x.key===d.type_key)?.label||d.type_key;const rows=Object.entries(d.details).filter(([k,v])=>v).map(([k,v])=>mmPostLabel(k)+': '+v);return `${c.name} · ${sub}\n${type}\n${rows.join('\n')}\n${d.price|| (d.type_key==='give'?'0':'—')} ${d.currency}\n${d.city}${d.district?' · '+d.district:''}\n${d.description}\n${d.photos.length} фото\nКонтакт: ${d.contact}`}
+$('mmPostPhotos').addEventListener('change',async e=>{const files=Array.from(e.target.files||[]);if(mmPostPhotos.length+files.length>8){$('mmPostError').textContent='Можно добавить не более 8 фотографий.';e.target.value='';return}for(const file of files){if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>2*1024*1024){$('mmPostError').textContent='Фото должно быть JPG, PNG или WebP до 2 МБ.';continue}const local=URL.createObjectURL(file);const wrap=document.createElement('div');wrap.className='mm-post-photo';wrap.innerHTML=`<img src="${local}" alt="Фото"><button type="button" aria-label="Удалить">×</button>`;$('mmPostPhotoGrid').appendChild(wrap);wrap.querySelector('button').onclick=()=>{wrap.remove();const i=mmPostPhotos.findIndex(x=>x.local===local);if(i>=0)mmPostPhotos.splice(i,1);};mmPostPhotos.push({file,local,url:null})}e.target.value=''});
+$('mmPostNext').addEventListener('click',async()=>{const d=mmPostCollect();$('mmPostError').textContent='';if(!mmPostPreviewMode){const err=mmPostValidate(d);if(err){$('mmPostError').textContent=err;return}$('mmPostPreview').textContent=mmPostPreview(d);$('mmPostPreview').classList.add('show');mmPostPreviewMode=true;$('mmPostNext').textContent=mmPostText('send');$('mmPostCancel').textContent=mmPostText('back');return}const btn=$('mmPostNext');btn.disabled=true;btn.textContent=mmPostText('sending');try{for(const photo of mmPostPhotos){if(photo.url)continue;const fd=new FormData();fd.append('photo',photo.file);const pr=await apiFetch('/api/listing-photo-upload',{method:'POST',body:fd});const pd=await pr.json().catch(()=>({}));if(!pr.ok||!pd.ok)throw new Error(pd.error||'photo_upload_failed');photo.url=pd.photo_url}d.photos=mmPostPhotos.map(x=>x.url).filter(Boolean);const r=await apiFetch('/api/listing-submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});const result=await r.json().catch(()=>({}));if(!r.ok||!result.ok)throw new Error(result.message||result.error||'submit_failed');toast(mmPostText('sent')+result.request_id);mmPostPhotos=[];$('listingPostView').classList.remove('show');showHome()}catch(err){console.error('MM POST SUBMIT',err);$('mmPostError').textContent=err.message==='photo_storage_upload_failed'||err.message==='storage_bucket_not_resolved'?mmPostText('photoFail'):(err.message||'Не удалось отправить объявление.');}finally{btn.disabled=false;btn.textContent=mmPostText('send')}});
+function mmPostBack(){if(mmPostPreviewMode){mmPostPreviewMode=false;$('mmPostPreview').classList.remove('show');$('mmPostNext').textContent=mmPostText('preview');$('mmPostCancel').textContent=mmPostText('cancel');return} $('listingPostView').classList.remove('show');showHome()}
+$('mmPostCancel').onclick=mmPostBack;$('listingPostBack').onclick=mmPostBack;
+
 // Madloba brand and hero backdrop are shortcuts to Home; controls retain their own actions.
 function resetToHomeFromBrand(){
  state.category='';
@@ -15622,6 +15646,13 @@ def listing_picker_mini_app():
   #mineList .mine-action{min-height:41px!important;padding:9px 6px!important;font-size:11px!important}
 }
 
+
+/* Mini App native listing creation: one continuous, category-aware page. */
+.mm-post-view{display:none}.mm-post-view.show{display:block}.mm-post-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin:8px 0 18px;box-shadow:var(--shadow)}
+.mm-post-title{font-size:24px;font-weight:950;margin:4px 0 6px}.mm-post-sub{font-size:13px;color:var(--muted);margin:0 0 15px;line-height:1.4}
+.mm-post-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.mm-post-field{display:flex;flex-direction:column;gap:6px;min-width:0}.mm-post-field.full{grid-column:1/-1}.mm-post-field label{font-size:12px;color:var(--muted);font-weight:850}.mm-post-field input,.mm-post-field select,.mm-post-field textarea{width:100%;min-height:47px;border:1px solid #dce5f0;border-radius:13px;background:#f8fafc;padding:11px 12px;color:var(--ink);outline:none}.mm-post-field textarea{min-height:112px;resize:vertical}.mm-post-field input:focus,.mm-post-field select:focus,.mm-post-field textarea:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(20,111,232,.1)}
+.mm-post-section{font-size:15px;font-weight:950;margin:18px 0 10px}.mm-post-photos{border:1.5px dashed #b8c9df;border-radius:15px;padding:14px;background:#f8fbff}.mm-post-photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px}.mm-post-photo{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#edf3fa}.mm-post-photo img{width:100%;height:100%;object-fit:cover}.mm-post-photo button{position:absolute;right:4px;top:4px;width:25px;height:25px;border-radius:50%;background:#111827cc;color:#fff}.mm-post-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}.mm-post-actions button{min-height:49px;border-radius:13px;font-weight:900}.mm-post-primary{background:var(--blue);color:#fff}.mm-post-secondary{background:#eef2f7;color:#475569}.mm-post-preview{display:none;background:#f8fafc;border:1px solid var(--line);border-radius:15px;padding:14px;margin-top:14px;white-space:pre-wrap;line-height:1.45}.mm-post-preview.show{display:block}.mm-post-error{color:#c53030;font-size:13px;font-weight:750;margin-top:8px}.mm-post-note{font-size:12px;color:var(--muted);line-height:1.4;margin-top:7px}
+@media(max-width:390px){.mm-post-grid{grid-template-columns:1fr}.mm-post-field.full{grid-column:auto}.mm-post-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style></head><body><section class="sheet"><div class="handle"></div><h1 class="head" id="title"></h1><input id="search" class="search" type="search" placeholder="Поиск (необязательно)" autocomplete="off"><div id="list" class="list"></div><div id="sliderBox" style="display:none"><div id="mileageValue" class="value">0</div><input id="mileage" class="range" type="range" min="0" max="500000" step="1000" value="0"><div class="ends"><span id="rangeMin">0</span><span id="rangeMax">500 000 км</span></div><button id="chooseMileage" style="margin-top:28px;width:100%;height:50px;border:0;border-radius:12px;background:#70a94b;color:white;font-size:17px;font-weight:700">Выбрать</button></div><div class="foot">Прокрутите список и выберите вариант</div></section><script>
 const tg=window.Telegram&&window.Telegram.WebApp,kind=__KIND__,options=__OPTIONS__,title=__TITLE__;if(tg){tg.ready();tg.expand();tg.setHeaderColor('#f2f4f7');tg.setBackgroundColor('#f2f4f7')}document.getElementById('title').textContent=title;const list=document.getElementById('list'),search=document.getElementById('search'),sliderBox=document.getElementById('sliderBox');function send(value){if(tg&&tg.sendData)tg.sendData(JSON.stringify({kind,value}));else alert('Откройте выбор из Telegram-бота')}if(['mileage','area','experience'].includes(kind)){search.style.display='none';list.style.display='none';sliderBox.style.display='block';const range=document.getElementById('mileage'),out=document.getElementById('mileageValue'),min=document.getElementById('rangeMin'),max=document.getElementById('rangeMax'),button=document.getElementById('chooseMileage');if(kind==='child_age'){range.min='0';range.max='18';range.step='1';range.value='1';out.textContent='1 год';min.textContent='0 лет';max.textContent='18 лет';button.textContent='Выбрать возраст'}else if(kind==='experience'){range.min='0';range.max='40';range.step='1';range.value='1';out.textContent='1 год';min.textContent='Без опыта';max.textContent='40 лет';button.textContent='Выбрать опыт'}else if(kind==='area'){const limits={"apartment":500,"house":1000,"room":300,"commercial":5000,"land":10000,"garage":500};const maxArea=limits[__AREA_SUBCATEGORY__]||500;range.min='1';range.max=String(maxArea);range.step='1';range.value=String(Math.min(70,maxArea));out.textContent=range.value+' м²';min.textContent='1 м²';max.textContent=Number(maxArea).toLocaleString('ru-RU').replace(/[\u00a0\u202f]/g,' ')+' м²';button.textContent='Выбрать площадь'}else{range.min='0';range.max='500000';range.step='1000';range.value='0';out.textContent='0 км';min.textContent='0 км';max.textContent='500 000 км';button.textContent='Выбрать пробег'}function fmt(n){const v=Number(n).toLocaleString('ru-RU').replace(/[\u00a0\u202f]/g,' ');if(kind==='area')return v+' м²';if(kind==='child_age'||kind==='experience')return v+(Number(n)===1?' год':(Number(n)>=2&&Number(n)<=4?' года':' лет'));return v+' км'}range.addEventListener('input',()=>out.textContent=fmt(range.value));button.addEventListener('click',()=>send(String(range.value)))}else{function render(){const q=search.value.trim().toLocaleLowerCase();const found=options.filter(x=>String(x).toLocaleLowerCase().includes(q));list.innerHTML='';found.forEach(value=>{const row=document.createElement('div');row.className='item';row.textContent=value;row.addEventListener('click',()=>send(value));list.appendChild(row)});if(!found.length){const e=document.createElement('div');e.className='item';e.textContent='Ничего не найдено';list.appendChild(e)}}search.addEventListener('input',render);render()}
 </script>
@@ -15641,6 +15672,223 @@ def _mini_app_authenticated_user():
         payload = request.get_json(silent=True) or {}
         init_data = str(payload.get("init_data", ""))
     return validate_telegram_init_data(init_data)
+
+
+# Mini App listing submissions share the existing durable moderation queue.
+# Keep this path separate from the Telegram conversation flow.
+_MM_MODERATION_SUBMIT_LOCK = threading.Lock()
+
+@app.post("/api/listing-submit")
+def mini_app_listing_submit():
+    """Create a durable pending moderation request from the Mini App."""
+    global next_moderation_id
+
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"ok": False, "error": "invalid_init_data"}), 401
+
+    telegram_id = str(user.get("id") or "").strip()
+    if not telegram_id.isdigit():
+        return jsonify({"ok": False, "error": "invalid_user"}), 401
+
+    limited = _mm_rate_limit_guard("listing_submit", telegram_id, 5, 300)
+    if limited:
+        return limited
+
+    if not supabase_enabled():
+        return jsonify({"ok": False, "error": "moderation_storage_unavailable"}), 503
+
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"ok": False, "error": "invalid_payload"}), 400
+
+    category_key = str(body.get("category_key") or "").strip()
+    subcategory_key = str(body.get("subcategory_key") or "").strip()
+    type_key = str(body.get("type_key") or "").strip()
+    category = CATEGORIES.get(category_key)
+    if not category or subcategory_key not in category.get("subs", {}):
+        return jsonify({"ok": False, "error": "invalid_category"}), 400
+    type_pair = next((pair for pair in category.get("types", []) if pair[1] == type_key), None)
+    if not type_pair:
+        return jsonify({"ok": False, "error": "invalid_listing_type"}), 400
+
+    city_name = str(body.get("city") or "").strip()
+    city_slug = GEORGIA_CITY_SLUGS.get(city_name)
+    if not city_slug:
+        return jsonify({"ok": False, "error": "invalid_city"}), 400
+
+    details = body.get("details") if isinstance(body.get("details"), dict) else {}
+    details = {str(k): str(v).strip()[:160] for k, v in details.items() if str(k)[:50]}
+    price_raw = str(body.get("price") or "").strip().replace(" ", "").replace(",", ".")
+    free_listing = type_key == "give"
+    optional_price = type_key == "seek" or category_key == "search"
+    if not price_raw and (free_listing or optional_price):
+        price_raw = "0"
+    if not re.fullmatch(r"\d+(?:\.\d{1,2})?", price_raw):
+        return jsonify({"ok": False, "error": "invalid_price"}), 400
+    try:
+        price_value = float(price_raw)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "invalid_price"}), 400
+    if price_value < 0 or (price_value == 0 and not (free_listing or optional_price)) or price_value > 1000000000:
+        return jsonify({"ok": False, "error": "invalid_price"}), 400
+
+    currency = str(body.get("currency") or "USD").strip().upper()
+    if currency not in {"USD", "GEL", "EUR"}:
+        return jsonify({"ok": False, "error": "invalid_currency"}), 400
+
+    photos = body.get("photos", [])
+    if not isinstance(photos, list) or len(photos) > MAX_PHOTOS:
+        return jsonify({"ok": False, "error": "invalid_photos"}), 400
+    bucket = _mini_app_storage_bucket() if photos else None
+    safe_photos = []
+    for photo_url in photos:
+        photo_url = str(photo_url or "").strip()
+        parsed = _storage_object_from_url(photo_url)
+        if not parsed or not bucket or parsed[0] != bucket or not parsed[1].startswith(f"miniapp/{telegram_id}/"):
+            return jsonify({"ok": False, "error": "invalid_photo_reference"}), 400
+        safe_photos.append(photo_url)
+
+    data = {
+        "category_key": category_key,
+        "category": category.get("name", category_key),
+        "subcategory_key": subcategory_key,
+        "subcategory": category.get("subs", {}).get(subcategory_key, subcategory_key),
+        "type": type_pair[0],
+        "type_key": type_key,
+        "city": city_name,
+        "city_slug": city_slug,
+        "district": str(body.get("district") or "").strip()[:180],
+        "district_key": str(body.get("district_key") or "").strip().lower()[:80],
+        "price": price_raw,
+        "currency": currency,
+        "contact": str(body.get("contact") or "").strip()[:120],
+        "description": str(body.get("description") or "").strip()[:3000],
+        "details": details,
+        "photos": safe_photos,
+        "telegram_username": str(user.get("username") or "").strip().lstrip("@")[:64],
+        "_telegram_id": int(telegram_id),
+    }
+
+    validation_error = validate_structured_listing_data(data)
+    if validation_error:
+        return jsonify({"ok": False, "error": "validation_failed", "message": validation_error}), 400
+    if not data["contact"]:
+        return jsonify({"ok": False, "error": "contact_required"}), 400
+
+    with _MM_MODERATION_SUBMIT_LOCK:
+        request_id = max(1, int(next_moderation_id or 1))
+        created_at = _utc_now_iso()
+        moderation_item = {
+            "request_id": request_id,
+            "user_chat_id": int(telegram_id),
+            "message_chat_id": None,
+            "message_id": None,
+            "status": "pending",
+            "source": "mini_app",
+            "data": json.loads(json.dumps(data, ensure_ascii=False)),
+            "created_at": created_at,
+        }
+        moderation_key = _runtime_key("moderation", request_id)
+        if not runtime_state_save(moderation_key, moderation_item):
+            return jsonify({"ok": False, "error": "moderation_save_failed"}), 503
+        if not runtime_state_save("meta:next_moderation_id", {"value": request_id + 1}):
+            runtime_state_delete(moderation_key)
+            return jsonify({"ok": False, "error": "moderation_counter_save_failed"}), 503
+        moderation_requests[request_id] = moderation_item
+        next_moderation_id = request_id + 1
+
+    return jsonify({"ok": True, "request_id": request_id, "status": "pending"}), 201
+
+
+@app.get("/api/listing-form-config")
+def mini_app_listing_form_config():
+    """Expose the existing server taxonomy and verified catalog choices to the Mini App form."""
+    categories = {}
+    for key, value in CATEGORIES.items():
+        categories[key] = {
+            "name": value.get("name", key),
+            "subs": value.get("subs", {}),
+            "types": [{"label": label, "key": type_key} for label, type_key in value.get("types", [])],
+        }
+    return jsonify({
+        "ok": True,
+        "categories": categories,
+        "cities": GEORGIA_CITIES,
+        "auto_makes": auto_make_options(),
+        "auto_models": {make: auto_model_options(make) for make in auto_make_options()},
+        "tech_models": {sub: {brand: tech_model_options(sub, brand) for brand in tech_brand_options(sub)} for sub in TECH_CATALOG},
+        "tech_brands": {key: tech_brand_options(key) for key in TECH_CATALOG},
+        "auto_colors": AUTO_COLOR_OPTIONS,
+        "auto_drivetrains": AUTO_DRIVETRAIN_OPTIONS,
+        "pet_ages": [label for _key, label in PET_AGE_OPTIONS],
+        "pet_genders": [label for _key, label in PET_GENDER_OPTIONS],
+        "kid_ages": ["До 1 года", "1 год", "2 года", "3 года", "4 года"] + [f"{age} лет" for age in range(5, 19)],
+        "realestate_districts": {
+            "batumi": [{"key": key, "label": label} for key, label in BATUMI_DISTRICTS],
+            "tbilisi": [{"key": key, "label": label} for key, label in TBILISI_DISTRICTS],
+        },
+    })
+
+
+def _mini_app_storage_bucket():
+    """Resolve the bucket from configuration or an existing listing photo URL; never guess a bucket name."""
+    configured = str(os.environ.get("SUPABASE_STORAGE_BUCKET", "")).strip()
+    if configured:
+        return configured
+    rows = supabase_request("GET", "listing_photos", params={
+        "select": "photo_url", "photo_url": "not.is.null", "order": "listing_id.desc", "limit": "20"
+    })
+    for row in rows or []:
+        parsed = _storage_object_from_url(row.get("photo_url"))
+        if parsed:
+            return parsed[0]
+    return None
+
+
+@app.post("/api/listing-photo-upload")
+def mini_app_listing_photo_upload():
+    """Upload a bounded image to the same Supabase Storage bucket used by existing listings."""
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"ok": False, "error": "invalid_init_data"}), 401
+    limited = _mm_rate_limit_guard("listing_photo_upload", user.get("id"), 24, 300)
+    if limited:
+        return limited
+    if not supabase_enabled():
+        return jsonify({"ok": False, "error": "storage_unavailable"}), 503
+    upload = request.files.get("photo")
+    if not upload or not upload.filename:
+        return jsonify({"ok": False, "error": "photo_missing"}), 400
+    content = upload.read(2 * 1024 * 1024 + 1)
+    if not content or len(content) > 2 * 1024 * 1024:
+        return jsonify({"ok": False, "error": "photo_too_large"}), 413
+    content_type = str(upload.mimetype or "").lower()
+    allowed = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+    if content_type not in allowed:
+        return jsonify({"ok": False, "error": "photo_type_not_supported"}), 415
+    bucket = _mini_app_storage_bucket()
+    if not bucket:
+        return jsonify({"ok": False, "error": "storage_bucket_not_resolved"}), 503
+    telegram_id = str(user.get("id"))
+    object_path = f"miniapp/{telegram_id}/{int(time.time() * 1000)}-{hashlib.sha256(content).hexdigest()[:16]}{allowed[content_type]}"
+    url = f"{SUPABASE_URL}/storage/v1/object/{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(object_path, safe='/')}"
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY,
+        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+        "Content-Type": content_type,
+        "x-upsert": "false",
+    }
+    try:
+        response = HTTP_SESSION.post(url, headers=headers, data=content, timeout=(5, 30))
+        if not response.ok:
+            print("MINI APP PHOTO UPLOAD ERROR:", response.status_code, response.text[:500])
+            return jsonify({"ok": False, "error": "photo_storage_upload_failed"}), 503
+    except Exception as error:
+        print("MINI APP PHOTO UPLOAD REQUEST ERROR:", repr(error))
+        return jsonify({"ok": False, "error": "photo_storage_upload_failed"}), 503
+    photo_url = f"{SUPABASE_URL}/storage/v1/object/public/{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(object_path, safe='/')}"
+    return jsonify({"ok": True, "photo_url": photo_url}), 201
 
 
 @app.post("/api/auth")
