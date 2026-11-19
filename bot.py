@@ -15322,28 +15322,55 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
     photos = data.get("photos") or []
     if not isinstance(photos, list) or photo_index < 0 or photo_index >= min(len(photos), 8):
         return jsonify({"error":"photo_not_found"}), 404
-    file_id = photos[photo_index]
-    if not isinstance(file_id, str) or not file_id.strip():
+    photo_ref = photos[photo_index]
+    if not isinstance(photo_ref, str) or not photo_ref.strip():
         return jsonify({"error":"photo_not_found"}), 404
+
     try:
-        # Use the shared HTTP session for both Bot API calls and file downloads.
-        # Telegram file_id values are opaque and must never be exposed to the browser.
-        file_info = api("getFile", {"file_id": file_id})
-        if not isinstance(file_info, dict) or not file_info.get("ok"):
-            description = str((file_info or {}).get("description") or "getFile failed")[:180]
-            print("ADMIN MODERATION GETFILE ERROR:", request_id, photo_index, description)
-            return jsonify({"error":"telegram_file_unavailable","message":description}), 502
-        file_path = (file_info.get("result") or {}).get("file_path")
-        if not file_path or ".." in str(file_path).split("/"):
-            return jsonify({"error":"telegram_file_unavailable"}), 502
-        image_response = requests.get(
-            f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",
-            timeout=(5, 25),
-        )
-        image_response.raise_for_status()
-        # Telegram's file endpoint may label valid photo bytes as
-        # application/octet-stream. Trust the actual image signature, not only
-        # the HTTP Content-Type header.
+        # New Mini App uploads are Supabase Storage URLs; legacy listings keep
+        # Telegram file_id values. Resolve each format without changing stored data.
+        storage_object = _storage_object_from_url(photo_ref)
+        if storage_object:
+            parsed_url = urllib.parse.urlparse(photo_ref)
+            supabase_url = urllib.parse.urlparse(SUPABASE_URL or "")
+            if (
+                parsed_url.scheme != "https"
+                or not parsed_url.hostname
+                or not supabase_url.hostname
+                or parsed_url.hostname.lower() != supabase_url.hostname.lower()
+                or parsed_url.username is not None
+                or parsed_url.password is not None
+                or parsed_url.port not in (None, 443)
+            ):
+                return jsonify({"error":"photo_not_found"}), 404
+            image_response = HTTP_SESSION.get(
+                photo_ref, timeout=(5, 25), allow_redirects=False
+            )
+            if 300 <= image_response.status_code < 400:
+                image_response.close()
+                return jsonify({"error":"photo_not_found"}), 404
+            image_response.raise_for_status()
+            source_label = "Supabase Storage"
+            file_path = storage_object[1]
+        else:
+            # Legacy Telegram file_id path. Keep this unchanged for existing ads.
+            file_info = api("getFile", {"file_id": photo_ref})
+            if not isinstance(file_info, dict) or not file_info.get("ok"):
+                description = str((file_info or {}).get("description") or "getFile failed")[:180]
+                print("ADMIN MODERATION GETFILE ERROR:", request_id, photo_index, description)
+                return jsonify({"error":"telegram_file_unavailable","message":description}), 502
+            file_path = (file_info.get("result") or {}).get("file_path")
+            if not file_path or ".." in str(file_path).split("/"):
+                return jsonify({"error":"telegram_file_unavailable"}), 502
+            image_response = HTTP_SESSION.get(
+                f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",
+                timeout=(5, 25), allow_redirects=False
+            )
+            image_response.raise_for_status()
+            source_label = "Telegram"
+
+        # Trust actual image signatures because upstreams may return
+        # application/octet-stream for valid image bytes.
         image_bytes = image_response.content
         if image_bytes.startswith(b"\xff\xd8\xff"):
             content_type = "image/jpeg"
@@ -15356,11 +15383,10 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
         else:
             reported_type = image_response.headers.get("Content-Type", "unknown").split(";")[0].strip().lower()
             if reported_type.startswith("image/"):
-                # Trust Telegram's explicit image MIME type when it uses a
-                # format whose signature is not in the common set above.
                 content_type = reported_type
             else:
                 diagnostic = {
+                    "source": source_label,
                     "content_type": reported_type,
                     "bytes": len(image_bytes),
                     "signature": image_bytes[:24].hex(),
@@ -15369,7 +15395,7 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
                 print("ADMIN MODERATION INVALID PHOTO:", request_id, photo_index, diagnostic)
                 return jsonify({
                     "error":"invalid_photo_type",
-                    "message":"Файл от Telegram не распознан как изображение.",
+                    "message":f"Файл из {source_label} не распознан как изображение.",
                     "diagnostic":diagnostic,
                 }), 502
         return Response(
@@ -15379,7 +15405,7 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
             headers={
                 "Cache-Control":"private, max-age=300",
                 "X-Content-Type-Options":"nosniff",
-                "Content-Length":str(len(image_response.content)),
+                "Content-Length":str(len(image_bytes)),
             },
         )
     except (requests.RequestException, ValueError) as error:
