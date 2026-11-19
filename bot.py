@@ -4969,14 +4969,15 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     return send(admin_chat_id, text, keyboard)
 
 
-def refresh_admin_moderation_queue(page=0, message_id=None):
-    """Keep a single persistent moderation/menu message for the administrator."""
+def refresh_admin_moderation_queue(page=0, message_id=None, force_new=False):
+    """Refresh the queue; force_new posts it at the bottom when opened from admin navigation."""
     if not ADMIN_CHAT_ID:
         return
     queue_key = _runtime_key("admin_queue", "main")
-    if not message_id:
-        found, saved, ok = runtime_state_load(queue_key)
-        message_id = saved.get("message_id") if found and isinstance(saved, dict) else None
+    found, saved, ok = runtime_state_load(queue_key)
+    old_message_id = saved.get("message_id") if found and isinstance(saved, dict) else None
+    if not message_id and not force_new:
+        message_id = old_message_id
     if message_id:
         result = send_moderation_queue(ADMIN_CHAT_ID, page, message_id=message_id)
         if isinstance(result, dict) and result.get("ok"):
@@ -4985,12 +4986,15 @@ def refresh_admin_moderation_queue(page=0, message_id=None):
     result = send_moderation_queue(ADMIN_CHAT_ID, page)
     if isinstance(result, dict) and result.get("ok"):
         msg = result.get("result") or {}
-        if msg.get("message_id"):
-            runtime_state_save(queue_key, {"chat_id": ADMIN_CHAT_ID, "message_id": msg["message_id"]})
+        new_message_id = msg.get("message_id")
+        if new_message_id:
+            runtime_state_save(queue_key, {"chat_id": ADMIN_CHAT_ID, "message_id": new_message_id})
+            if force_new and old_message_id and str(old_message_id) != str(new_message_id):
+                api("deleteMessage", {"chat_id": ADMIN_CHAT_ID, "message_id": old_message_id})
     return result
 
 
-def show_admin_main_menu(admin_chat_id, message_id=None):
+def show_admin_main_menu(admin_chat_id, message_id=None, force_new=False):
     """Switch the single reusable admin card between categories and moderation."""
     if not moderator_is_allowed(admin_chat_id):
         return
@@ -4998,7 +5002,9 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
     # Admin navigation is provided by the persistent Telegram reply keyboard.
     menu_key = _runtime_key("admin_queue", "main")
     found, saved, ok = runtime_state_load(menu_key)
-    message_id = message_id or (saved.get("message_id") if found and isinstance(saved, dict) else None)
+    old_message_id = saved.get("message_id") if found and isinstance(saved, dict) else None
+    if not message_id and not force_new:
+        message_id = old_message_id
     text = (
         "<b>🛒 MADLOBA MARKET | БАТУМИ</b>\n\n"
         "Главная доска объявлений Батуми.\n\n"
@@ -5026,8 +5032,11 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
     result = send(admin_chat_id, text, admin_menu_keyboard)
     if isinstance(result, dict) and result.get("ok"):
         message = result.get("result") or {}
-        if message.get("message_id"):
-            runtime_state_save(menu_key, {"chat_id": admin_chat_id, "message_id": message["message_id"]})
+        new_message_id = message.get("message_id")
+        if new_message_id:
+            runtime_state_save(menu_key, {"chat_id": admin_chat_id, "message_id": new_message_id})
+            if force_new and old_message_id and str(old_message_id) != str(new_message_id):
+                api("deleteMessage", {"chat_id": admin_chat_id, "message_id": old_message_id})
     return result
 
 
@@ -6327,7 +6336,7 @@ def _handle_update_core(
         if text.strip() == "🛡 Модерация":
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
-                refresh_admin_moderation_queue(0)
+                refresh_admin_moderation_queue(0, force_new=True)
             else:
                 send(chat_id, "⛔ Эта кнопка доступна только администратору.")
             return
@@ -6390,7 +6399,7 @@ def _handle_update_core(
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
                 send_admin_reply_keyboard(chat_id)
-                show_admin_main_menu(chat_id)
+                show_admin_main_menu(chat_id, force_new=True)
                 return
 
             # Remove the persistent city-picker reply keyboard with the welcome
