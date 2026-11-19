@@ -12423,6 +12423,37 @@ body.mm-post-keyboard-open #listingPostView .mm-post-card{max-height:var(--mm-po
 
 @media(max-width:520px){#listingPostView.mm-post-view.show{align-items:flex-start!important;padding-top:max(8px,env(safe-area-inset-top))!important}body.mm-post-keyboard-open #listingPostView.mm-post-view.show{padding-bottom:4px!important}body.mm-post-keyboard-open #listingPostView .mm-post-card{margin-top:0!important;border-radius:22px!important}}
 </style>
+<style id="mm-header-controls-glass-v1">
+/* Header controls only. Preserve DOM, event handlers and all other layouts. */
+.top #langSelect,
+.top #cityMultiBtn{
+  box-sizing:border-box!important;
+  height:40px!important;min-height:40px!important;max-height:40px!important;
+  border:1px solid rgba(255,255,255,.40)!important;
+  border-radius:999px!important;
+  background-color:rgba(20,43,78,.42)!important;
+  color:#fff!important;
+  box-shadow:0 3px 12px rgba(8,23,48,.12)!important;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  font-weight:800!important;
+}
+.top #langSelect{
+  flex:0 0 64px!important;width:64px!important;min-width:64px!important;max-width:64px!important;
+  padding:0 15px 0 5px!important;
+  color-scheme:dark;
+}
+.top #cityMultiBtn{
+  flex:0 1 122px!important;width:122px!important;min-width:0!important;max-width:122px!important;
+  padding:0 9px!important;
+  gap:5px!important;
+}
+.top #cityMultiBtnText{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:#fff!important;}
+.top #cityMultiBtn .mm-city-drop-icon{flex:0 0 15px!important;width:15px!important;height:15px!important;}
+@media(max-width:380px){
+  .top #langSelect{flex-basis:58px!important;width:58px!important;min-width:58px!important;max-width:58px!important;font-size:11px!important;}
+  .top #cityMultiBtn{flex-basis:108px!important;width:108px!important;max-width:108px!important;font-size:11px!important;}
+}
+</style>
 </head>
 <body>
 <div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option><option value="uk">🇺🇦 UA</option></select><button class="city" id="cityMultiBtn" type="button" aria-haspopup="dialog" aria-expanded="false"><svg class="mm-city-drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-7.1 8-13A8 8 0 1 0 4 9c0 5.9 8 13 8 13Z" fill="url(#mmCityDropGradient)" stroke="#2F80ED" stroke-width="1.15"/><defs><linearGradient id="mmCityDropGradient" x1="7" y1="3" x2="18" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#8CC8FF"/><stop offset="1" stop-color="#2878E8"/></linearGradient></defs><circle cx="12" cy="9" r="2.15" fill="#fff"/></svg><span id="cityMultiBtnText">Cities</span></button><select class="city" id="citySelect" aria-label="City" style="display:none!important"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option><option value="kutaisi">Kutaisi</option><option value="rustavi">Rustavi</option><option value="zugdidi">Zugdidi</option><option value="gori">Gori</option><option value="poti">Poti</option><option value="kobuleti">Kobuleti</option><option value="telavi">Telavi</option><option value="боржоми">Borjomi</option><optgroup id="cityOtherGroup" label="Other cities"><option value="ахалцихе">Akhaltsikhe</option><option value="озургети">Ozurgeti</option><option value="сенаки">Senaki</option><option value="самтредиа">Samtredia</option><option value="зестафони">Zestafoni</option><option value="марнеули">Marneuli</option><option value="хашури">Khashuri</option><option value="чиатура">Chiatura</option><option value="цхалтубо">Tskaltubo</option><option value="сагареджо">Sagarejo</option><option value="гардабани">Gardabani</option><option value="болниси">Bolnisi</option><option value="каспи">Kaspi</option><option value="хони">Khoni</option><option value="ланчхути">Lanchkhuti</option><option value="мцхета">Mtskheta</option><option value="ахалкалаки">Akhalkalaki</option><option value="ниноцминда">Ninotsminda</option><option value="дедоплисцкаро">Dedoplistskaro</option><option value="лагодехи">Lagodekhi</option><option value="кварели">Kvareli</option><option value="гурджаани">Gurjaani</option><option value="сигнахи">Sighnaghi</option><option value="цнори">Tsnori</option><option value="абаша">Abasha</option><option value="мартвили">Martvili</option><option value="хоби">Khobi</option><option value="цаленджиха">Tsalenjikha</option><option value="чхороцку">Chkhorotsku</option><option value="вани">Vani</option><option value="багдати">Baghdati</option><option value="тержола">Terjola</option><option value="сачхере">Sachkhere</option><option value="амбролаури">Ambrolauri</option><option value="они">Oni</option><option value="цагери">Tsageri</option><option value="местиа">Mestia</option><option value="хелвачаури">Khelvachauri</option><option value="кеда">Keda</option><option value="шуахеви">Shuakhevi</option><option value="хуло">Khulo</option></optgroup></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><button class="quick-arrow quick-arrow-left" id="quickArrowLeft" type="button" aria-label="Previous categories" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><div class="quick-actions" aria-label="Категории">
