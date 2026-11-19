@@ -6011,6 +6011,24 @@ def _handle_update_core(
                 if listing_data["city_slug"] not in {"batumi", "tbilisi"}:
                     listing_data.pop("district_key", None)
                 states[chat_id].pop("listing_picker", None)
+                # The city selector is a temporary Telegram ReplyKeyboardMarkup.
+                # Telegram keeps it visible after the Mini App closes unless we
+                # explicitly replace it. Restore the permanent admin shortcuts
+                # for moderators; remove the temporary keyboard for everyone else.
+                if moderator_is_allowed(chat_id):
+                    send_admin_reply_keyboard(chat_id)
+                else:
+                    cleanup = api(
+                        "sendMessage",
+                        {
+                            "chat_id": chat_id,
+                            "text": "\u2063",
+                            "reply_markup": {"remove_keyboard": True},
+                        },
+                    )
+                    cleanup_message_id = (cleanup.get("result") or {}).get("message_id") if isinstance(cleanup, dict) and cleanup.get("ok") else None
+                    if cleanup_message_id:
+                        api("deleteMessage", {"chat_id": chat_id, "message_id": cleanup_message_id})
                 if is_edit:
                     preview(chat_id)
                 elif listing_data.get("category_key") == "realestate" and listing_data["city_slug"] in {"batumi", "tbilisi"}:
