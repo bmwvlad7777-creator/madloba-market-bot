@@ -9898,8 +9898,6 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 /* All eight categories are visible together under search; no inert More button. */
 .quick-actions{
   display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  grid-auto-rows:minmax(70px,auto)!important;
   gap:7px 4px!important;
   width:100%!important;box-sizing:border-box!important;
   overflow:visible!important;overflow-x:visible!important;overflow-y:visible!important;
@@ -9926,7 +9924,7 @@ html,body{background:radial-gradient(circle at 10% 12%,rgba(89,157,241,.075),tra
 .quick-action.active .quick-label{color:#1476ed!important}
 /* The same categories are already available at the top, so remove the duplicate lower block. */
 #categoriesBlock{display:none!important}
-@media(max-width:380px){.quick-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px 2px!important;padding:8px 5px!important}.quick-action{height:68px!important;min-height:68px!important;max-height:68px!important}.quick-action .quick-icon{flex-basis:37px!important;width:37px!important;height:37px!important;max-width:37px!important;max-height:37px!important}.quick-action .quick-label{font-size:9.5px!important}}
+@media(max-width:380px){.quick-actions{gap:6px 2px!important;padding:8px 5px!important}.quick-action{height:68px!important;min-height:68px!important;max-height:68px!important}.quick-action .quick-icon{flex-basis:37px!important;width:37px!important;height:37px!important;max-width:37px!important;max-height:37px!important}.quick-action .quick-label{font-size:9.5px!important}}
 </style>
 
 <style id="hero-full-bleed-photo-fix">
