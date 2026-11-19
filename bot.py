@@ -1914,8 +1914,9 @@ def send_admin_reply_keyboard(chat_id):
     if not moderator_is_allowed(chat_id):
         return {"ok": False, "description": "Not an administrator"}
 
-    # Telegram displays ReplyKeyboardMarkup after sendMessage. Use an
-    # invisible non-empty anchor so no extra visible panel message is added.
+    # Telegram attaches a reply keyboard to the sent message. Keep this
+    # anchor message: deleting the message immediately after sending the
+    # keyboard can make Telegram clients dismiss the keyboard again.
     result = api(
         "sendMessage",
         {
@@ -1926,11 +1927,6 @@ def send_admin_reply_keyboard(chat_id):
     )
     if isinstance(result, dict) and result.get("ok"):
         ADMIN_REPLY_KEYBOARD_INSTALLED.add(str(chat_id))
-        anchor = (result.get("result") or {}).get("message_id")
-        if anchor:
-            deleted = api("deleteMessage", {"chat_id": chat_id, "message_id": anchor})
-            if not isinstance(deleted, dict) or not deleted.get("ok"):
-                print("ADMIN KEYBOARD ANCHOR DELETE ERROR:", str(deleted)[:300])
     else:
         print("ADMIN REPLY KEYBOARD INSTALL ERROR:", str(result)[:400])
     return result
@@ -4890,6 +4886,14 @@ def load_pending_moderation_queue():
     )
 
 
+def admin_inline_navigation():
+    """Persistent admin navigation shown on the reusable inline admin card."""
+    return [[
+        {"text": "🛡 Модерация", "callback_data": "admin_open_moderation"},
+        {"text": "🏠 Главное меню", "callback_data": "admin_open_main"},
+    ]]
+
+
 def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     if not moderator_is_allowed(admin_chat_id):
         send(admin_chat_id, "⛔ Эта команда доступна только администратору.")
@@ -4966,6 +4970,7 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     if nav:
         keyboard.append(nav)
     keyboard.append([{"text": "🔄 Обновить очередь", "callback_data": f"mod_queue_page_{page}"}])
+    keyboard.extend(admin_inline_navigation())
     if message_id:
         return edit_moderation_message(admin_chat_id, message_id, text, keyboard)
     return send(admin_chat_id, text, keyboard)
@@ -4997,12 +5002,8 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
     if not moderator_is_allowed(admin_chat_id):
         return
 
-    # The persistent admin reply keyboard can be replaced by temporary
-    # listing pickers (for example, the city selector). Re-assert it whenever
-    # the administrator returns to the main menu, including /start.
-    if str(admin_chat_id) not in ADMIN_REPLY_KEYBOARD_INSTALLED:
-        send_admin_reply_keyboard(admin_chat_id)
-
+    # Admin navigation is attached to the reusable inline admin card.
+    # It is independent of Telegram's iOS reply-keyboard collapse behavior.
     menu_key = _runtime_key("admin_queue", "main")
     found, saved, ok = runtime_state_load(menu_key)
     message_id = message_id or (saved.get("message_id") if found and isinstance(saved, dict) else None)
@@ -5012,6 +5013,7 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
         "Купи · Продай · Сдай · Найди\n\n"
         "<b>Выберите категорию:</b>"
     )
+    admin_menu_keyboard = main_menu() + admin_inline_navigation()
     if message_id:
         result = api(
             "editMessageText",
@@ -5020,7 +5022,7 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
                 "message_id": message_id,
                 "text": text,
                 "parse_mode": "HTML",
-                "reply_markup": {"inline_keyboard": main_menu()},
+                "reply_markup": {"inline_keyboard": admin_menu_keyboard},
             },
         )
         if isinstance(result, dict) and result.get("ok"):
@@ -5029,7 +5031,7 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
         if "message is not modified" in description:
             return result
 
-    result = send(admin_chat_id, text, main_menu())
+    result = send(admin_chat_id, text, admin_menu_keyboard)
     if isinstance(result, dict) and result.get("ok"):
         message = result.get("result") or {}
         if message.get("message_id"):
@@ -6017,13 +6019,9 @@ def _handle_update_core(
                 if listing_data["city_slug"] not in {"batumi", "tbilisi"}:
                     listing_data.pop("district_key", None)
                 states[chat_id].pop("listing_picker", None)
-                # The city selector is a temporary Telegram ReplyKeyboardMarkup.
-                # Telegram keeps it visible after the Mini App closes unless we
-                # explicitly replace it. Restore the permanent admin shortcuts
-                # for moderators; remove the temporary keyboard for everyone else.
-                if moderator_is_allowed(chat_id):
-                    send_admin_reply_keyboard(chat_id)
-                else:
+                # Remove the temporary city-picker keyboard for regular users.
+                # Admin navigation is kept on the reusable inline admin card.
+                if not moderator_is_allowed(chat_id):
                     cleanup = api(
                         "sendMessage",
                         {
@@ -6385,7 +6383,6 @@ def _handle_update_core(
         if text.strip() == "/admin":
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
-                send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
             else:
                 send(chat_id, "⛔ Эта команда доступна только администратору.")
@@ -6398,9 +6395,6 @@ def _handle_update_core(
 
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
-                # Reinstall on every /start: Telegram may still be showing a
-                # temporary picker keyboard from an earlier interaction.
-                send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
                 return
 
