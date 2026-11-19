@@ -3286,6 +3286,7 @@ def format_grouped_number(value):
     return f"{int(raw):,}".replace(",", " ") if raw else str(value or "")
 
 def listing_picker_keyboard(kind, make="", subcategory=""):
+    """Open structured pickers inline so they never replace the admin reply keyboard."""
     parsed = urllib.parse.urlsplit(str(MINI_APP_URL or "").strip())
     picker_url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "/listing-picker", "", ""))
     query = {"kind": kind}
@@ -3295,19 +3296,9 @@ def listing_picker_keyboard(kind, make="", subcategory=""):
         query["subcategory"] = subcategory
     picker_url += "?" + urllib.parse.urlencode(query)
     labels = {"make":"🚘 Выбрать марку","model":"🚘 Выбрать модель","year":"📅 Выбрать год","mileage":"🛣 Выбрать пробег","city":"📍 Выбрать город","color":"🎨 Выбрать цвет","drivetrain":"⚙️ Выбрать привод"}
-    return {"keyboard":[[{"text":labels.get(kind,"Выбрать"),"web_app":{"url":picker_url}}]],"resize_keyboard":True,"one_time_keyboard":True,"is_persistent":False}
+    return {"inline_keyboard":[[{"text":labels.get(kind,"Выбрать"),"web_app":{"url":picker_url}}]]}
 
 def send_listing_picker(chat_id, title, kind, index=None, make=""):
-    # The city picker uses Telegram's reply keyboard temporarily. Telegram
-    # keeps that keyboard visible until another ReplyKeyboardMarkup replaces it.
-    # Remember that an administrator's permanent shortcuts must be restored.
-    if kind == "city" and moderator_is_allowed(chat_id):
-        marker = str(chat_id)
-        ADMIN_REPLY_KEYBOARD_INSTALLED.discard(marker)
-        runtime_state_save(
-            _runtime_key("admin_reply_keyboard", marker),
-            {"installed": False, "version": 2},
-        )
     current_step = str(states[chat_id].get("step", ""))
     is_edit = current_step.startswith("edit_")
     if index is not None:
@@ -5047,10 +5038,19 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
 
 
 def moderator_is_allowed(admin_user_id):
+    """Return True for the primary admin or any explicitly configured admin ID."""
     try:
-        return bool(ADMIN_CHAT_ID) and int(admin_user_id) == int(ADMIN_CHAT_ID)
-    except Exception:
+        candidate = str(int(admin_user_id))
+    except (TypeError, ValueError):
         return False
+
+    allowed_ids = set(ADMIN_TELEGRAM_IDS)
+    if ADMIN_CHAT_ID:
+        try:
+            allowed_ids.add(str(int(ADMIN_CHAT_ID)))
+        except (TypeError, ValueError):
+            pass
+    return candidate in allowed_ids
 
 
 def moderation_control_text(request_id):
@@ -6398,6 +6398,9 @@ def _handle_update_core(
 
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
+                # Reinstall on every /start: Telegram may still be showing a
+                # temporary picker keyboard from an earlier interaction.
+                send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
                 return
 
