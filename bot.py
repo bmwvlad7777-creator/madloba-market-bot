@@ -4886,14 +4886,6 @@ def load_pending_moderation_queue():
     )
 
 
-def admin_inline_navigation():
-    """Persistent admin navigation shown on the reusable inline admin card."""
-    return [[
-        {"text": "🛡 Модерация", "callback_data": "admin_open_moderation"},
-        {"text": "🏠 Главное меню", "callback_data": "admin_open_main"},
-    ]]
-
-
 def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     if not moderator_is_allowed(admin_chat_id):
         send(admin_chat_id, "⛔ Эта команда доступна только администратору.")
@@ -4970,7 +4962,6 @@ def send_moderation_queue(admin_chat_id, page=0, message_id=None):
     if nav:
         keyboard.append(nav)
     keyboard.append([{"text": "🔄 Обновить очередь", "callback_data": f"mod_queue_page_{page}"}])
-    keyboard.extend(admin_inline_navigation())
     if message_id:
         return edit_moderation_message(admin_chat_id, message_id, text, keyboard)
     return send(admin_chat_id, text, keyboard)
@@ -5002,8 +4993,7 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
     if not moderator_is_allowed(admin_chat_id):
         return
 
-    # Admin navigation is attached to the reusable inline admin card.
-    # It is independent of Telegram's iOS reply-keyboard collapse behavior.
+    # Admin navigation is provided by the persistent Telegram reply keyboard.
     menu_key = _runtime_key("admin_queue", "main")
     found, saved, ok = runtime_state_load(menu_key)
     message_id = message_id or (saved.get("message_id") if found and isinstance(saved, dict) else None)
@@ -5013,7 +5003,7 @@ def show_admin_main_menu(admin_chat_id, message_id=None):
         "Купи · Продай · Сдай · Найди\n\n"
         "<b>Выберите категорию:</b>"
     )
-    admin_menu_keyboard = main_menu() + admin_inline_navigation()
+    admin_menu_keyboard = main_menu()
     if message_id:
         result = api(
             "editMessageText",
@@ -6019,9 +6009,10 @@ def _handle_update_core(
                 if listing_data["city_slug"] not in {"batumi", "tbilisi"}:
                     listing_data.pop("district_key", None)
                 states[chat_id].pop("listing_picker", None)
-                # Remove the temporary city-picker keyboard for regular users.
-                # Admin navigation is kept on the reusable inline admin card.
-                if not moderator_is_allowed(chat_id):
+                # Keep the administrator's bottom navigation available after picker completion.
+                if moderator_is_allowed(chat_id):
+                    send_admin_reply_keyboard(chat_id)
+                else:
                     cleanup = api(
                         "sendMessage",
                         {
@@ -6383,6 +6374,7 @@ def _handle_update_core(
         if text.strip() == "/admin":
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
+                send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
             else:
                 send(chat_id, "⛔ Эта команда доступна только администратору.")
@@ -6395,6 +6387,7 @@ def _handle_update_core(
 
             if moderator_is_allowed(chat_id):
                 delete_admin_button_message(chat_id, message)
+                send_admin_reply_keyboard(chat_id)
                 show_admin_main_menu(chat_id)
                 return
 
