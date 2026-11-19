@@ -12428,7 +12428,7 @@ body.mm-post-keyboard-open #listingPostView .mm-post-card{max-height:var(--mm-po
 .top #langSelect,
 .top #cityMultiBtn{
   box-sizing:border-box!important;
-  height:40px!important;min-height:40px!important;max-height:40px!important;
+  height:38px!important;min-height:38px!important;max-height:38px!important;
   border:1px solid rgba(255,255,255,.40)!important;
   border-radius:999px!important;
   background-color:rgba(20,43,78,.42)!important;
