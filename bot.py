@@ -5333,6 +5333,9 @@ def moderation_control_text(request_id):
     ]
     if details_line:
         lines.append(details_line)
+    description = str(data.get("description") or "").strip()
+    if description:
+        lines.append(f"📝 Описание: {esc(description[:1200])}" + ("…" if len(description) > 1200 else ""))
     lines.extend([
         f"📷 Фотографий: <b>{photos_count}</b>",
         f"👤 Автор: <code>{esc(user_chat_id)}</code>",
@@ -5360,9 +5363,13 @@ def show_moderation_editor(admin_chat_id, request_id):
         return
     cleanup_moderation_photo_preview(item)
     moderator_sessions[admin_chat_id] = {"request_id": request_id, "step": "menu"}
+    current_description = str(item["data"].get("description") or "").strip()
+    description_line = (f"\n\n📝 <b>Текущее описание:</b>\n{esc(current_description[:1200])}"
+                        if current_description else "\n\n📝 Описание пока пустое.")
     edit_moderation_anchor(
         admin_chat_id, request_id,
-        f"<b>✏️ РЕДАКТИРОВАНИЕ · ЗАЯВКА #{request_id}</b>\nВыберите поле:",
+        f"<b>✏️ РЕДАКТИРОВАНИЕ · ЗАЯВКА #{request_id}</b>\nВыберите поле:"
+        + description_line,
         moderation_edit_menu(request_id),
     )
 
@@ -7290,7 +7297,29 @@ def _handle_update_core(
         moderation_requests[request_id] = item
         saved = runtime_state_save(_runtime_key("moderation", request_id), item)
         answer(callback["id"], "Фото удалено." if saved else "Фото удалено в текущей сессии; сохранение в базе не подтверждено.", not saved)
-        show_moderation_photos(callback_from_id, request_id)
+        # The preview album already contains Telegram messages for each photo.
+        # Remove only the selected message; do not delete and resend the entire album.
+        preview_ids = item.get("photo_preview_message_ids") or []
+        if len(preview_ids) == len(photos) + 1 and photo_index < len(preview_ids):
+            deleted_message_id = preview_ids.pop(photo_index)
+            try:
+                api("deleteMessage", {
+                    "chat_id": item.get("photo_preview_chat_id") or callback_from_id,
+                    "message_id": deleted_message_id,
+                })
+            except Exception as error:
+                print("MODERATION SINGLE PHOTO DELETE ERROR:", repr(error))
+            item["photo_preview_message_ids"] = preview_ids
+            runtime_state_save(_runtime_key("moderation", request_id), item)
+            edit_moderation_anchor(
+                callback_from_id, request_id,
+                f"<b>📷 ФОТО · ЗАЯВКА #{request_id}</b>\n"
+                f"Фотографий: <b>{len(photos)}</b> · выберите фото для удаления.",
+                moderation_photos_keyboard(request_id, photos),
+            )
+        else:
+            # If the preview was lost (e.g. after restart), rebuild it once.
+            show_moderation_photos(callback_from_id, request_id)
         return
 
     if data.startswith("mod_queue_return_"):
@@ -7365,9 +7394,15 @@ def _handle_update_core(
             return
         moderator_sessions[callback_from_id] = {"request_id": request_id, "step": field}
         answer(callback["id"])
+        current_value = ""
+        if field == "description":
+            current_value = str((moderation_requests[request_id].get("data") or {}).get("description") or "").strip()
+        current_hint = ("\n\n<b>Текущий текст:</b>\n" + esc(current_value[:3000])
+                        + "\n\nСкопируйте текст, измените нужное и отправьте сообщением."
+                        if current_value else "")
         edit_moderation_anchor(
             callback_from_id, request_id,
-            prompts[field] + "\n\nОтправьте новое значение сообщением.",
+            prompts[field] + current_hint + "\n\nОтправьте новое значение сообщением.",
             [[{"text": "⬅️ К объявлению", "callback_data": f"mod_back_{request_id}"}]],
         )
         return
@@ -15226,6 +15261,7 @@ async function openAdminModerationDetail(id,initData){
    <div class="muted">${meta}</div>
    <div style="font-size:22px;font-weight:800;margin:12px 0">💰 ${esc(moderationPrice(x.price))||'Цена не указана'}</div>
    <div style="white-space:pre-wrap;line-height:1.5">${esc(x.description||'Описание не указано')}</div>
+   <div style="margin-top:10px"><button type="button" id="adminEditModerationDescription" style="padding:10px 13px;border:1px solid #dce5f0;border-radius:10px;background:#f4f7fb;color:#142033;font-weight:700">✎ Изменить описание</button><div id="adminModerationDescriptionEditor" hidden style="margin-top:9px"><label for="adminModerationDescriptionText" class="muted">Описание объявления</label><textarea id="adminModerationDescriptionText" maxlength="3000" rows="6" style="box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button type="button" id="adminSaveModerationDescription">Сохранить описание</button><button type="button" id="adminCancelModerationDescription">Отмена</button></div><div id="adminModerationEditStatus" class="muted" role="status"></div></div></div>
    ${details?`<div style="margin-top:12px">${details}</div>`:''}
    <div class="muted" style="margin:12px 0">Автор Telegram ID: ${esc(x.user_chat_id||'—')} · ${esc(createdLabel)}</div>
    ${imgs?`<h3>Фотографии (${photos.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">${imgs}</div>`:`<div class="muted" style="margin:12px 0">Фотографии не приложены</div>`}
@@ -15233,6 +15269,21 @@ async function openAdminModerationDetail(id,initData){
     <button type="button" data-moderation-action="approve" style="flex:1;min-width:130px;background:#16834a;color:white;border:0;border-radius:12px;padding:13px;font-weight:750">✓ Одобрить и опубликовать</button>
     <button type="button" data-moderation-action="reject" style="flex:1;min-width:110px;background:#fff0f0;color:#b42318;border:1px solid #f2caca;border-radius:12px;padding:13px;font-weight:750">Отклонить</button>
    </div>`;
+  const editDescriptionButton=box.querySelector('#adminEditModerationDescription');
+  const descriptionEditor=box.querySelector('#adminModerationDescriptionEditor');
+  const descriptionText=box.querySelector('#adminModerationDescriptionText');
+  editDescriptionButton?.addEventListener('click',()=>{descriptionText.value=x.description||'';descriptionEditor.hidden=false;editDescriptionButton.hidden=true;descriptionText.focus()});
+  box.querySelector('#adminCancelModerationDescription')?.addEventListener('click',()=>{descriptionEditor.hidden=true;editDescriptionButton.hidden=false});
+  box.querySelector('#adminSaveModerationDescription')?.addEventListener('click',async()=>{
+   const saveButton=box.querySelector('#adminSaveModerationDescription');
+   const status=box.querySelector('#adminModerationEditStatus');
+   saveButton.disabled=true;status.textContent='Сохраняем…';
+   try{
+    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/description',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({description:descriptionText.value})});
+    const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить');
+    await openAdminModerationDetail(id,initData);
+   }catch(e){status.textContent=e.message||'Ошибка сохранения';saveButton.disabled=false}
+  });
   box.querySelectorAll('[data-moderation-photo]').forEach(async img=>{
    try{const pr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photo/'+img.dataset.moderationPhoto,{headers:{'X-Telegram-Init-Data':initData}});if(!pr.ok){const failure=await pr.json().catch(()=>({}));throw new Error(failure.message||failure.error||('HTTP '+pr.status))}const blob=await pr.blob();if(!blob.type.startsWith('image/'))throw new Error('Сервер вернул не изображение');img.src=URL.createObjectURL(blob);img.style.minHeight='120px'}catch(e){console.error('ADMIN MODERATION PHOTO:',e);const note=document.createElement('div');note.className='muted';note.textContent='Не удалось загрузить фото: '+(e.message||'ошибка');img.replaceWith(note)}
   });
@@ -15678,7 +15729,7 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
         return jsonify({"error":"request_not_found"}), 404
     data = item.get("data") if isinstance(item.get("data"), dict) else {}
     photos = data.get("photos") or []
-    if not isinstance(photos, list) or photo_index < 0 or photo_index >= min(len(photos), 8):
+    if not isinstance(photos, list) or photo_index < 0 or photo_index >= min(len(photos), MAX_PHOTOS):
         return jsonify({"error":"photo_not_found"}), 404
     photo_ref = photos[photo_index]
     if not isinstance(photo_ref, str) or not photo_ref.strip():
@@ -15769,6 +15820,43 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
     except (requests.RequestException, ValueError) as error:
         print("ADMIN MODERATION PHOTO ERROR:", request_id, photo_index, repr(error))
         return jsonify({"error":"photo_download_failed","message":str(error)[:180]}), 502
+
+
+@app.post("/api/admin/moderation/<int:request_id>/description")
+def mini_app_admin_moderation_description(request_id):
+    """Edit a pending moderation description without altering publication state."""
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error": "invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error": "admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"error": "db_unavailable"}), 503
+    limit = _mm_rate_limit_guard("admin_moderation_edit", user.get("id"), 20, 60)
+    if limit:
+        return limit
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not isinstance(body.get("description"), str):
+        return jsonify({"error": "invalid_description"}), 400
+    description = body["description"].strip()
+    if len(description) > 3000:
+        return jsonify({"error": "description_too_long"}), 400
+    pending = dict(load_pending_moderation_queue())
+    item = pending.get(int(request_id))
+    if not isinstance(item, dict) or item.get("status", "pending") != "pending":
+        return jsonify({"error": "request_not_found"}), 404
+    if str(item.get("_telegram_publish_state") or "") in ("sending", "unknown", "sent"):
+        return jsonify({"error": "publication_in_progress"}), 409
+    data = item.get("data")
+    if not isinstance(data, dict):
+        return jsonify({"error": "invalid_listing"}), 409
+    updated = dict(item)
+    updated["data"] = dict(data)
+    updated["data"]["description"] = description
+    if not runtime_state_save(_runtime_key("moderation", request_id), updated):
+        return jsonify({"error": "save_failed"}), 503
+    moderation_requests[int(request_id)] = updated
+    return jsonify({"ok": True, "description": description})
 
 
 @app.post("/api/admin/moderation/<int:request_id>/action")
