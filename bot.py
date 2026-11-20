@@ -16551,12 +16551,15 @@ def mini_app_admin_restore_listing(listing_id):
 
 @app.get("/api/my-listing/<int:listing_id>")
 def mini_app_my_listing(listing_id):
+    _perf_start = time.perf_counter()
     row, user, user_id = _mini_app_owned_row(listing_id)
+    _perf_lookup = time.perf_counter()
     if not user:
         return jsonify({"error":"invalid_init_data"}), 401
     if not row:
         return jsonify({"error":"not_found"}), 404
     item = _attach_catalog_photos([row])[0]
+    _perf_photos = time.perf_counter()
     item["title"] = row.get("title") or item.get("title") or listing_title(item)
     item["description"] = row.get("description") or item.get("description") or ""
     item["price"] = str(row.get("price")) if row.get("price") is not None else item.get("price", "")
@@ -16575,6 +16578,7 @@ def mini_app_my_listing(listing_id):
     item["category_name"] = item.get("category") or "Объявление"
     owner_name = " ".join(str(user.get(k) or "").strip() for k in ("first_name", "last_name")).strip()
     item["seller"] = {"id": int(row.get("user_id") or user_id), "name": owner_name or None}
+    print(f"PERF owner_detail id={listing_id} lookup_ms={(_perf_lookup-_perf_start)*1000:.1f} photos_ms={(_perf_photos-_perf_lookup)*1000:.1f} total_ms={(time.perf_counter()-_perf_start)*1000:.1f}", flush=True)
     return jsonify(item)
 
 
