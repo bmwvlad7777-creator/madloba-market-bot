@@ -16382,6 +16382,21 @@ def mini_app_listing_photo_upload():
     allowed = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
     if content_type not in allowed:
         return jsonify({"ok": False, "error": "photo_type_not_supported"}), 415
+    # SEC-01: inspect the actual image bytes, not only the client MIME header.
+    # Reject malformed, mismatched or decompression-bomb images before storage.
+    if Image is None or BytesIO is None:
+        return jsonify({"ok": False, "error": "image_validation_unavailable"}), 503
+    expected_formats = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WEBP"}
+    try:
+        with Image.open(BytesIO(content)) as image:
+            if image.format != expected_formats[content_type]:
+                return jsonify({"ok": False, "error": "photo_type_not_supported"}), 415
+            width, height = image.size
+            if width < 1 or height < 1 or width * height > 30_000_000:
+                return jsonify({"ok": False, "error": "photo_dimensions_not_supported"}), 415
+            image.verify()
+    except (UnidentifiedImageError, OSError, ValueError, SyntaxError, Image.DecompressionBombError):
+        return jsonify({"ok": False, "error": "invalid_image"}), 415
     bucket = _mini_app_storage_bucket()
     if not bucket:
         print("MINI APP PHOTO UPLOAD ERROR: storage_bucket_not_resolved; SUPABASE_STORAGE_BUCKET is unset or no existing Supabase Storage photo URL was found in listing_photos")
