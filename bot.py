@@ -97,6 +97,8 @@ _MEDIA_CACHE_TTL_SECONDS = 60 * 60
 _MEDIA_CACHE = OrderedDict()
 _MEDIA_CACHE_BYTES = 0
 _MEDIA_CACHE_LOCK = threading.Lock()
+# Bounded per-image fetch locks prevent duplicate upstream downloads.
+_MEDIA_FETCH_LOCKS = [threading.Lock() for _ in range(64)]
 _TELEGRAM_FILE_PATH_CACHE = {}
 _TELEGRAM_FILE_PATH_CACHE_TTL = 60 * 60
 
@@ -19222,85 +19224,98 @@ def mini_app_media(listing_id, index):
         if owner_media_authorized:
             cached_headers["Vary"] = "X-Telegram-Init-Data"
         return Response(cached_bytes,content_type=cached_type,headers=cached_headers)
-    _media_download_started = time.perf_counter()
-    try:
-        if photo_ref.startswith("http://") or photo_ref.startswith("https://"):
-            # Treat photo_url as untrusted data: only fetch HTTPS URLs from the
-            # configured Supabase host. This prevents the media proxy from being
-            # used to request localhost, cloud metadata, or arbitrary internal URLs.
-            photo_url = urllib.parse.urlparse(photo_ref)
-            supabase_host = urllib.parse.urlparse(SUPABASE_URL).hostname
-            if (
-                photo_url.scheme != "https"
-                or not photo_url.hostname
-                or not supabase_host
-                or photo_url.hostname.lower() != supabase_host.lower()
-                or photo_url.username is not None
-                or photo_url.password is not None
-                or photo_url.port not in (None, 443)
-            ):
-                return "Not found", 404
-            upstream=HTTP_SESSION.get(photo_ref,timeout=(5, 15),allow_redirects=False,stream=True)
-            if 300 <= upstream.status_code < 400:
+    # Every request passed visibility/owner checks above before accessing cache.
+    # Coalesce simultaneous requests for the same image in this worker.
+    photo_lock = _MEDIA_FETCH_LOCKS[int(hashlib.sha256(photo_ref.encode("utf-8")).hexdigest()[:8], 16) % len(_MEDIA_FETCH_LOCKS)]
+    with photo_lock:
+        cached_after_wait = _media_cache_get(photo_ref)
+        if cached_after_wait is not None:
+            cached_bytes, cached_type = cached_after_wait
+            elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+            print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(cached_bytes)} cache=hit_after_wait")
+            cached_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={elapsed_ms:.1f}"}
+            if owner_media_authorized:
+                cached_headers["Vary"] = "X-Telegram-Init-Data"
+            return Response(cached_bytes,content_type=cached_type,headers=cached_headers)
+        _media_download_started = time.perf_counter()
+        try:
+            if photo_ref.startswith("http://") or photo_ref.startswith("https://"):
+                # Treat photo_url as untrusted data: only fetch HTTPS URLs from the
+                # configured Supabase host. This prevents the media proxy from being
+                # used to request localhost, cloud metadata, or arbitrary internal URLs.
+                photo_url = urllib.parse.urlparse(photo_ref)
+                supabase_host = urllib.parse.urlparse(SUPABASE_URL).hostname
+                if (
+                    photo_url.scheme != "https"
+                    or not photo_url.hostname
+                    or not supabase_host
+                    or photo_url.hostname.lower() != supabase_host.lower()
+                    or photo_url.username is not None
+                    or photo_url.password is not None
+                    or photo_url.port not in (None, 443)
+                ):
+                    return "Not found", 404
+                upstream=HTTP_SESSION.get(photo_ref,timeout=(5, 15),allow_redirects=False,stream=True)
+                if 300 <= upstream.status_code < 400:
+                    upstream.close()
+                    return "Not found",404
+            else:
+                file_path = _telegram_file_path_get(photo_ref)
+                if not file_path:return "Not found",404
+                upstream=HTTP_SESSION.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=(5, 20),stream=True)
+            if not upstream.ok:
                 upstream.close()
                 return "Not found",404
-        else:
-            file_path = _telegram_file_path_get(photo_ref)
-            if not file_path:return "Not found",404
-            upstream=HTTP_SESSION.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=(5, 20),stream=True)
-        if not upstream.ok:
-            upstream.close()
-            return "Not found",404
 
-        # Bound memory use for both Supabase and Telegram upstreams. Do not
-        # trust Content-Length alone: enforce the cap while streaming as well.
-        max_media_bytes = 12 * 1024 * 1024
-        declared_length = upstream.headers.get("Content-Length")
-        if declared_length:
-            try:
-                if int(declared_length) > max_media_bytes:
+            # Bound memory use for both Supabase and Telegram upstreams. Do not
+            # trust Content-Length alone: enforce the cap while streaming as well.
+            max_media_bytes = 12 * 1024 * 1024
+            declared_length = upstream.headers.get("Content-Length")
+            if declared_length:
+                try:
+                    if int(declared_length) > max_media_bytes:
+                        upstream.close()
+                        return "Media too large", 413
+                except (TypeError, ValueError):
                     upstream.close()
-                    return "Media too large", 413
-            except (TypeError, ValueError):
+                    return "Media unavailable", 502
+            image_chunks = []
+            image_size = 0
+            try:
+                for chunk in upstream.iter_content(chunk_size=64 * 1024):
+                    if not chunk:
+                        continue
+                    image_size += len(chunk)
+                    if image_size > max_media_bytes:
+                        return "Media too large", 413
+                    image_chunks.append(chunk)
+            finally:
                 upstream.close()
-                return "Media unavailable", 502
-        image_chunks = []
-        image_size = 0
-        try:
-            for chunk in upstream.iter_content(chunk_size=64 * 1024):
-                if not chunk:
-                    continue
-                image_size += len(chunk)
-                if image_size > max_media_bytes:
-                    return "Media too large", 413
-                image_chunks.append(chunk)
-        finally:
-            upstream.close()
-        image_bytes = b"".join(image_chunks)
+            image_bytes = b"".join(image_chunks)
 
-        # Only serve formats accepted by the listing photo pipeline. Ignore an
-        # upstream MIME label and derive the response type from the byte signature.
-        if image_bytes.startswith(b"\xff\xd8\xff"):
-            media_content_type = "image/jpeg"
-        elif image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
-            media_content_type = "image/png"
-        elif image_bytes.startswith((b"GIF87a", b"GIF89a")):
-            media_content_type = "image/gif"
-        elif len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
-            media_content_type = "image/webp"
-        else:
-            return "Unsupported media type", 415
+            # Only serve formats accepted by the listing photo pipeline. Ignore an
+            # upstream MIME label and derive the response type from the byte signature.
+            if image_bytes.startswith(b"\xff\xd8\xff"):
+                media_content_type = "image/jpeg"
+            elif image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+                media_content_type = "image/png"
+            elif image_bytes.startswith((b"GIF87a", b"GIF89a")):
+                media_content_type = "image/gif"
+            elif len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+                media_content_type = "image/webp"
+            else:
+                return "Unsupported media type", 415
 
-        _media_cache_put(photo_ref, image_bytes, media_content_type)
-        _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
-        _download_ms = (time.perf_counter() - _media_download_started) * 1000
-        print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
-        media_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"}
-        if owner_media_authorized:
-            media_headers["Vary"] = "X-Telegram-Init-Data"
-        return Response(image_bytes,content_type=media_content_type,headers=media_headers)
-    except Exception as error:
-        print("MEDIA ERROR:",repr(error));return "Media unavailable",503
+            _media_cache_put(photo_ref, image_bytes, media_content_type)
+            _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+            _download_ms = (time.perf_counter() - _media_download_started) * 1000
+            print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
+            media_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"}
+            if owner_media_authorized:
+                media_headers["Vary"] = "X-Telegram-Init-Data"
+            return Response(image_bytes,content_type=media_content_type,headers=media_headers)
+        except Exception as error:
+            print("MEDIA ERROR:",repr(error));return "Media unavailable",503
 
 
 def restore_moderation_counter():
