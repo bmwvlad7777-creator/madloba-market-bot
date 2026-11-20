@@ -17563,14 +17563,15 @@ def mini_app_listings():
     selected_city_ids = []
     city_ids_by_slug = {}
     if selected_city_slugs:
-        _selected_rows = supabase_request(
-            "GET", "cities",
-            params={"select": "id,slug", "slug": "in.(" + ",".join(selected_city_slugs) + ")", "limit": "100"},
-        ) or []
+        # PERF-05: reuse the validated city directory instead of making a
+        # separate Supabase request for the same 51 slugs on every navigation.
+        # Keep the selected ID list and cursor RPC semantics unchanged.
+        _directory = _all_city_ids_by_slug()
+        _slug_to_id = {slug: city_id for city_id, slug in _directory.items()}
         _selected_map = {
-            str(row.get("slug") or "").strip().lower(): int(row.get("id"))
-            for row in _selected_rows
-            if row.get("id") is not None and row.get("slug")
+            slug: _slug_to_id[slug]
+            for slug in selected_city_slugs
+            if slug in _slug_to_id
         }
         # Do not silently show a partial selection if a city is missing.
         if any(slug not in _selected_map for slug in selected_city_slugs):
