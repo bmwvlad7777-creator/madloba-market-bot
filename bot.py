@@ -15260,7 +15260,8 @@ async function openAdminModerationDetail(id,initData){
   box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Заявка #${esc(x.request_id)}</h2><span class="muted">На модерации</span></div>
    <h3 style="margin:14px 0 6px">${esc(x.title||'Объявление')}</h3>
    <div class="muted">${meta}</div>
-   <div style="font-size:22px;font-weight:800;margin:12px 0">💰 ${esc(moderationPrice(x.price))||'Цена не указана'}</div>
+   <div style="font-size:22px;font-weight:800;margin:12px 0">💰 <span id="adminModerationPriceDisplay">${esc(moderationPrice(x.price))||'Цена не указана'}</span></div>
+   <div style="margin-top:8px"><button type="button" id="adminEditModerationPrice" style="padding:10px 13px;border:1px solid #dce5f0;border-radius:10px;background:#f4f7fb;color:#142033;font-weight:700">✎ Изменить цену</button><div id="adminModerationPriceEditor" hidden style="margin-top:9px"><label for="adminModerationPriceText" class="muted">Цена (сохраняется в исходной валюте объявления)</label><input id="adminModerationPriceText" inputmode="decimal" maxlength="18" style="box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit"><div style="display:flex;gap:8px;margin-top:8px"><button type="button" id="adminSaveModerationPrice">Сохранить цену</button><button type="button" id="adminCancelModerationPrice">Отмена</button></div><div id="adminModerationPriceStatus" class="muted" role="status"></div></div></div>
    <div id="adminModerationDescriptionDisplay" style="white-space:pre-wrap;line-height:1.5">${esc(x.description||'Описание не указано')}</div>
    <div style="margin-top:10px"><button type="button" id="adminEditModerationDescription" style="padding:10px 13px;border:1px solid #dce5f0;border-radius:10px;background:#f4f7fb;color:#142033;font-weight:700">✎ Изменить описание</button><div id="adminModerationDescriptionEditor" hidden style="margin-top:9px"><label for="adminModerationDescriptionText" class="muted">Описание объявления</label><textarea id="adminModerationDescriptionText" maxlength="3000" rows="6" style="box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button type="button" id="adminSaveModerationDescription">Сохранить описание</button><button type="button" id="adminCancelModerationDescription">Отмена</button></div><div id="adminModerationEditStatus" class="muted" role="status"></div></div></div>
    ${details?`<div style="margin-top:12px">${details}</div>`:''}
@@ -15270,6 +15271,22 @@ async function openAdminModerationDetail(id,initData){
     <button type="button" data-moderation-action="approve" style="flex:1;min-width:130px;background:#16834a;color:white;border:0;border-radius:12px;padding:13px;font-weight:750">✓ Одобрить и опубликовать</button>
     <button type="button" data-moderation-action="reject" style="flex:1;min-width:110px;background:#fff0f0;color:#b42318;border:1px solid #f2caca;border-radius:12px;padding:13px;font-weight:750">Отклонить</button>
    </div>`;
+  const priceEditButton=box.querySelector('#adminEditModerationPrice');
+  const priceEditor=box.querySelector('#adminModerationPriceEditor');
+  const priceInput=box.querySelector('#adminModerationPriceText');
+  priceEditButton?.addEventListener('click',()=>{priceInput.value=String(x.price||'').replace(/[^0-9., ]/g,'').trim();priceEditor.hidden=false;priceEditButton.hidden=true;priceInput.focus()});
+  box.querySelector('#adminCancelModerationPrice')?.addEventListener('click',()=>{priceEditor.hidden=true;priceEditButton.hidden=false});
+  box.querySelector('#adminSaveModerationPrice')?.addEventListener('click',async()=>{
+   const save=box.querySelector('#adminSaveModerationPrice'),status=box.querySelector('#adminModerationPriceStatus');
+   save.disabled=true;status.textContent='Сохраняем…';
+   try{
+    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/price',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({price:priceInput.value})});
+    const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить цену');
+    x.price=result.price;
+    const display=box.querySelector('#adminModerationPriceDisplay');if(display)display.textContent=moderationPrice(x.price)||'Цена не указана';
+    priceEditor.hidden=true;priceEditButton.hidden=false;status.textContent='';
+   }catch(e){status.textContent=e.message||'Ошибка сохранения'}finally{save.disabled=false}
+  });
   const editDescriptionButton=box.querySelector('#adminEditModerationDescription');
   const descriptionEditor=box.querySelector('#adminModerationDescriptionEditor');
   const descriptionText=box.querySelector('#adminModerationDescriptionText');
@@ -15885,6 +15902,43 @@ def mini_app_admin_moderation_remove_photo(request_id):
         return jsonify({"error": "save_failed"}), 503
     moderation_requests[int(request_id)] = updated
     return jsonify({"ok": True, "photos_count": len(updated_photos)})
+
+
+@app.post("/api/admin/moderation/<int:request_id>/price")
+def mini_app_admin_moderation_price(request_id):
+    """Edit a pending listing's numeric price without recreating its modal."""
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error": "invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error": "admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"error": "db_unavailable"}), 503
+    limit = _mm_rate_limit_guard("admin_moderation_edit", user.get("id"), 20, 60)
+    if limit:
+        return limit
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not isinstance(body.get("price"), (str, int, float)):
+        return jsonify({"error": "invalid_price"}), 400
+    price = _normalize_price_input(body["price"])
+    if price is None or float(price) > 1000000000:
+        return jsonify({"error": "invalid_price", "message": "Введите цену цифрами"}), 400
+    pending = dict(load_pending_moderation_queue())
+    item = pending.get(int(request_id))
+    if not isinstance(item, dict) or item.get("status", "pending") != "pending":
+        return jsonify({"error": "request_not_found"}), 404
+    if str(item.get("_telegram_publish_state") or "") in ("sending", "unknown", "sent"):
+        return jsonify({"error": "publication_in_progress"}), 409
+    data = item.get("data")
+    if not isinstance(data, dict):
+        return jsonify({"error": "invalid_listing"}), 409
+    updated = dict(item)
+    updated["data"] = dict(data)
+    updated["data"]["price"] = price
+    if not runtime_state_save(_runtime_key("moderation", request_id), updated):
+        return jsonify({"error": "save_failed"}), 503
+    moderation_requests[int(request_id)] = updated
+    return jsonify({"ok": True, "price": price})
 
 
 @app.post("/api/admin/moderation/<int:request_id>/description")
