@@ -15272,6 +15272,10 @@ async function openAdminModerationDetail(id,initData){
     <input id="adminModerationPriceText" inputmode="decimal" maxlength="18" style="box-sizing:border-box;width:100%;padding:12px;margin-bottom:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.3;background:white">
     <label for="adminModerationDescriptionText" style="display:block;font-size:13px;color:#64748b;margin-bottom:5px">Описание</label>
     <textarea id="adminModerationDescriptionText" maxlength="3000" rows="4" style="box-sizing:border-box;width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.4;resize:vertical;background:white"></textarea>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">
+     <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#64748b;min-width:0">Район / адрес<input id="adminModerationDistrictText" maxlength="120" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;background:white"></label>
+     <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#64748b;min-width:0">Телефон<input id="adminModerationContactText" inputmode="tel" maxlength="40" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;background:white"></label>
+    </div>
     ${detailFields?`<div style="font-weight:700;margin:10px 0 12px">Характеристики</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px">${detailFields}</div>`:''}
     <button type="button" id="adminSaveModerationChanges" style="width:100%;margin-top:12px;padding:13px;background:#1478f5;color:white;border:0;border-radius:11px;font-weight:750">Сохранить изменения</button>
     <div id="adminModerationEditStatus" class="muted" role="status" style="margin-top:7px"></div>
@@ -15287,6 +15291,8 @@ async function openAdminModerationDetail(id,initData){
   const descriptionText=box.querySelector('#adminModerationDescriptionText');
   priceInput.value=String(x.price??'').replace(/[^0-9., ]/g,'').trim();
   descriptionText.value=x.description||'';
+  box.querySelector('#adminModerationDistrictText').value=x.district||'';
+  box.querySelector('#adminModerationContactText').value=x.contact||'';
   box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{const entry=editableDetails[Number(el.dataset.adminDetailIndex)];if(entry)el.value=String(entry[1]??'')});
   box.querySelector('#adminSaveModerationChanges')?.addEventListener('click',async()=>{
    const save=box.querySelector('#adminSaveModerationChanges'),status=box.querySelector('#adminModerationEditStatus');
@@ -15295,6 +15301,10 @@ async function openAdminModerationDetail(id,initData){
    const changes={};
    if(newPrice!==oldPrice)changes.price=newPrice;
    if(newDescription!==(x.description||''))changes.description=newDescription;
+   const newDistrict=box.querySelector('#adminModerationDistrictText').value.trim();
+   const newContact=box.querySelector('#adminModerationContactText').value.trim();
+   if(newDistrict!==(x.district||''))changes.district=newDistrict;
+   if(newContact!==(x.contact||''))changes.contact=newContact;
    const detailChanges={};
    box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{
     const entry=editableDetails[Number(el.dataset.adminDetailIndex)];
@@ -15310,6 +15320,8 @@ async function openAdminModerationDetail(id,initData){
     if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить изменения');
     if('price' in changes)x.price=result.price;
     if('description' in changes)x.description=result.description;
+    if('district' in changes)x.district=result.district;
+    if('contact' in changes)x.contact=result.contact;
     if(changes.details){Object.assign(x.details,result.details);editableDetails.forEach(entry=>{if(entry[0] in result.details)entry[1]=result.details[entry[0]]})}
     status.textContent='✓ Изменения сохранены';
    }catch(e){status.textContent='Ошибка: '+(e.message||'не удалось сохранить')+'. Данные в форме сохранены для повторной попытки.'}
@@ -15756,6 +15768,7 @@ def mini_app_admin_moderation_detail(request_id):
             "type": str(data.get("type") or "")[:80],
             "subcategory": str(data.get("subcategory") or "")[:100],
             "district": str(data.get("district") or "")[:120],
+            "contact": str(data.get("contact") or "")[:40],
             "price": str(price or "")[:100],
             "description": str(data.get("description") or "")[:3000],
             "details": data.get("details") if isinstance(data.get("details"), dict) else {},
@@ -15928,7 +15941,7 @@ def mini_app_admin_moderation_edit(request_id):
     if limit:
         return limit
     body = request.get_json(silent=True)
-    if not isinstance(body, dict) or not body or set(body) - {"price", "description", "details"}:
+    if not isinstance(body, dict) or not body or set(body) - {"price", "description", "details", "district", "contact"}:
         return jsonify({"error": "invalid_changes"}), 400
     pending = dict(load_pending_moderation_queue())
     item = pending.get(int(request_id))
@@ -15951,6 +15964,19 @@ def mini_app_admin_moderation_edit(request_id):
         if not isinstance(body["description"], str) or len(body["description"].strip()) > 3000:
             return jsonify({"error": "invalid_description"}), 400
         updated_data["description"] = body["description"].strip()
+    if "district" in body:
+        district = body["district"]
+        if not isinstance(district, str) or len(district.strip()) > 120:
+            return jsonify({"error": "invalid_district"}), 400
+        updated_data["district"] = district.strip()
+    if "contact" in body:
+        contact = body["contact"]
+        if not isinstance(contact, str) or len(contact) > 40:
+            return jsonify({"error": "invalid_contact"}), 400
+        digits = re.sub(r"\D", "", contact)
+        if contact.strip() and (len(digits) < 9 or len(digits) > 15):
+            return jsonify({"error": "invalid_contact", "message": "Проверьте номер телефона"}), 400
+        updated_data["contact"] = contact.strip()
     if "details" in body:
         changes = body["details"]
         existing = data.get("details")
@@ -15981,7 +16007,7 @@ def mini_app_admin_moderation_edit(request_id):
     if not runtime_state_save(_runtime_key("moderation", request_id), updated):
         return jsonify({"error": "save_failed"}), 503
     moderation_requests[int(request_id)] = updated
-    return jsonify({"ok": True, "price": updated_data.get("price"), "description": updated_data.get("description"), "details": updated_data.get("details", {})})
+    return jsonify({"ok": True, "price": updated_data.get("price"), "description": updated_data.get("description"), "district": updated_data.get("district", ""), "contact": updated_data.get("contact", ""), "details": updated_data.get("details", {})})
 
 
 @app.post("/api/admin/moderation/<int:request_id>/price")
