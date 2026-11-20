@@ -15241,7 +15241,8 @@ async function openAdminModerationDetail(id,initData){
   const d=await r.json();if(!r.ok)throw new Error(d.error||'detail_failed');
   const x=d.item||{},photos=Array.isArray(x.photos)?x.photos:[];
   const meta=moderationMeta(x.category,x.type,x.subcategory,x.district);
-  const imgs=photos.map((url,index)=>`<div style="position:relative;min-width:0"><img data-moderation-photo="${index}" alt="Фото ${index+1}" style="display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:#f3f6fa"><button type="button" data-remove-moderation-photo="${index}" aria-label="Удалить фото ${index+1}" style="position:absolute;top:5px;right:5px;border:0;border-radius:20px;background:#b42318;color:white;padding:7px 9px;font-weight:700">✕</button><span style="position:absolute;bottom:5px;left:6px;background:#142033c9;color:white;border-radius:8px;padding:2px 6px;font-size:12px">${index+1}</span></div>`).join('');
+  const photoKeys=Array.isArray(x.photo_keys)?x.photo_keys:[];
+  const imgs=photos.map((url,index)=>`<div data-moderation-photo-tile style="position:relative;min-width:0"><img data-moderation-photo="${index}" alt="Фото ${index+1}" style="display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:#f3f6fa"><button type="button" data-remove-moderation-photo="${index}" data-photo-key="${esc(photoKeys[index]||'')}" aria-label="Удалить фото ${index+1}" style="position:absolute;top:6px;right:6px;width:25px;height:25px;display:grid;place-items:center;border:1px solid #ffffff99;border-radius:8px;background:#263445b8;color:#fff;padding:0;font-size:14px;line-height:1;font-weight:600;box-shadow:0 1px 4px #0002">×</button><span data-photo-number style="position:absolute;bottom:5px;left:6px;background:#142033c9;color:white;border-radius:8px;padding:2px 6px;font-size:12px">${index+1}</span></div>`).join('');
   const detailLabels={
    area:'Площадь',floor:'Этаж',rooms:'Количество комнат',year:'Год выпуска',
    mileage:'Пробег',make_model:'Марка и модель',brand_model:'Модель',
@@ -15289,9 +15290,16 @@ async function openAdminModerationDetail(id,initData){
    if(!window.confirm('Удалить только фотографию №'+(index+1)+'? Остальные останутся на месте.'))return;
    btn.disabled=true;
    try{
-    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photos/remove',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({index})});
+    const photoKey=btn.dataset.photoKey;
+    if(!photoKey)throw new Error('Не удалось определить выбранную фотографию. Откройте заявку заново.');
+    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photos/remove',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({photo_key:photoKey})});
     const out=await rr.json().catch(()=>({}));if(!rr.ok||!out.ok)throw new Error(out.message||out.error||'Ошибка удаления');
-    await openAdminModerationDetail(id,initData);
+    const tile=btn.closest('[data-moderation-photo-tile]');
+    if(tile)tile.remove();
+    const remaining=box.querySelectorAll('[data-moderation-photo-tile]');
+    remaining.forEach((node,i)=>{const num=node.querySelector('[data-photo-number]');if(num)num.textContent=String(i+1);const del=node.querySelector('[data-remove-moderation-photo]');if(del){del.dataset.removeModerationPhoto=String(i);del.setAttribute('aria-label','Удалить фото '+(i+1));}});
+    const heading=Array.from(box.querySelectorAll('h3')).find(el=>el.textContent.startsWith('Фотографии ('));
+    if(heading)heading.textContent='Фотографии ('+remaining.length+')';
    }catch(e){btn.disabled=false;alert('Не удалось удалить фотографию: '+(e.message||'ошибка'))}
   }));
   box.querySelectorAll('[data-moderation-photo]').forEach(async img=>{
@@ -15722,6 +15730,7 @@ def mini_app_admin_moderation_detail(request_id):
             "description": str(data.get("description") or "")[:3000],
             "details": data.get("details") if isinstance(data.get("details"), dict) else {},
             "photos": safe_photos,
+            "photo_keys": [hashlib.sha256(str(photo).encode("utf-8")).hexdigest() for photo in photos[:MAX_PHOTOS] if isinstance(photo, str) and photo.strip()],
             "photos_count": len(photos),
         }
     })
@@ -15846,9 +15855,9 @@ def mini_app_admin_moderation_remove_photo(request_id):
     if limit:
         return limit
     body = request.get_json(silent=True)
-    index = body.get("index") if isinstance(body, dict) else None
-    if type(index) is not int:
-        return jsonify({"error": "invalid_photo_index"}), 400
+    photo_key = body.get("photo_key") if isinstance(body, dict) else None
+    if not isinstance(photo_key, str) or not re.fullmatch(r"[a-f0-9]{64}", photo_key):
+        return jsonify({"error": "invalid_photo_key"}), 400
     item = dict(load_pending_moderation_queue()).get(int(request_id))
     if not isinstance(item, dict) or item.get("status", "pending") != "pending":
         return jsonify({"error": "request_not_found"}), 404
@@ -15858,8 +15867,12 @@ def mini_app_admin_moderation_remove_photo(request_id):
     if not isinstance(data, dict):
         return jsonify({"error": "invalid_listing"}), 409
     photos = data.get("photos")
-    if not isinstance(photos, list) or not 0 <= index < len(photos):
+    if not isinstance(photos, list):
         return jsonify({"error": "photo_not_found"}), 404
+    matches = [i for i, ref in enumerate(photos) if isinstance(ref, str) and hashlib.sha256(ref.encode("utf-8")).hexdigest() == photo_key]
+    if len(matches) != 1:
+        return jsonify({"error": "photo_not_found_or_ambiguous"}), 409
+    index = matches[0]
     updated = dict(item)
     updated["data"] = dict(data)
     updated_photos = list(photos)
