@@ -15244,7 +15244,7 @@ async function openAdminModerationDetail(id,initData){
   const photoKeys=Array.isArray(x.photo_keys)?x.photo_keys:[];
   const imgs=photos.map((url,index)=>`<div data-moderation-photo-tile style="position:relative;min-width:0"><img data-moderation-photo="${index}" alt="Фото ${index+1}" style="display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:#f3f6fa"><button type="button" data-remove-moderation-photo="${index}" data-photo-key="${esc(photoKeys[index]||'')}" aria-label="Удалить фото ${index+1}" style="position:absolute;top:6px;right:6px;width:25px;height:25px;display:grid;place-items:center;border:1px solid #ffffff99;border-radius:8px;background:#263445b8;color:#fff;padding:0;font-size:14px;line-height:1;font-weight:600;box-shadow:0 1px 4px #0002">×</button><span data-photo-number style="position:absolute;bottom:5px;left:6px;background:#142033c9;color:white;border-radius:8px;padding:2px 6px;font-size:12px">${index+1}</span></div>`).join('');
   const detailLabels={
-   area:'Площадь',floor:'Этаж',rooms:'Количество комнат',year:'Год выпуска',
+   make:'Марка автомобиля',area:'Площадь',floor:'Этаж',rooms:'Количество комнат',year:'Год выпуска',
    mileage:'Пробег',make_model:'Марка и модель',brand_model:'Модель',
    condition:'Состояние',age:'Возраст',breed:'Порода',gender:'Пол',
    service:'Услуга',experience:'Опыт',requirements:'Требования',
@@ -15260,7 +15260,7 @@ async function openAdminModerationDetail(id,initData){
   const detailFields=editableDetails.map(([key,value],i)=>{
    const label=detailLabels[String(key).toLowerCase()]||String(key).replace(/_/g,' ');
    const numeric=numericFields.has(String(key).toLowerCase())&&String(value).trim()!==''&&!Number.isNaN(Number(value));
-   return `<label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#52647b;min-width:0">${esc(label)}<input data-admin-detail-key="${esc(key)}" data-admin-detail-index="${i}" ${numeric?'inputmode="decimal"':''} maxlength="180" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white"></label>`;
+   return `<label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#52647b;min-width:0">${esc(label)}<input data-admin-detail-key="${esc(key)}" data-admin-detail-index="${i}" ${numeric?'inputmode="decimal"':''} maxlength="180" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.3;background:white"></label>`;
   }).join('');
   const createdLabel=x.created_at?(()=>{const dt=new Date(x.created_at);return Number.isNaN(dt.getTime())?String(x.created_at):dt.toLocaleString('ru-RU',{timeZone:'Asia/Tbilisi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})})():'';
   box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Заявка #${esc(x.request_id)}</h2><span class="muted">На модерации</span></div>
@@ -15269,9 +15269,9 @@ async function openAdminModerationDetail(id,initData){
    <div style="margin:15px 0;padding:14px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc">
     <div style="font-weight:750;margin-bottom:12px">Редактирование объявления</div>
     <label for="adminModerationPriceText" style="display:block;font-size:13px;color:#64748b;margin-bottom:5px">Цена (в исходной валюте)</label>
-    <input id="adminModerationPriceText" inputmode="decimal" maxlength="18" style="box-sizing:border-box;width:100%;padding:12px;margin-bottom:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white">
+    <input id="adminModerationPriceText" inputmode="decimal" maxlength="18" style="box-sizing:border-box;width:100%;padding:12px;margin-bottom:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.3;background:white">
     <label for="adminModerationDescriptionText" style="display:block;font-size:13px;color:#64748b;margin-bottom:5px">Описание</label>
-    <textarea id="adminModerationDescriptionText" maxlength="3000" rows="4" style="box-sizing:border-box;width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical;background:white"></textarea>
+    <textarea id="adminModerationDescriptionText" maxlength="3000" rows="4" style="box-sizing:border-box;width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.4;resize:vertical;background:white"></textarea>
     ${detailFields?`<div style="font-weight:700;margin:10px 0 12px">Характеристики</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px">${detailFields}</div>`:''}
     <button type="button" id="adminSaveModerationChanges" style="width:100%;margin-top:12px;padding:13px;background:#1478f5;color:white;border:0;border-radius:11px;font-weight:750">Сохранить изменения</button>
     <div id="adminModerationEditStatus" class="muted" role="status" style="margin-top:7px"></div>
