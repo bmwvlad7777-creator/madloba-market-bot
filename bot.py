@@ -472,6 +472,24 @@ def runtime_state_save(state_key, payload):
         return False
 
 
+def _moderation_publish_claim(request_id):
+    """Atomic cross-process claim; None means DB/RPC failure (fail closed)."""
+    result = supabase_request(
+        "POST", "rpc/mm_claim_moderation_publish",
+        payload={"p_request_id": int(request_id)},
+    )
+    return result if isinstance(result, bool) else None
+
+
+def _moderation_publish_release(request_id):
+    """Only release after a confirmed Telegram rejection and durable reset."""
+    result = supabase_request(
+        "POST", "rpc/mm_release_moderation_publish",
+        payload={"p_request_id": int(request_id)},
+    )
+    return result is True
+
+
 def runtime_state_delete(state_key):
     if not supabase_enabled():
         return False
@@ -5419,9 +5437,22 @@ def _moderate_publish_locked(
             refresh_admin_moderation_queue(0)
             return
 
+        claim = _moderation_publish_claim(request_id)
+        if claim is not True:
+            _moderation_callback_answer(
+                callback_id,
+                "⏳ Заявка уже публикуется или Supabase недоступен. Отправка в Telegram заблокирована.",
+                True,
+            )
+            print("MODERATION: atomic publish claim denied", request_id, claim)
+            return
+
         item["_telegram_publish_state"] = "sending"
         if not runtime_state_save(_runtime_key("moderation", request_id), item):
             item.pop("_telegram_publish_state", None)
+            # No Telegram call happened. Safe to release this attempt's claim.
+            if not _moderation_publish_release(request_id):
+                print("MODERATION: claim release failed after state-save failure", request_id)
             _moderation_callback_answer(
                 callback_id,
                 "⚠️ Не удалось сохранить состояние публикации. Telegram не вызывался; попробуйте позже.",
@@ -5466,9 +5497,12 @@ def _moderate_publish_locked(
             # A structured Telegram Bot API rejection confirms that the post
             # was not accepted, so a later deliberate retry is safe.
             item.pop("_telegram_publish_state", None)
-            if not runtime_state_save(_runtime_key("moderation", request_id), item):
-                # The persisted `sending` marker is conservative: after restart
-                # the request will require manual review rather than duplicate.
+            if runtime_state_save(_runtime_key("moderation", request_id), item):
+                # Telegram definitively rejected the post; retry can be allowed.
+                if not _moderation_publish_release(request_id):
+                    print("MODERATION: claim release failed after Telegram rejection", request_id)
+            else:
+                # Keep the claim: durable `sending` may remain after restart.
                 print("MODERATION: Telegram rejection state reset not persisted", request_id)
 
     if not result.get(
