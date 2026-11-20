@@ -2,3 +2,4 @@ Flask
 requests
 gunicorn
 # MADLOBA MARKET
+Pillow>=10,<13
