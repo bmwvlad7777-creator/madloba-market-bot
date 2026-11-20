@@ -797,6 +797,41 @@ _SUPABASE_CITY_ID_CACHE = {}
 _SUPABASE_USER_ID_CACHE = {}
 _SUPABASE_ID_CACHE_LOCK = threading.Lock()
 
+# PERF-03: cache the complete, mostly static city directory for the All feed.
+# Never cache a failed/empty response; refresh periodically for newly added cities.
+_ALL_CITY_DIRECTORY_LOCK = threading.Lock()
+_ALL_CITY_DIRECTORY = {}
+_ALL_CITY_DIRECTORY_EXPIRES = 0.0
+_ALL_CITY_DIRECTORY_TTL = 300.0
+
+
+def _all_city_ids_by_slug():
+    global _ALL_CITY_DIRECTORY, _ALL_CITY_DIRECTORY_EXPIRES
+    with _ALL_CITY_DIRECTORY_LOCK:
+        now = time.monotonic()
+        if _ALL_CITY_DIRECTORY and now < _ALL_CITY_DIRECTORY_EXPIRES:
+            return _ALL_CITY_DIRECTORY.copy()
+        rows = supabase_request(
+            "GET", "cities", params={"select": "id,slug", "limit": "500"}
+        )
+        mapping = {}
+        for row in rows or []:
+            try:
+                city_id = int(row.get("id"))
+                slug = str(row.get("slug") or "").strip().lower()
+                if slug:
+                    mapping[city_id] = slug
+            except (TypeError, ValueError, AttributeError):
+                continue
+        if mapping:
+            _ALL_CITY_DIRECTORY = mapping
+            _ALL_CITY_DIRECTORY_EXPIRES = time.monotonic() + _ALL_CITY_DIRECTORY_TTL
+            return mapping.copy()
+        # Keep the last good mapping during a temporary Supabase outage.
+        # A failed lookup must not become a fresh cached result.
+        return _ALL_CITY_DIRECTORY.copy()
+
+
 
 def _supabase_city_id(slug_value):
     slug_value = _canonical_city_slug(slug_value)
@@ -17483,17 +17518,7 @@ def mini_app_listings():
         # Resolve every city registered in Supabase, not only Batumi/Tbilisi.
         # This keeps the "All" feed truly cross-city and lets each card show
         # the listing's own city rather than inheriting the selected filter.
-        _city_rows = supabase_request(
-            "GET", "cities", params={"select": "id,slug", "limit": "500"}
-        ) or []
-        for _city_row in _city_rows:
-            try:
-                _cid = int(_city_row.get("id"))
-                _slug = str(_city_row.get("slug") or "").strip().lower()
-                if _slug:
-                    city_ids_by_slug[_cid] = _slug
-            except (TypeError, ValueError):
-                continue
+        city_ids_by_slug = _all_city_ids_by_slug()
     _perf_auth_started = time.perf_counter()
     current_user = _mini_app_authenticated_user()
     print(f"PERF listings_phase=telegram_auth ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} valid={int(bool(current_user))}")
