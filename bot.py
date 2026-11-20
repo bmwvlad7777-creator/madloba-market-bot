@@ -18394,17 +18394,22 @@ def mini_app_listings():
     # response is assembled (favorite flags remain accurate).
     _perf_fav_started = time.perf_counter()
     def _load_favorite_ids():
+        _fav_worker_started = time.perf_counter()
         if not current_user_id or not rows:
-            return set()
-        return _favorite_flags_for_listings(
-            current_user_id, [r.get("id") for r in rows]
-        )
+            result = set()
+        else:
+            result = _favorite_flags_for_listings(
+                current_user_id, [r.get("id") for r in rows]
+            )
+        return result, (time.perf_counter() - _fav_worker_started) * 1000
 
     favorite_future = LISTING_READ_EXECUTOR.submit(_load_favorite_ids) if current_user_id and rows else None
     _perf_phase_started = time.perf_counter()
     photo_rows = photo_future.result() if photo_future is not None else []
-    favorite_ids = favorite_future.result() if favorite_future is not None else set()
-    print(f"PERF listings_phase=favorites_query ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} count={len(favorite_ids)}")
+    _perf_photo_wait_done = time.perf_counter()
+    favorite_ids, _perf_fav_actual_ms = favorite_future.result() if favorite_future is not None else (set(), 0.0)
+    print(f"PERF listings_phase=photos_wait ms={(_perf_photo_wait_done - _perf_phase_started) * 1000:.1f} rows={len(photo_rows)}")
+    print(f"PERF listings_phase=favorites_query ms={_perf_fav_actual_ms:.1f} count={len(favorite_ids)}")
     print(f"PERF listings_phase=auth_favorites ms={(time.perf_counter() - _perf_fav_started) * 1000:.1f} rows={len(rows)}")
     photos_by_listing = {}
     for photo in photo_rows:
