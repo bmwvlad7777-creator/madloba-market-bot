@@ -15260,10 +15260,15 @@ async function openAdminModerationDetail(id,initData){
   box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Заявка #${esc(x.request_id)}</h2><span class="muted">На модерации</span></div>
    <h3 style="margin:14px 0 6px">${esc(x.title||'Объявление')}</h3>
    <div class="muted">${meta}</div>
-   <div style="font-size:22px;font-weight:800;margin:12px 0">💰 <span id="adminModerationPriceDisplay">${esc(moderationPrice(x.price))||'Цена не указана'}</span></div>
-   <div style="margin-top:8px"><button type="button" id="adminEditModerationPrice" style="padding:10px 13px;border:1px solid #dce5f0;border-radius:10px;background:#f4f7fb;color:#142033;font-weight:700">✎ Изменить цену</button><div id="adminModerationPriceEditor" hidden style="margin-top:9px"><label for="adminModerationPriceText" class="muted">Цена (сохраняется в исходной валюте объявления)</label><input id="adminModerationPriceText" inputmode="decimal" maxlength="18" style="box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit"><div style="display:flex;gap:8px;margin-top:8px"><button type="button" id="adminSaveModerationPrice">Сохранить цену</button><button type="button" id="adminCancelModerationPrice">Отмена</button></div><div id="adminModerationPriceStatus" class="muted" role="status"></div></div></div>
-   <div id="adminModerationDescriptionDisplay" style="white-space:pre-wrap;line-height:1.5">${esc(x.description||'Описание не указано')}</div>
-   <div style="margin-top:10px"><button type="button" id="adminEditModerationDescription" style="padding:10px 13px;border:1px solid #dce5f0;border-radius:10px;background:#f4f7fb;color:#142033;font-weight:700">✎ Изменить описание</button><div id="adminModerationDescriptionEditor" hidden style="margin-top:9px"><label for="adminModerationDescriptionText" class="muted">Описание объявления</label><textarea id="adminModerationDescriptionText" maxlength="3000" rows="6" style="box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button type="button" id="adminSaveModerationDescription">Сохранить описание</button><button type="button" id="adminCancelModerationDescription">Отмена</button></div><div id="adminModerationEditStatus" class="muted" role="status"></div></div></div>
+   <div style="margin:15px 0;padding:14px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc">
+    <div style="font-weight:750;margin-bottom:12px">Редактирование объявления</div>
+    <label for="adminModerationPriceText" style="display:block;font-size:13px;color:#64748b;margin-bottom:5px">Цена (в исходной валюте)</label>
+    <input id="adminModerationPriceText" inputmode="decimal" maxlength="18" style="box-sizing:border-box;width:100%;padding:12px;margin-bottom:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white">
+    <label for="adminModerationDescriptionText" style="display:block;font-size:13px;color:#64748b;margin-bottom:5px">Описание</label>
+    <textarea id="adminModerationDescriptionText" maxlength="3000" rows="4" style="box-sizing:border-box;width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical;background:white"></textarea>
+    <button type="button" id="adminSaveModerationChanges" style="width:100%;margin-top:12px;padding:13px;background:#1478f5;color:white;border:0;border-radius:11px;font-weight:750">Сохранить изменения</button>
+    <div id="adminModerationEditStatus" class="muted" role="status" style="margin-top:7px"></div>
+   </div>
    ${details?`<div style="margin-top:12px">${details}</div>`:''}
    <div class="muted" style="margin:12px 0">Автор Telegram ID: ${esc(x.user_chat_id||'—')} · ${esc(createdLabel)}</div>
    ${imgs?`<h3>Фотографии (${photos.length})</h3><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${imgs}</div>`:`<div class="muted" style="margin:12px 0">Фотографии не приложены</div>`}
@@ -15271,39 +15276,32 @@ async function openAdminModerationDetail(id,initData){
     <button type="button" data-moderation-action="approve" style="flex:1;min-width:130px;background:#16834a;color:white;border:0;border-radius:12px;padding:13px;font-weight:750">✓ Одобрить и опубликовать</button>
     <button type="button" data-moderation-action="reject" style="flex:1;min-width:110px;background:#fff0f0;color:#b42318;border:1px solid #f2caca;border-radius:12px;padding:13px;font-weight:750">Отклонить</button>
    </div>`;
-  const priceEditButton=box.querySelector('#adminEditModerationPrice');
-  const priceEditor=box.querySelector('#adminModerationPriceEditor');
   const priceInput=box.querySelector('#adminModerationPriceText');
-  priceEditButton?.addEventListener('click',()=>{priceInput.value=String(x.price||'').replace(/[^0-9., ]/g,'').trim();priceEditor.hidden=false;priceEditButton.hidden=true;priceInput.focus()});
-  box.querySelector('#adminCancelModerationPrice')?.addEventListener('click',()=>{priceEditor.hidden=true;priceEditButton.hidden=false});
-  box.querySelector('#adminSaveModerationPrice')?.addEventListener('click',async()=>{
-   const save=box.querySelector('#adminSaveModerationPrice'),status=box.querySelector('#adminModerationPriceStatus');
-   save.disabled=true;status.textContent='Сохраняем…';
-   try{
-    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/price',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({price:priceInput.value})});
-    const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить цену');
-    x.price=result.price;
-    const display=box.querySelector('#adminModerationPriceDisplay');if(display)display.textContent=moderationPrice(x.price)||'Цена не указана';
-    priceEditor.hidden=true;priceEditButton.hidden=false;status.textContent='';
-   }catch(e){status.textContent=e.message||'Ошибка сохранения'}finally{save.disabled=false}
-  });
-  const editDescriptionButton=box.querySelector('#adminEditModerationDescription');
-  const descriptionEditor=box.querySelector('#adminModerationDescriptionEditor');
   const descriptionText=box.querySelector('#adminModerationDescriptionText');
-  editDescriptionButton?.addEventListener('click',()=>{descriptionText.value=x.description||'';descriptionEditor.hidden=false;editDescriptionButton.hidden=true;descriptionText.focus()});
-  box.querySelector('#adminCancelModerationDescription')?.addEventListener('click',()=>{descriptionEditor.hidden=true;editDescriptionButton.hidden=false});
-  box.querySelector('#adminSaveModerationDescription')?.addEventListener('click',async()=>{
-   const saveButton=box.querySelector('#adminSaveModerationDescription');
-   const status=box.querySelector('#adminModerationEditStatus');
-   saveButton.disabled=true;status.textContent='Сохраняем…';
+  priceInput.value=String(x.price??'').replace(/[^0-9., ]/g,'').trim();
+  descriptionText.value=x.description||'';
+  box.querySelector('#adminSaveModerationChanges')?.addEventListener('click',async()=>{
+   const save=box.querySelector('#adminSaveModerationChanges'),status=box.querySelector('#adminModerationEditStatus');
+   const newPrice=priceInput.value.trim(),newDescription=descriptionText.value;
+   const oldPrice=String(x.price??'').replace(/[^0-9., ]/g,'').trim();
+   const priceChanged=newPrice!==oldPrice,descriptionChanged=newDescription!==(x.description||'');
+   if(!priceChanged&&!descriptionChanged){status.textContent='Изменений нет';return}
+   save.disabled=true;status.textContent='Сохраняем изменения…';
+   const headers={'Content-Type':'application/json','X-Telegram-Init-Data':initData};
    try{
-    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/description',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({description:descriptionText.value})});
-    const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить');
-    x.description=descriptionText.value;
-    const descriptionDisplay=box.querySelector('#adminModerationDescriptionDisplay');
-    if(descriptionDisplay)descriptionDisplay.textContent=x.description||'Описание не указано';
-    descriptionEditor.hidden=true;editDescriptionButton.hidden=false;status.textContent='';saveButton.disabled=false;
-   }catch(e){status.textContent=e.message||'Ошибка сохранения';saveButton.disabled=false}
+    if(priceChanged){
+     const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/price',{method:'POST',headers,body:JSON.stringify({price:newPrice})});
+     const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить цену');
+     x.price=result.price;
+    }
+    if(descriptionChanged){
+     const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/description',{method:'POST',headers,body:JSON.stringify({description:newDescription})});
+     const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить описание');
+     x.description=newDescription;
+    }
+    status.textContent='Изменения сохранены';
+   }catch(e){status.textContent='Ошибка: '+(e.message||'не удалось сохранить')+'. Проверьте данные перед повторной попыткой.'}
+   finally{save.disabled=false}
   });
   box.querySelectorAll('[data-remove-moderation-photo]').forEach(btn=>btn.addEventListener('click',async()=>{
    const index=Number(btn.dataset.removeModerationPhoto);
