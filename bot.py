@@ -295,7 +295,7 @@ def supabase_request(method, path, params=None, payload=None):
 
     # Diagnostic-only timing for the cursor RPC. This logs timings and response
     # metadata only; it does not alter the request, payload, result, or error path.
-    _is_cursor_rpc = method.upper() == "POST" and path.lstrip("/") == "rpc/mm_search_cursor_listings"
+    _is_cursor_rpc = method.upper() == "POST" and path.lstrip("/") in {"rpc/mm_search_cursor_listings", "rpc/mm_search_cursor_listings_multi"}
     _rpc_started = time.perf_counter() if _is_cursor_rpc else None
     try:
         response = HTTP_SESSION.request(
