@@ -22,6 +22,14 @@ from urllib3.util.retry import Retry
 
 from flask import Flask, request, Response, jsonify
 
+# Optional image processor for catalog thumbnails. Without Pillow, original
+# images continue to work unchanged (no broken cards on deployment).
+try:
+    from PIL import Image, ImageOps, UnidentifiedImageError
+    from io import BytesIO
+except ImportError:
+    Image = ImageOps = UnidentifiedImageError = BytesIO = None
+
 
 # ============================================================
 # НАСТРОЙКИ
@@ -194,6 +202,43 @@ def _media_cache_put(cache_key, image_bytes, content_type):
             _MEDIA_CACHE_BYTES = max(0, _MEDIA_CACHE_BYTES - len(oldest[1]))
         _MEDIA_CACHE[cache_key] = (now + _MEDIA_CACHE_TTL_SECONDS, image_bytes, content_type)
         _MEDIA_CACHE_BYTES += len(image_bytes)
+
+def _catalog_thumbnail(image_bytes, content_type):
+    """Generate a small preview; never replace the full-size cached photo."""
+    if Image is None or content_type not in ("image/jpeg", "image/png", "image/webp"):
+        return None
+    try:
+        with Image.open(BytesIO(image_bytes)) as source:
+            if source.width * source.height > 36_000_000:
+                return None
+            preview = ImageOps.exif_transpose(source)
+            preview.thumbnail((600, 600), Image.Resampling.LANCZOS)
+            if preview.mode not in ("RGB", "RGBA"):
+                preview = preview.convert("RGBA" if "A" in preview.getbands() else "RGB")
+            output = BytesIO()
+            if preview.mode == "RGBA":
+                preview.save(output, format="WEBP", quality=78, method=4)
+            else:
+                preview.save(output, format="WEBP", quality=78, method=4)
+            result = output.getvalue()
+            return (result, "image/webp") if result and len(result) < len(image_bytes) else None
+    except (OSError, ValueError, TypeError, MemoryError):
+        return None
+
+
+def _media_variant(image_bytes, content_type, photo_ref, want_thumb):
+    if not want_thumb:
+        return image_bytes, content_type
+    variant_key = "thumb600:" + photo_ref
+    cached = _media_cache_get(variant_key)
+    if cached is not None:
+        return cached
+    preview = _catalog_thumbnail(image_bytes, content_type)
+    if preview is not None:
+        _media_cache_put(variant_key, preview[0], preview[1])
+        return preview
+    return image_bytes, content_type
+
 
 def _telegram_file_path_get(file_id):
     now = time.monotonic()
@@ -13136,7 +13181,7 @@ function cardText(x){
  const subtitle=candidate&&description&&candidate.toLocaleLowerCase()!==description.toLocaleLowerCase()?description:'';
  return {title,subtitle,location:cardLocation(x)};
 }
-function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?priceMarkup(x,'price'):''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
+function card(x){const photo=(x.photos||[])[0];const text=cardText(x);const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="card" data-id="${esc(x.id)}">${favButton(x)}<div class="photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0?thumb=1" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="cardbody"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="tag">${esc(localizedCategory(x.category_name||x.category||''))}</span></div>${x.price?priceMarkup(x,'price'):''}<div class="listing-name">${esc(localizeListingText(text.title||''))}</div><div class="listing-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindCards(){document.querySelectorAll('#list [data-mm-price-toggle]').forEach(bindPriceToggle);document.querySelectorAll('#list [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#list [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 let detailOrigin='home';let currentDetailData=null;let mineDetailPreviewCache=new Map();let detailOpenSequence=0;function currentVisibleView(){for(const id of ['favoritesView','mineView','profileView'])if($(id).classList.contains('show'))return id;return 'home'}async function openDetail(id){try{detailOrigin=currentVisibleView();const fromMine=detailOrigin==='mineView';if(fromMine)pauseMineThumbnails();const openSequence=++detailOpenSequence;const preview=fromMine?mineDetailPreviewCache.get(String(id)):null;if(preview){const quick={...preview,photos:[],owner_view:true,phone:'',whatsapp:'',telegram:'',telegram_username:'',seller:null};currentDetailData=quick;renderDetail(quick);hideViews();$('detailView').classList.add('show');document.body.classList.add('mm-detail-open');requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'auto',block:'start'}));}const perfTap=performance.now();let r=await apiFetch((fromMine?'/api/my-listing/':'/api/listing/')+encodeURIComponent(id),{priority:'high'});const perfResponse=performance.now();let ownerView=fromMine;if(!fromMine&&r.status===404){const ownerResponse=await apiFetch('/api/my-listing/'+encodeURIComponent(id));if(!ownerResponse.ok)throw 0;r=ownerResponse;ownerView=true;}if(!r.ok)throw 0;const x=await r.json();if(openSequence!==detailOpenSequence)return;const perfParsed=performance.now();if(Number(x.usd_to_gel)>0)state.currencyRate=Number(x.usd_to_gel);if(ownerView)x.owner_view=true;currentDetailData=x;renderDetail(x);const perfRendered=performance.now();if(fromMine){apiFetch('/api/client-detail-perf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:Number(id),network_ms:Math.round(perfResponse-perfTap),parse_ms:Math.round(perfParsed-perfResponse),render_ms:Math.round(perfRendered-perfParsed),total_ms:Math.round(perfRendered-perfTap)})}).catch(()=>{});}hideViews();$('detailView').classList.add('show');document.body.classList.add('mm-detail-open');requestAnimationFrame(()=>requestAnimationFrame(()=>$('detailView').scrollIntoView({behavior:'auto',block:'start'})))}catch(e){if(openSequence!==detailOpenSequence)return;mineDetailPreviewCache.delete(String(id));leaveDetail();toast(t('open_fail'))}}function leaveDetail(){detailOpenSequence++;document.body.classList.remove('mm-detail-open');const origin=detailOrigin; if(origin==='favoritesView'){if(favoritesLoadedAt&&Date.now()-favoritesLoadedAt<10000&&!favoritesDirty){setActiveNav('favorites');showView('favoritesView')}else loadFavorites();return}if(origin==='mineView'){if(mineLoadedAt&&Date.now()-mineLoadedAt<10000&&$('mineList').querySelector('.mine-card')){setActiveNav('mine');showView('mineView');resumeMineThumbnails()}else loadMine();return}if(origin==='profileView'){loadProfile();return}showHome()}
 function renderDetail(x){const photos=x.photos||[];const d=x.details||{};const specs=detailSpecs(d,true);const detailDeal=cardDealLabel(x);const phoneRaw=String(x.phone||'').trim();const phone=phoneRaw.replace(/(?!^)\+|[^0-9+]/g,'');const phoneDigits=phone.replace(/\D/g,'');const telegramRaw=String(x.telegram_username||x.telegram||'').trim();const telegram=telegramRaw.replace(/^@/,'').replace(/^https?:\/\/(?:t\.me|telegram\.me)\//i,'').replace(/\/$/,'');const telegramValid=/^[A-Za-z0-9_]{5,32}$/.test(telegram);const telegramHref=telegramValid?`https://t.me/${encodeURIComponent(telegram)}`:'';const channelHref=String(x.channel_post_url||'').trim();const channelValid=/^https:\/\/(?:t\.me|telegram\.me)\//i.test(channelHref);const contactPrimary=[];if(phoneDigits.length>=5)contactPrimary.push(`<a class="contact-btn" href="tel:${esc(phone)}" target="_blank" rel="noopener" aria-label="${esc(t('contact_call'))}">${t('contact_call')}</a>`);const contactActions=`<div class="contact-actions-row"><a class="contact-action contact-action-telegram${telegramValid?'':' is-unavailable'}" ${telegramValid?`href="${esc(telegramHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon telegram-brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" role="img" focusable="false"><defs><linearGradient id="mmTelegramBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2AABEE"/><stop offset="1" stop-color="#229ED9"/></linearGradient></defs><circle cx="16" cy="16" r="16" fill="url(#mmTelegramBlue)"/><path d="M25.4 8.1 22.6 23c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.3L10 16.4l-4.9-1.5c-1.1-.3-1.1-1.1.2-1.6l19.1-7.4c.9-.3 1.6.2 1.3 2.2Z" fill="#fff"/></svg></span><span>Telegram</span></a><a class="contact-action contact-action-channel${channelValid?'':' is-unavailable'}" ${channelValid?`href="${esc(channelHref)}" target="_blank" rel="noopener"`:'aria-disabled="true" tabindex="-1"'}><span class="contact-action-icon">📣</span><span>${state.lang==='en'?'Channel':state.lang==='ka'?'არხი':state.lang==='uk'?'Канал':'Канал'}</span></a><button type="button" class="contact-action contact-action-report" id="mmReportOpen"><span class="contact-action-icon">⚑</span><span>${state.lang==='en'?'Report':state.lang==='ka'?'გასაჩივრება':state.lang==='uk'?'Скарга':'Жалоба'}</span></button></div>`;$('detailContent').innerHTML=`<div class="detail-photo" id="detailPhoto">${photos.length?`<img id="detailImg" src="${x.owner_view?'data:,':'/media/'+encodeURIComponent(x.id)+'/0'}" ${x.owner_view?'':'onerror="this.parentElement.textContent=String.fromCodePoint(128247)"'}>`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}${photos.length>1?`<button class="gallery-btn prev" id="prevPhoto">‹</button><button class="gallery-btn next" id="nextPhoto">›</button><span class="gallery-count" id="photoCount">1/${photos.length}</span>`:''}</div><div class="detail-body"><div class="detail-head-row"><div class="detail-kickers" style="min-width:0;flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${detailDeal?`<span class="detail-deal-badge deal-${esc(detailDeal.key)}">${esc(detailDeal.label)}</span>`:''}<div class="detail-tag">${esc(localizedCategory(x.category_name||x.category||''))}</div></div><div class="detail-action-icons">${favButton(x,true)}<button type="button" class="detail-share" id="mmShareListing" aria-label="${state.lang==='en'?'Share listing':state.lang==='ka'?'განცხადების გაზიარება':state.lang==='uk'?'Поділитися оголошенням':'Поделиться объявлением'}" title="${state.lang==='en'?'Share listing':state.lang==='ka'?'განცხადების გაზიარება':state.lang==='uk'?'Поділитися оголошенням':'Поделиться объявлением'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg></button></div></div><h1 class="detail-listing-title">${esc(localizeListingText(cardText(x).title||localizedCategory(x.category_name||x.category||'')))}</h1>${x.price?priceMarkup(x,'detail-price'):''}${specs?`<div class="detail-meta">${specs}</div>`:''}${x.address?`<div class="detail-loc"><svg class="detail-location-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(x.address)}</span></div>`:''}${x.description?`<section class="detail-description"><div class="detail-description-label">${esc(t('description'))}</div><div class="detail-desc">${esc(localizeListingText(x.description))}</div></section>`:''}${x.seller&&x.seller.id?`<button type="button" class="seller-inline-card" data-seller-open="${esc(x.seller.id)}"><span class="seller-avatar small">${esc((x.seller.name||'S').slice(0,1).toLocaleUpperCase())}</span><span class="seller-inline-main"><strong>${esc(x.seller.name||sellerLabel('unknown'))}</strong><small>${esc(sellerLabel('member'))}</small></span><span class="seller-inline-arrow">›</span></button>`:''}<div class="contacts">${contactPrimary.join('')}${contactActions}</div></div>`;
@@ -13221,7 +13266,7 @@ function bindSellerCards(){document.querySelectorAll('#sellerListings [data-id]'
 async function toggleFavorite(id,button,x=null){if(!button||button.disabled)return;button.disabled=true;try{const active=button.classList.contains('active');const r=await apiFetch('/api/favorite/'+encodeURIComponent(id),{method:active?'DELETE':'POST'});if(r.status===401){toast(t('login_telegram'));return}if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error||'favorite_failed')}const now=!active;favoritesDirty=true;button.classList.toggle('active',now);button.textContent=now?'♥':'♡';button.setAttribute('aria-label',now?t('favorite_remove'):t('favorite_add'));if(x)x.is_favorite=now;toast(now?t('fav_added'):t('fav_removed'));if(document.getElementById('favoritesView').classList.contains('show'))await loadFavorites()}catch(e){toast(t('favorite_fail'))}finally{button.disabled=false}}
 function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if(!$('bestCityName'))return;const label=cityNames[state.city]?.[state.lang]||cityNames[state.city]?.en||state.city;const n=state.selectedCities?.length||0;if(n>1){$('bestCityName').textContent=state.lang==='en'?`in ${{n}} cities`:state.lang==='ka'?`${{n}} ქალაქში`:state.lang==='uk'?`у ${{n}} містах`:`в ${{n}} городах`;return}$('bestCityName').textContent=state.city==='all'?(state.lang==='en'?'in all cities':state.lang==='ka'?'ყველა ქალაქში':state.lang==='uk'?'у всіх містах':'во всех городах'):(state.lang==='en'?'in '+label:state.lang==='ka'?label:state.lang==='uk'?'у '+label:'в '+label)}
-function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?priceMarkup(x,'best-price'):''}<div class="best-title">${esc(localizeListingText(text.title||''))}</div><div class="best-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
+function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0?thumb=1" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?priceMarkup(x,'best-price'):''}<div class="best-title">${esc(localizeListingText(text.title||''))}</div><div class="best-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindBestCards(){document.querySelectorAll('#bestRow [data-mm-price-toggle]').forEach(bindPriceToggle);document.querySelectorAll('#bestRow [data-best-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.bestId));document.querySelectorAll('#bestRow [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
 function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
@@ -19379,6 +19424,7 @@ def mini_app_seller_profile(seller_id):
 @app.get("/media/<int:listing_id>/<int:index>")
 def mini_app_media(listing_id, index):
     _perf_started = time.perf_counter()
+    want_thumb = request.args.get("thumb") == "1"
     if index < 0 or index >= MAX_PHOTOS:return "Not found",404
 
     # Fetch publication/expiry state and the ordered photo list in one
@@ -19437,6 +19483,7 @@ def mini_app_media(listing_id, index):
     cached_media = _media_cache_get(photo_ref)
     if cached_media is not None:
         cached_bytes, cached_type = cached_media
+        cached_bytes, cached_type = _media_variant(cached_bytes, cached_type, photo_ref, want_thumb)
         elapsed_ms = (time.perf_counter() - _perf_started) * 1000
         print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(cached_bytes)} cache=hit")
         cached_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={elapsed_ms:.1f}"}
@@ -19450,6 +19497,7 @@ def mini_app_media(listing_id, index):
         cached_after_wait = _media_cache_get(photo_ref)
         if cached_after_wait is not None:
             cached_bytes, cached_type = cached_after_wait
+            cached_bytes, cached_type = _media_variant(cached_bytes, cached_type, photo_ref, want_thumb)
             elapsed_ms = (time.perf_counter() - _perf_started) * 1000
             print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(cached_bytes)} cache=hit_after_wait")
             cached_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={elapsed_ms:.1f}"}
@@ -19526,6 +19574,7 @@ def mini_app_media(listing_id, index):
                 return "Unsupported media type", 415
 
             _media_cache_put(photo_ref, image_bytes, media_content_type)
+            image_bytes, media_content_type = _media_variant(image_bytes, media_content_type, photo_ref, want_thumb)
             _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
             _download_ms = (time.perf_counter() - _media_download_started) * 1000
             print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
