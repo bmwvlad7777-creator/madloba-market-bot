@@ -15241,7 +15241,7 @@ async function openAdminModerationDetail(id,initData){
   const d=await r.json();if(!r.ok)throw new Error(d.error||'detail_failed');
   const x=d.item||{},photos=Array.isArray(x.photos)?x.photos:[];
   const meta=moderationMeta(x.category,x.type,x.subcategory,x.district);
-  const imgs=photos.map((url,index)=>`<img data-moderation-photo="${index}" alt="Фото объявления" style="width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:#f3f6fa">`).join('');
+  const imgs=photos.map((url,index)=>`<div style="position:relative;min-width:0"><img data-moderation-photo="${index}" alt="Фото ${index+1}" style="display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:#f3f6fa"><button type="button" data-remove-moderation-photo="${index}" aria-label="Удалить фото ${index+1}" style="position:absolute;top:5px;right:5px;border:0;border-radius:20px;background:#b42318;color:white;padding:7px 9px;font-weight:700">✕</button><span style="position:absolute;bottom:5px;left:6px;background:#142033c9;color:white;border-radius:8px;padding:2px 6px;font-size:12px">${index+1}</span></div>`).join('');
   const detailLabels={
    area:'Площадь',floor:'Этаж',rooms:'Количество комнат',year:'Год выпуска',
    mileage:'Пробег',make_model:'Марка и модель',brand_model:'Модель',
@@ -15264,7 +15264,7 @@ async function openAdminModerationDetail(id,initData){
    <div style="margin-top:10px"><button type="button" id="adminEditModerationDescription" style="padding:10px 13px;border:1px solid #dce5f0;border-radius:10px;background:#f4f7fb;color:#142033;font-weight:700">✎ Изменить описание</button><div id="adminModerationDescriptionEditor" hidden style="margin-top:9px"><label for="adminModerationDescriptionText" class="muted">Описание объявления</label><textarea id="adminModerationDescriptionText" maxlength="3000" rows="6" style="box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button type="button" id="adminSaveModerationDescription">Сохранить описание</button><button type="button" id="adminCancelModerationDescription">Отмена</button></div><div id="adminModerationEditStatus" class="muted" role="status"></div></div></div>
    ${details?`<div style="margin-top:12px">${details}</div>`:''}
    <div class="muted" style="margin:12px 0">Автор Telegram ID: ${esc(x.user_chat_id||'—')} · ${esc(createdLabel)}</div>
-   ${imgs?`<h3>Фотографии (${photos.length})</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">${imgs}</div>`:`<div class="muted" style="margin:12px 0">Фотографии не приложены</div>`}
+   ${imgs?`<h3>Фотографии (${photos.length})</h3><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${imgs}</div>`:`<div class="muted" style="margin:12px 0">Фотографии не приложены</div>`}
    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:20px">
     <button type="button" data-moderation-action="approve" style="flex:1;min-width:130px;background:#16834a;color:white;border:0;border-radius:12px;padding:13px;font-weight:750">✓ Одобрить и опубликовать</button>
     <button type="button" data-moderation-action="reject" style="flex:1;min-width:110px;background:#fff0f0;color:#b42318;border:1px solid #f2caca;border-radius:12px;padding:13px;font-weight:750">Отклонить</button>
@@ -15284,6 +15284,16 @@ async function openAdminModerationDetail(id,initData){
     await openAdminModerationDetail(id,initData);
    }catch(e){status.textContent=e.message||'Ошибка сохранения';saveButton.disabled=false}
   });
+  box.querySelectorAll('[data-remove-moderation-photo]').forEach(btn=>btn.addEventListener('click',async()=>{
+   const index=Number(btn.dataset.removeModerationPhoto);
+   if(!window.confirm('Удалить только фотографию №'+(index+1)+'? Остальные останутся на месте.'))return;
+   btn.disabled=true;
+   try{
+    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photos/remove',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({index})});
+    const out=await rr.json().catch(()=>({}));if(!rr.ok||!out.ok)throw new Error(out.message||out.error||'Ошибка удаления');
+    await openAdminModerationDetail(id,initData);
+   }catch(e){btn.disabled=false;alert('Не удалось удалить фотографию: '+(e.message||'ошибка'))}
+  }));
   box.querySelectorAll('[data-moderation-photo]').forEach(async img=>{
    try{const pr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photo/'+img.dataset.moderationPhoto,{headers:{'X-Telegram-Init-Data':initData}});if(!pr.ok){const failure=await pr.json().catch(()=>({}));throw new Error(failure.message||failure.error||('HTTP '+pr.status))}const blob=await pr.blob();if(!blob.type.startsWith('image/'))throw new Error('Сервер вернул не изображение');img.src=URL.createObjectURL(blob);img.style.minHeight='120px'}catch(e){console.error('ADMIN MODERATION PHOTO:',e);const note=document.createElement('div');note.className='muted';note.textContent='Не удалось загрузить фото: '+(e.message||'ошибка');img.replaceWith(note)}
   });
@@ -15820,6 +15830,45 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
     except (requests.RequestException, ValueError) as error:
         print("ADMIN MODERATION PHOTO ERROR:", request_id, photo_index, repr(error))
         return jsonify({"error":"photo_download_failed","message":str(error)[:180]}), 502
+
+
+@app.post("/api/admin/moderation/<int:request_id>/photos/remove")
+def mini_app_admin_moderation_remove_photo(request_id):
+    """Remove one reference from a pending request; do not re-upload other photos."""
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error": "invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error": "admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"error": "db_unavailable"}), 503
+    limit = _mm_rate_limit_guard("admin_moderation_photo_remove", user.get("id"), 20, 60)
+    if limit:
+        return limit
+    body = request.get_json(silent=True)
+    index = body.get("index") if isinstance(body, dict) else None
+    if type(index) is not int:
+        return jsonify({"error": "invalid_photo_index"}), 400
+    item = dict(load_pending_moderation_queue()).get(int(request_id))
+    if not isinstance(item, dict) or item.get("status", "pending") != "pending":
+        return jsonify({"error": "request_not_found"}), 404
+    if str(item.get("_telegram_publish_state") or "") in ("sending", "unknown", "sent"):
+        return jsonify({"error": "publication_in_progress"}), 409
+    data = item.get("data")
+    if not isinstance(data, dict):
+        return jsonify({"error": "invalid_listing"}), 409
+    photos = data.get("photos")
+    if not isinstance(photos, list) or not 0 <= index < len(photos):
+        return jsonify({"error": "photo_not_found"}), 404
+    updated = dict(item)
+    updated["data"] = dict(data)
+    updated_photos = list(photos)
+    updated_photos.pop(index)
+    updated["data"]["photos"] = updated_photos
+    if not runtime_state_save(_runtime_key("moderation", request_id), updated):
+        return jsonify({"error": "save_failed"}), 503
+    moderation_requests[int(request_id)] = updated
+    return jsonify({"ok": True, "photos_count": len(updated_photos)})
 
 
 @app.post("/api/admin/moderation/<int:request_id>/description")
