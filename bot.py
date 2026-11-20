@@ -15261,7 +15261,7 @@ async function openAdminModerationDetail(id,initData){
    <h3 style="margin:14px 0 6px">${esc(x.title||'Объявление')}</h3>
    <div class="muted">${meta}</div>
    <div style="font-size:22px;font-weight:800;margin:12px 0">💰 ${esc(moderationPrice(x.price))||'Цена не указана'}</div>
-   <div style="white-space:pre-wrap;line-height:1.5">${esc(x.description||'Описание не указано')}</div>
+   <div id="adminModerationDescriptionDisplay" style="white-space:pre-wrap;line-height:1.5">${esc(x.description||'Описание не указано')}</div>
    <div style="margin-top:10px"><button type="button" id="adminEditModerationDescription" style="padding:10px 13px;border:1px solid #dce5f0;border-radius:10px;background:#f4f7fb;color:#142033;font-weight:700">✎ Изменить описание</button><div id="adminModerationDescriptionEditor" hidden style="margin-top:9px"><label for="adminModerationDescriptionText" class="muted">Описание объявления</label><textarea id="adminModerationDescriptionText" maxlength="3000" rows="6" style="box-sizing:border-box;width:100%;padding:12px;margin-top:6px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button type="button" id="adminSaveModerationDescription">Сохранить описание</button><button type="button" id="adminCancelModerationDescription">Отмена</button></div><div id="adminModerationEditStatus" class="muted" role="status"></div></div></div>
    ${details?`<div style="margin-top:12px">${details}</div>`:''}
    <div class="muted" style="margin:12px 0">Автор Telegram ID: ${esc(x.user_chat_id||'—')} · ${esc(createdLabel)}</div>
@@ -15282,7 +15282,10 @@ async function openAdminModerationDetail(id,initData){
    try{
     const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/description',{method:'POST',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':initData},body:JSON.stringify({description:descriptionText.value})});
     const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить');
-    await openAdminModerationDetail(id,initData);
+    x.description=descriptionText.value;
+    const descriptionDisplay=box.querySelector('#adminModerationDescriptionDisplay');
+    if(descriptionDisplay)descriptionDisplay.textContent=x.description||'Описание не указано';
+    descriptionEditor.hidden=true;editDescriptionButton.hidden=false;status.textContent='';saveButton.disabled=false;
    }catch(e){status.textContent=e.message||'Ошибка сохранения';saveButton.disabled=false}
   });
   box.querySelectorAll('[data-remove-moderation-photo]').forEach(btn=>btn.addEventListener('click',async()=>{
