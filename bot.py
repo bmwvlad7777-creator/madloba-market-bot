@@ -15255,7 +15255,13 @@ async function openAdminModerationDetail(id,initData){
    brand:'Бренд',model:'Модель',storage:'Память',ram:'Оперативная память',
    processor:'Процессор',screen:'Экран',drivetrain:'Привод',fuel_type:'Тип топлива',engine_volume:'Объём двигателя',power:'Мощность',doors:'Количество дверей',seats:'Количество мест',address:'Адрес',phone:'Телефон',salary:'Зарплата',schedule:'График работы',employment_type:'Тип занятости',education:'Образование',language:'Язык',weight:'Вес',height:'Рост',length:'Длина',width:'Ширина',availability:'Наличие'
   };
-  const details=x.details&&typeof x.details==='object'?Object.entries(x.details).filter(([k,v])=>v!==''&&v!==null&&v!==undefined).map(([k,v])=>`<div class="muted">${esc(detailLabels[String(k).toLowerCase()]||String(k).replace(/_/g,' '))}: ${esc(typeof v==='object'?JSON.stringify(v):v)}</div>`).join(''):'';
+  const editableDetails=x.details&&typeof x.details==='object'?Object.entries(x.details).filter(([k,v])=>v!==null&&v!==undefined&&typeof v!=='object'):[];
+  const numericFields=new Set(['area','floor','rooms','year','mileage','engine_volume','engine','power','doors','seats','salary','weight','height','length','width','experience']);
+  const detailFields=editableDetails.map(([key,value],i)=>{
+   const label=detailLabels[String(key).toLowerCase()]||String(key).replace(/_/g,' ');
+   const numeric=numericFields.has(String(key).toLowerCase())&&String(value).trim()!==''&&!Number.isNaN(Number(value));
+   return `<label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#52647b;min-width:0">${esc(label)}<input data-admin-detail-key="${esc(key)}" data-admin-detail-index="${i}" ${numeric?'inputmode="decimal"':''} maxlength="180" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white"></label>`;
+  }).join('');
   const createdLabel=x.created_at?(()=>{const dt=new Date(x.created_at);return Number.isNaN(dt.getTime())?String(x.created_at):dt.toLocaleString('ru-RU',{timeZone:'Asia/Tbilisi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})})():'';
   box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Заявка #${esc(x.request_id)}</h2><span class="muted">На модерации</span></div>
    <h3 style="margin:14px 0 6px">${esc(x.title||'Объявление')}</h3>
@@ -15266,10 +15272,11 @@ async function openAdminModerationDetail(id,initData){
     <input id="adminModerationPriceText" inputmode="decimal" maxlength="18" style="box-sizing:border-box;width:100%;padding:12px;margin-bottom:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white">
     <label for="adminModerationDescriptionText" style="display:block;font-size:13px;color:#64748b;margin-bottom:5px">Описание</label>
     <textarea id="adminModerationDescriptionText" maxlength="3000" rows="4" style="box-sizing:border-box;width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;resize:vertical;background:white"></textarea>
+    ${detailFields?`<div style="font-weight:700;margin:10px 0 12px">Характеристики</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px">${detailFields}</div>`:''}
     <button type="button" id="adminSaveModerationChanges" style="width:100%;margin-top:12px;padding:13px;background:#1478f5;color:white;border:0;border-radius:11px;font-weight:750">Сохранить изменения</button>
     <div id="adminModerationEditStatus" class="muted" role="status" style="margin-top:7px"></div>
    </div>
-   ${details?`<div style="margin-top:12px">${details}</div>`:''}
+
    <div class="muted" style="margin:12px 0">Автор Telegram ID: ${esc(x.user_chat_id||'—')} · ${esc(createdLabel)}</div>
    ${imgs?`<h3>Фотографии (${photos.length})</h3><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${imgs}</div>`:`<div class="muted" style="margin:12px 0">Фотографии не приложены</div>`}
    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:20px">
@@ -15280,27 +15287,32 @@ async function openAdminModerationDetail(id,initData){
   const descriptionText=box.querySelector('#adminModerationDescriptionText');
   priceInput.value=String(x.price??'').replace(/[^0-9., ]/g,'').trim();
   descriptionText.value=x.description||'';
+  box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{const entry=editableDetails[Number(el.dataset.adminDetailIndex)];if(entry)el.value=String(entry[1]??'')});
   box.querySelector('#adminSaveModerationChanges')?.addEventListener('click',async()=>{
    const save=box.querySelector('#adminSaveModerationChanges'),status=box.querySelector('#adminModerationEditStatus');
    const newPrice=priceInput.value.trim(),newDescription=descriptionText.value;
    const oldPrice=String(x.price??'').replace(/[^0-9., ]/g,'').trim();
-   const priceChanged=newPrice!==oldPrice,descriptionChanged=newDescription!==(x.description||'');
-   if(!priceChanged&&!descriptionChanged){status.textContent='Изменений нет';return}
+   const changes={};
+   if(newPrice!==oldPrice)changes.price=newPrice;
+   if(newDescription!==(x.description||''))changes.description=newDescription;
+   const detailChanges={};
+   box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{
+    const entry=editableDetails[Number(el.dataset.adminDetailIndex)];
+    if(entry&&el.value!==String(entry[1]??''))detailChanges[entry[0]]=el.value;
+   });
+   if(Object.keys(detailChanges).length)changes.details=detailChanges;
+   if(!Object.keys(changes).length){status.textContent='Изменений нет';return}
    save.disabled=true;status.textContent='Сохраняем изменения…';
    const headers={'Content-Type':'application/json','X-Telegram-Init-Data':initData};
    try{
-    if(priceChanged){
-     const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/price',{method:'POST',headers,body:JSON.stringify({price:newPrice})});
-     const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить цену');
-     x.price=result.price;
-    }
-    if(descriptionChanged){
-     const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/description',{method:'POST',headers,body:JSON.stringify({description:newDescription})});
-     const result=await rr.json().catch(()=>({}));if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить описание');
-     x.description=newDescription;
-    }
-    status.textContent='Изменения сохранены';
-   }catch(e){status.textContent='Ошибка: '+(e.message||'не удалось сохранить')+'. Проверьте данные перед повторной попыткой.'}
+    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/edit',{method:'POST',headers,body:JSON.stringify(changes)});
+    const result=await rr.json().catch(()=>({}));
+    if(!rr.ok||!result.ok)throw new Error(result.message||result.error||'Не удалось сохранить изменения');
+    if('price' in changes)x.price=result.price;
+    if('description' in changes)x.description=result.description;
+    if(changes.details){Object.assign(x.details,result.details);editableDetails.forEach(entry=>{if(entry[0] in result.details)entry[1]=result.details[entry[0]]})}
+    status.textContent='✓ Изменения сохранены';
+   }catch(e){status.textContent='Ошибка: '+(e.message||'не удалось сохранить')+'. Данные в форме сохранены для повторной попытки.'}
    finally{save.disabled=false}
   });
   box.querySelectorAll('[data-remove-moderation-photo]').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -15900,6 +15912,76 @@ def mini_app_admin_moderation_remove_photo(request_id):
         return jsonify({"error": "save_failed"}), 503
     moderation_requests[int(request_id)] = updated
     return jsonify({"ok": True, "photos_count": len(updated_photos)})
+
+
+@app.post("/api/admin/moderation/<int:request_id>/edit")
+def mini_app_admin_moderation_edit(request_id):
+    """Atomically update existing fields of a pending request, with admin authorization."""
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error": "invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error": "admin_only"}), 403
+    if not supabase_enabled():
+        return jsonify({"error": "db_unavailable"}), 503
+    limit = _mm_rate_limit_guard("admin_moderation_edit", user.get("id"), 20, 60)
+    if limit:
+        return limit
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not body or set(body) - {"price", "description", "details"}:
+        return jsonify({"error": "invalid_changes"}), 400
+    pending = dict(load_pending_moderation_queue())
+    item = pending.get(int(request_id))
+    if not isinstance(item, dict) or item.get("status", "pending") != "pending":
+        return jsonify({"error": "request_not_found"}), 404
+    if str(item.get("_telegram_publish_state") or "") in ("sending", "unknown", "sent"):
+        return jsonify({"error": "publication_in_progress"}), 409
+    data = item.get("data")
+    if not isinstance(data, dict):
+        return jsonify({"error": "invalid_listing"}), 409
+    updated_data = dict(data)
+    if "price" in body:
+        if not isinstance(body["price"], (str, int, float)):
+            return jsonify({"error": "invalid_price"}), 400
+        price = _normalize_price_input(body["price"])
+        if price is None or float(price) > 1000000000:
+            return jsonify({"error": "invalid_price"}), 400
+        updated_data["price"] = price
+    if "description" in body:
+        if not isinstance(body["description"], str) or len(body["description"].strip()) > 3000:
+            return jsonify({"error": "invalid_description"}), 400
+        updated_data["description"] = body["description"].strip()
+    if "details" in body:
+        changes = body["details"]
+        existing = data.get("details")
+        if not isinstance(existing, dict) or not isinstance(changes, dict) or len(changes) > 50:
+            return jsonify({"error": "invalid_details"}), 400
+        new_details = dict(existing)
+        for key, value in changes.items():
+            if key not in existing or not isinstance(value, str) or len(value) > 180 or isinstance(existing[key], (dict, list)):
+                return jsonify({"error": "invalid_detail_field", "message": "Недопустимое поле: " + str(key)[:60]}), 400
+            old = existing[key]
+            if isinstance(old, (int, float)) and not isinstance(old, bool):
+                try:
+                    numeric = float(value.strip().replace(",", "."))
+                    if not numeric == numeric and abs(numeric) != float("inf") or numeric < 0 or numeric > 1000000000:
+                        raise ValueError("out of range")
+                    new_details[key] = int(numeric) if isinstance(old, int) and numeric.is_integer() else numeric
+                except (ValueError, OverflowError):
+                    return jsonify({"error": "invalid_numeric_detail", "message": "Проверьте числовое поле: " + str(key)[:60]}), 400
+            elif isinstance(old, bool):
+                if value not in ("true", "false"):
+                    return jsonify({"error": "invalid_boolean_detail"}), 400
+                new_details[key] = value == "true"
+            else:
+                new_details[key] = value.strip()
+        updated_data["details"] = new_details
+    updated = dict(item)
+    updated["data"] = updated_data
+    if not runtime_state_save(_runtime_key("moderation", request_id), updated):
+        return jsonify({"error": "save_failed"}), 503
+    moderation_requests[int(request_id)] = updated
+    return jsonify({"ok": True, "price": updated_data.get("price"), "description": updated_data.get("description"), "details": updated_data.get("details", {})})
 
 
 @app.post("/api/admin/moderation/<int:request_id>/price")
