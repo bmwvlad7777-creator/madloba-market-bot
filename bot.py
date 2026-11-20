@@ -88,6 +88,70 @@ HTTP_SESSION.mount("https://", _HTTP_ADAPTER)
 # Small shared pool lets independent Mini App reads overlap without creating
 # a new thread pool for every request.
 LISTING_READ_EXECUTOR = ThreadPoolExecutor(max_workers=8)
+
+# PERF-04: short-lived, per-user favorite flags for catalog pages.
+# Cache only successful reads; mutations invalidate the entire user's flags.
+_FAVORITE_FLAGS_LOCK = threading.Lock()
+_FAVORITE_FLAGS_CACHE = OrderedDict()
+_FAVORITE_FLAGS_TTL = 45.0
+_FAVORITE_FLAGS_MAX_USERS = 1000
+_FAVORITE_FLAGS_GENERATION = [0]
+
+
+def _favorite_flags_invalidate(user_id):
+    with _FAVORITE_FLAGS_LOCK:
+        _FAVORITE_FLAGS_CACHE.pop(str(user_id), None)
+        _FAVORITE_FLAGS_GENERATION[0] += 1
+
+
+def _favorite_flags_for_listings(user_id, listing_ids):
+    ids = {int(x) for x in listing_ids if str(x).isdigit()}
+    if not ids:
+        return set()
+    key = str(user_id)
+    now = time.monotonic()
+    with _FAVORITE_FLAGS_LOCK:
+        generation = _FAVORITE_FLAGS_GENERATION[0]
+        entry = _FAVORITE_FLAGS_CACHE.get(key)
+        if entry is not None and entry[0] > now:
+            known = dict(entry[1])
+            _FAVORITE_FLAGS_CACHE.move_to_end(key)
+        else:
+            known = {}
+            _FAVORITE_FLAGS_CACHE.pop(key, None)
+    missing = ids - known.keys()
+    if missing:
+        rows = supabase_request(
+            "GET", "favorites",
+            params={
+                "select": "listing_id",
+                "user_id": f"eq.{user_id}",
+                "listing_id": f"in.({','.join(str(i) for i in sorted(missing))})",
+            },
+        )
+        if rows is None:
+            # Preserve the previous API behavior on a transient DB error:
+            # no stale or guessed flags are stored.
+            return {i for i in ids if known.get(i, False)}
+        found = {int(r["listing_id"]) for r in rows if str(r.get("listing_id", "")).isdigit()}
+        with _FAVORITE_FLAGS_LOCK:
+            if _FAVORITE_FLAGS_GENERATION[0] != generation:
+                return {i for i in ids if known.get(i, False)}
+            current = _FAVORITE_FLAGS_CACHE.get(key)
+            if current is not None and current[0] > time.monotonic():
+                merged = dict(current[1])
+            else:
+                merged = {}
+            # Only fill missing keys; a concurrent mutation may have
+            # invalidated the cache, so a generation guard is needed below.
+            merged.update({i: i in found for i in missing})
+            _FAVORITE_FLAGS_CACHE[key] = (time.monotonic() + _FAVORITE_FLAGS_TTL, merged)
+            _FAVORITE_FLAGS_CACHE.move_to_end(key)
+            while len(_FAVORITE_FLAGS_CACHE) > _FAVORITE_FLAGS_MAX_USERS:
+                _FAVORITE_FLAGS_CACHE.popitem(last=False)
+            known = merged
+    return {i for i in ids if known.get(i, False)}
+
 HTTP_SESSION.mount("http://", _HTTP_ADAPTER)
 
 # Bounded in-process media cache. Authorization and listing visibility are
@@ -17187,6 +17251,7 @@ def mini_app_add_favorite(listing_id):
     )
     if created is None:
         return jsonify({"error":"db_insert_failed"}), 503
+    _favorite_flags_invalidate(user_id)
     return jsonify({"ok":True,"favorite":True})
 
 
@@ -17209,6 +17274,7 @@ def mini_app_remove_favorite(listing_id):
     )
     if deleted is None:
         return jsonify({"error":"db_delete_failed"}), 503
+    _favorite_flags_invalidate(user_id)
     return jsonify({"ok":True,"favorite":False})
 
 
@@ -18330,19 +18396,9 @@ def mini_app_listings():
     def _load_favorite_ids():
         if not current_user_id or not rows:
             return set()
-        listing_ids = [str(r.get("id")) for r in rows if r.get("id") is not None]
-        if not listing_ids:
-            return set()
-        fav_rows = supabase_request(
-            "GET",
-            "favorites",
-            params={
-                "select":"listing_id",
-                "user_id":f"eq.{current_user_id}",
-                "listing_id":f"in.({','.join(listing_ids)})",
-            },
-        ) or []
-        return {int(r["listing_id"]) for r in fav_rows if str(r.get("listing_id", "")).isdigit()}
+        return _favorite_flags_for_listings(
+            current_user_id, [r.get("id") for r in rows]
+        )
 
     favorite_future = LISTING_READ_EXECUTOR.submit(_load_favorite_ids) if current_user_id and rows else None
     _perf_phase_started = time.perf_counter()
