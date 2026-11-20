@@ -5301,7 +5301,26 @@ def _moderation_callback_answer(callback_id, *args):
     return None
 
 
-def moderate_publish(
+# Prevent two simultaneous admin callbacks in this worker from entering the
+# Telegram send path for the same moderation request. Durable publication state
+# remains the protection across restarts; a database-level atomic claim is
+# still needed before scaling to multiple worker processes/instances.
+_MODERATION_PUBLISH_LOCKS = [threading.Lock() for _ in range(128)]
+
+
+def moderate_publish(request_id, admin_user_id, callback_id):
+    lock_index = int(hashlib.sha256(str(request_id).encode("utf-8")).hexdigest()[:8], 16) % len(_MODERATION_PUBLISH_LOCKS)
+    lock = _MODERATION_PUBLISH_LOCKS[lock_index]
+    if not lock.acquire(blocking=False):
+        _moderation_callback_answer(callback_id, "⏳ Эта заявка уже обрабатывается.", True)
+        return
+    try:
+        return _moderate_publish_locked(request_id, admin_user_id, callback_id)
+    finally:
+        lock.release()
+
+
+def _moderate_publish_locked(
     request_id,
     admin_user_id,
     callback_id
