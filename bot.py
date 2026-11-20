@@ -1155,20 +1155,69 @@ def load_supabase_published_listings():
     return True
 
 
+# PERF-06: reuse recently fetched catalog photo metadata across category views.
+# This caches URLs/order only, never image bytes. Short TTL limits stale data
+# after photo edits, and failed database reads are never added to the cache.
+_CATALOG_PHOTO_LOCK = threading.Lock()
+_CATALOG_PHOTO_CACHE = OrderedDict()
+_CATALOG_PHOTO_TTL = 15.0
+_CATALOG_PHOTO_MAX_LISTINGS = 3000
+
+
 def _supabase_photo_rows(listing_ids):
-    if not listing_ids:
+    ids = list(dict.fromkeys(int(value) for value in listing_ids if str(value).isdigit()))
+    if not ids:
         return []
 
-    values = ",".join(str(int(value)) for value in listing_ids)
-    return supabase_request(
-        "GET",
-        "listing_photos",
-        params={
-            "select": "listing_id,photo_url,sort_order",
-            "listing_id": f"in.({values})",
-            "order": "sort_order.asc",
-        },
-    ) or []
+    now = time.monotonic()
+    cached = {}
+    missing = []
+    with _CATALOG_PHOTO_LOCK:
+        for listing_id in ids:
+            entry = _CATALOG_PHOTO_CACHE.get(listing_id)
+            if entry is not None and entry[0] > now:
+                cached[listing_id] = entry[1]
+                _CATALOG_PHOTO_CACHE.move_to_end(listing_id)
+            else:
+                missing.append(listing_id)
+                if entry is not None:
+                    _CATALOG_PHOTO_CACHE.pop(listing_id, None)
+
+    fresh = {}
+    if missing:
+        values = ",".join(str(value) for value in missing)
+        result = supabase_request(
+            "GET", "listing_photos",
+            params={
+                "select": "listing_id,photo_url,sort_order",
+                "listing_id": f"in.({values})",
+                "order": "sort_order.asc",
+            },
+        )
+        if result is None:
+            # Preserve the existing catalog fallback on Supabase errors.
+            result = []
+        else:
+            for listing_id in missing:
+                fresh[listing_id] = []
+            for photo in result:
+                try:
+                    listing_id = int(photo.get("listing_id"))
+                except (TypeError, ValueError):
+                    continue
+                if listing_id in fresh:
+                    fresh[listing_id].append(dict(photo))
+            expires_at = time.monotonic() + _CATALOG_PHOTO_TTL
+            with _CATALOG_PHOTO_LOCK:
+                for listing_id, photos in fresh.items():
+                    _CATALOG_PHOTO_CACHE[listing_id] = (expires_at, photos)
+                    _CATALOG_PHOTO_CACHE.move_to_end(listing_id)
+                while len(_CATALOG_PHOTO_CACHE) > _CATALOG_PHOTO_MAX_LISTINGS:
+                    _CATALOG_PHOTO_CACHE.popitem(last=False)
+
+    # Preserve requested listing order and each listing's photo sort order.
+    return [dict(photo) for listing_id in ids
+            for photo in (cached.get(listing_id) if listing_id in cached else fresh.get(listing_id, []))]
 
 
 def _attach_catalog_photos(rows):
