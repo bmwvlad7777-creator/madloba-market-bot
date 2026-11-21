@@ -163,6 +163,40 @@ def _favorite_flags_for_listings(user_id, listing_ids):
 
 HTTP_SESSION.mount("http://", _HTTP_ADAPTER)
 
+# PERF-12: short-lived visibility + ordered-photo snapshot for public media.
+# In-process only; mutation invalidation is immediate in this worker. The short
+# TTL bounds stale state from external DB changes and other Render workers.
+_MEDIA_VISIBILITY_TTL = 3.0
+_MEDIA_VISIBILITY_MAX = 512
+_MEDIA_VISIBILITY = OrderedDict()
+_MEDIA_VISIBILITY_LOCK = threading.Lock()
+
+def _media_visibility_get(listing_id):
+    with _MEDIA_VISIBILITY_LOCK:
+        entry = _MEDIA_VISIBILITY.get(listing_id)
+        if entry is None:
+            return None
+        expires, rows = entry
+        if expires <= time.monotonic():
+            _MEDIA_VISIBILITY.pop(listing_id, None)
+            return None
+        _MEDIA_VISIBILITY.move_to_end(listing_id)
+        return [dict(row) for row in rows]
+
+def _media_visibility_put(listing_id, rows):
+    with _MEDIA_VISIBILITY_LOCK:
+        _MEDIA_VISIBILITY[listing_id] = (time.monotonic() + _MEDIA_VISIBILITY_TTL, [dict(row) for row in rows])
+        _MEDIA_VISIBILITY.move_to_end(listing_id)
+        while len(_MEDIA_VISIBILITY) > _MEDIA_VISIBILITY_MAX:
+            _MEDIA_VISIBILITY.popitem(last=False)
+
+def _media_visibility_invalidate(listing_id=None):
+    with _MEDIA_VISIBILITY_LOCK:
+        if listing_id is None:
+            _MEDIA_VISIBILITY.clear()
+        else:
+            _MEDIA_VISIBILITY.pop(listing_id, None)
+
 # Bounded in-process media cache. Authorization and listing visibility are
 # checked on every /media request before this cache is consulted.
 _MEDIA_CACHE_MAX_BYTES = 64 * 1024 * 1024
@@ -392,6 +426,10 @@ def supabase_request(method, path, params=None, payload=None):
                 f" upstream_ms={response.headers.get('x-kong-upstream-latency', 'na')}"
                 f" gateway_ms={response.headers.get('x-kong-proxy-latency', 'na')}"
             )
+        # Any successful listing/photo mutation invalidates the in-worker
+        # visibility snapshot. This also covers moderation and lifecycle paths.
+        if method.upper() in {"POST", "PATCH", "DELETE"} and path.strip("/") in {"listings", "listing_photos"}:
+            _media_visibility_invalidate()
         return result
     except Exception as error:
         if _is_cursor_rpc:
@@ -19982,7 +20020,9 @@ def mini_app_media(listing_id, index):
     # Fetch publication/expiry state and the ordered photo list in one
     # PostgREST request. The previous implementation made two database
     # round trips for every card photo, adding latency when a page has 20 cards.
-    joined = supabase_request(
+    cached_visibility = _media_visibility_get(listing_id)
+    _visibility_cache_hit = cached_visibility is not None
+    joined = ([{"listing_photos": cached_visibility}] if cached_visibility is not None else supabase_request(
         "GET", "listings",
         params={
             "select": "id,listing_photos(photo_url,sort_order)",
@@ -19991,7 +20031,7 @@ def mini_app_media(listing_id, index):
             "expires_at": f"gt.{_utc_now_iso()}",
             "limit": "1",
         },
-    )
+    ))
     # PERF-11: measure the mandatory visibility lookup separately from image work.
     _media_visibility_ms = (time.perf_counter() - _perf_started) * 1000
     owner_media_authorized = False
@@ -19999,6 +20039,8 @@ def mini_app_media(listing_id, index):
         if joined:
             rows = joined[0].get("listing_photos") or []
             rows = sorted(rows, key=lambda row: row.get("sort_order") or 0)
+            if not _visibility_cache_hit:
+                _media_visibility_put(listing_id, rows)
         else:
             # Expired/unpublished photos remain available only to the authenticated owner.
             owner_row, owner_user, owner_user_id = _mini_app_owned_row(listing_id) if request.headers.get("X-Telegram-Init-Data") else (None, None, None)
@@ -20033,8 +20075,8 @@ def mini_app_media(listing_id, index):
     if index >= len(rows):return "Not found",404
     photo_ref=str(rows[index].get("photo_url") or "")
     if not photo_ref:return "Not found",404
-    media_cache_policy = "private, max-age=3600" if owner_media_authorized else "public, max-age=86400"
-    print(f"PERF media_visibility ms={_media_visibility_ms:.1f} listing_id={listing_id} index={index} thumb={int(want_thumb)} owner={int(owner_media_authorized)}")
+    media_cache_policy = "private, no-store" if owner_media_authorized else "no-store"
+    print(f"PERF media_visibility ms={_media_visibility_ms:.1f} listing_id={listing_id} index={index} thumb={int(want_thumb)} owner={int(owner_media_authorized)} visibility_cache={int(_visibility_cache_hit)}")
     cached_media = _media_cache_get(photo_ref)
     if cached_media is not None:
         cached_bytes, cached_type = cached_media
