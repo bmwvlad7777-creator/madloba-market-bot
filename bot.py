@@ -13461,12 +13461,24 @@ function mmPostHideOtherViews(){['homeView','detailView','favoritesView','mineVi
 const mmDraftKey=()=> 'mm_listing_draft_v1_'+String(tg?.initDataUnsafe?.user?.id||'guest');
 let mmDraftRestoring=false,mmDraftTimer=null;
 function mmDraftSnapshot(){const root=$('listingPostView');if(!root)return null;const fields={};root.querySelectorAll('input[id],select[id],textarea[id]').forEach(el=>{if(el.type!=='file'&&el.id.startsWith('mmPost'))fields[el.id]=el.value});return {fields,details:Object.fromEntries([...root.querySelectorAll('#mmPostDetails [id]')].map(el=>[el.id,{value:el.value,selected:el.dataset.selected||''}])),savedAt:Date.now()}}
+function mmPostSubmissionKey(){
+ const key=mmDraftKey()+':submission';
+ let value='';try{value=localStorage.getItem(key)||''}catch(e){}
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value)){
+  const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+  const h=Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');
+  value=h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+  try{localStorage.setItem(key,value)}catch(e){}
+ }
+ return value;
+}
+function mmPostSubmissionClear(){try{localStorage.removeItem(mmDraftKey()+':submission')}catch(e){}}
 function mmDraftSave(){if(mmDraftRestoring)return;try{const draft=mmDraftSnapshot();if(draft)localStorage.setItem(mmDraftKey(),JSON.stringify(draft))}catch(e){console.warn('draft text save',e)}}
 function mmDraftSchedule(){if(mmDraftRestoring)return;clearTimeout(mmDraftTimer);mmDraftTimer=setTimeout(mmDraftSave,180)}
 // Do not persist photo blobs or upload URLs between Mini App sessions.
 // Remove any photo data saved by older versions without blocking the form.
 async function mmDraftDiscardLegacyPhotos(){try{if(!window.indexedDB)return;const req=indexedDB.open('mm_listing_drafts',1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('photos'))req.result.createObjectStore('photos')};req.onsuccess=()=>{const db=req.result;try{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(mmDraftKey());tx.oncomplete=()=>db.close();tx.onerror=()=>db.close()}catch(e){db.close()}}}catch(e){}}
-async function mmDraftClear(){clearTimeout(mmDraftTimer);try{localStorage.removeItem(mmDraftKey())}catch(e){}mmDraftDiscardLegacyPhotos()}
+async function mmDraftClear(){clearTimeout(mmDraftTimer);mmPostSubmissionClear();try{localStorage.removeItem(mmDraftKey())}catch(e){}mmDraftDiscardLegacyPhotos()}
 function mmDraftAddPhoto(photo){if(!photo.file&&!photo.url)return;const local=photo.file?URL.createObjectURL(photo.file):photo.url;const wrap=document.createElement('div');wrap.className='mm-post-photo';const img=document.createElement('img');img.src=local;img.alt='Фото';const remove=document.createElement('button');remove.type='button';remove.setAttribute('aria-label','Удалить');remove.textContent='×';wrap.append(img,remove);$('mmPostPhotoGrid').appendChild(wrap);const item={file:photo.file||null,local,url:photo.url||null};mmPostPhotos.push(item);remove.onclick=()=>{wrap.remove();const i=mmPostPhotos.indexOf(item);if(i>=0)mmPostPhotos.splice(i,1);if(photo.file)URL.revokeObjectURL(local);mmDraftSchedule()}}
 async function mmDraftRestore(){let draft=null;try{draft=JSON.parse(localStorage.getItem(mmDraftKey())||'null')}catch(e){}if(!draft||!draft.fields)return;mmDraftRestoring=true;try{const f=draft.fields;const set=(id)=>{const el=$(id);if(el&&Object.prototype.hasOwnProperty.call(f,id)){el.value=f[id];el.dispatchEvent(new Event('change',{bubbles:false}))}};set('mmPostCategory');set('mmPostSubcategory');set('mmPostType');set('mmPostCity');mmPostFields();for(const [id,entry] of Object.entries(draft.details||{})){const el=$(id);if(el){el.value=entry.value; if(entry.selected)el.dataset.selected=entry.selected;el.dispatchEvent(new Event('change',{bubbles:false}))}}for(const id of Object.keys(f)){if(!['mmPostCategory','mmPostSubcategory','mmPostType','mmPostCity'].includes(id)&&!id.startsWith('mmPostField_'))set(id)}mmPostPhotos=[];$('mmPostPhotoGrid').innerHTML='';mmDraftDiscardLegacyPhotos();$('mmPostPreview').classList.remove('show');mmPostPreviewMode=false;$('mmPostNext').textContent=mmPostText('preview')}finally{mmDraftRestoring=false}}
 $('listingPostView').addEventListener('input',mmDraftSchedule);
@@ -13536,7 +13548,7 @@ $('mmPostNext').addEventListener('click',async()=>{const d=mmPostCollect();$('mm
  await Promise.all(Array.from({length:Math.min(3,pending.length)},()=>uploadWorker()));
  if(firstError)throw firstError;
  btn.textContent=mmPostText('sending');
- d.photos=mmPostPhotos.map(x=>x.url).filter(Boolean);const r=await apiFetch('/api/listing-submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});const result=await r.json().catch(()=>({}));if(!r.ok||!result.ok)throw new Error(result.message||result.error||'submit_failed');toast(mmPostText('sent')+result.request_id);await mmDraftClear();mmPostPhotos=[];$('listingPostView').classList.remove('show');$('listingPostView').hidden=true;document.body.classList.remove('mm-post-modal-open','mm-post-keyboard-open');showHome()}catch(err){console.error('MM POST SUBMIT',err);$('mmPostError').textContent=err.message==='photo_storage_upload_failed'||err.message==='storage_bucket_not_resolved'?mmPostText('photoFail'):(err.message||'Не удалось отправить объявление.');}finally{btn.disabled=false;btn.textContent=mmPostText('send')}});
+ d.photos=mmPostPhotos.map(x=>x.url).filter(Boolean);d.submission_key=mmPostSubmissionKey();const r=await apiFetch('/api/listing-submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});const result=await r.json().catch(()=>({}));if(!r.ok||!result.ok)throw new Error(result.message||result.error||'submit_failed');toast(mmPostText('sent')+result.request_id);mmPostSubmissionClear();await mmDraftClear();mmPostPhotos=[];$('listingPostView').classList.remove('show');$('listingPostView').hidden=true;document.body.classList.remove('mm-post-modal-open','mm-post-keyboard-open');showHome()}catch(err){console.error('MM POST SUBMIT',err);$('mmPostError').textContent=err.message==='photo_storage_upload_failed'||err.message==='storage_bucket_not_resolved'?mmPostText('photoFail'):(err.message||'Не удалось отправить объявление.');}finally{btn.disabled=false;btn.textContent=mmPostText('send')}});
 function mmPostBack(){if(mmPostPreviewMode){mmPostPreviewMode=false;$('mmPostPreview').classList.remove('show');$('mmPostNext').textContent=mmPostText('preview');$('mmPostCancel').textContent=mmPostText('cancel');return} $('listingPostView').classList.remove('show');$('listingPostView').hidden=true;document.body.classList.remove('mm-post-modal-open','mm-post-keyboard-open');showHome()}
 $('mmPostCancel').onclick=mmPostBack;$('listingPostBack').onclick=mmPostBack;$('listingPostView').addEventListener('click',e=>{if(e.target===$('listingPostView'))mmPostBack()});
 
@@ -16682,16 +16694,28 @@ def mini_app_listing_submit():
     if not telegram_id.isdigit():
         return jsonify({"ok": False, "error": "invalid_user"}), 401
 
-    limited = _mm_rate_limit_guard("listing_submit", telegram_id, 5, 300)
-    if limited:
-        return limited
+    # Stable client key: retries of one submission must return the same request.
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"ok": False, "error": "invalid_payload"}), 400
+    submission_key = str(body.get("submission_key") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", submission_key):
+        return jsonify({"ok": False, "error": "invalid_submission_key"}), 400
 
     if not supabase_enabled():
         return jsonify({"ok": False, "error": "moderation_storage_unavailable"}), 503
 
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return jsonify({"ok": False, "error": "invalid_payload"}), 400
+    # A retry of a completed request must bypass the new-submission rate limit.
+    receipt_key = f"listing_submit:{telegram_id}:{submission_key}"
+    found, receipt, receipt_ok = runtime_state_load(receipt_key)
+    if not receipt_ok:
+        return jsonify({"ok": False, "error": "submission_storage_unavailable"}), 503
+    if found and isinstance(receipt, dict) and receipt.get("request_id"):
+        return jsonify({"ok": True, "request_id": int(receipt["request_id"]),
+                        "status": "pending", "duplicate": True}), 200
+    limited = _mm_rate_limit_guard("listing_submit", telegram_id, 5, 300)
+    if limited:
+        return limited
 
     category_key = str(body.get("category_key") or "").strip()
     subcategory_key = str(body.get("subcategory_key") or "").strip()
@@ -16768,29 +16792,23 @@ def mini_app_listing_submit():
     if not data["contact"]:
         return jsonify({"ok": False, "error": "contact_required"}), 400
 
+    # The database RPC owns the idempotency receipt, moderation row, and counter
+    # in ONE transaction. A duplicate key never creates a second request.
+    # A database outage fails closed rather than risking duplicate creation.
+    result = supabase_request("POST", "rpc/mm_submit_listing_once", payload={
+        "p_telegram_id": int(telegram_id),
+        "p_submission_key": submission_key,
+        "p_listing_data": data,
+    })
+    if not isinstance(result, dict) or not result.get("ok"):
+        return jsonify({"ok": False, "error": "submission_storage_unavailable"}), 503
+    request_id = int(result["request_id"])
+    # Sync local cache after the durable transaction. Failure to sync cache
+    # does not change the committed database result.
     with _MM_MODERATION_SUBMIT_LOCK:
-        request_id = max(1, int(next_moderation_id or 1))
-        created_at = _utc_now_iso()
-        moderation_item = {
-            "request_id": request_id,
-            "user_chat_id": int(telegram_id),
-            "message_chat_id": None,
-            "message_id": None,
-            "status": "pending",
-            "source": "mini_app",
-            "data": json.loads(json.dumps(data, ensure_ascii=False)),
-            "created_at": created_at,
-        }
-        moderation_key = _runtime_key("moderation", request_id)
-        if not runtime_state_save(moderation_key, moderation_item):
-            return jsonify({"ok": False, "error": "moderation_save_failed"}), 503
-        if not runtime_state_save("meta:next_moderation_id", {"value": request_id + 1}):
-            runtime_state_delete(moderation_key)
-            return jsonify({"ok": False, "error": "moderation_counter_save_failed"}), 503
-        moderation_requests[request_id] = moderation_item
-        next_moderation_id = request_id + 1
-
-    return jsonify({"ok": True, "request_id": request_id, "status": "pending"}), 201
+        next_moderation_id = max(next_moderation_id, request_id + 1)
+    return jsonify({"ok": True, "request_id": request_id,
+                    "status": "pending", "duplicate": bool(result.get("duplicate"))}), (200 if result.get("duplicate") else 201)
 
 
 @app.get("/api/listing-form-config")
