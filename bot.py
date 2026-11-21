@@ -15328,6 +15328,10 @@ async function openAdminModerationDetail(id,initData){
    const numeric=numericFields.has(String(key).toLowerCase())&&String(value).trim()!==''&&!Number.isNaN(Number(value));
    return `<label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#52647b;min-width:0">${esc(label)}<input data-admin-detail-key="${esc(key)}" data-admin-detail-index="${i}" ${numeric?'inputmode="decimal"':''} maxlength="180" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.3;background:white"></label>`;
   }).join('');
+  const author=d.author_profile||null,authorCounts=d.author_counts||null;
+  const authorName=author?.name||'Имя не указано';
+  const authorUsername=author?.username?'@'+String(author.username).replace(/^@/,''):'';
+  const authorStats=authorCounts?`<div class="muted" style="margin-top:5px">Опубликовано: ${esc(authorCounts.published??'—')} · В архиве: ${esc(authorCounts.archived??'—')}</div>`:'';
   const originalContact=String(x.contact||'').trim();
   const originalPhone=/^\+?[\d\s()\-]+$/.test(originalContact) && originalContact.replace(/\D/g,'').length>=9 ? originalContact : '';
   const createdLabel=x.created_at?(()=>{const dt=new Date(x.created_at);return Number.isNaN(dt.getTime())?String(x.created_at):dt.toLocaleString('ru-RU',{timeZone:'Asia/Tbilisi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})})():'';
@@ -15349,7 +15353,7 @@ async function openAdminModerationDetail(id,initData){
     <div id="adminModerationEditStatus" class="muted" role="status" style="margin-top:7px"></div>
    </div>
 
-   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc"><div><div style="font-weight:700;color:#142033">Автор объявления</div><div class="muted" style="margin-top:3px">${originalContact.startsWith('@')?esc(originalContact)+' · ':''}Telegram ID: ${esc(x.user_chat_id||'—')}</div><div class="muted" style="font-size:12px;margin-top:3px">${esc(createdLabel)} · Только просмотр</div></div><span aria-label="Контакт владельца не редактируется" title="Контакт владельца не редактируется" style="font-size:17px;color:#64748b">🔒</span></div>
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc"><div><div style="font-weight:700;color:#142033">Автор объявления · Админ-просмотр</div><div style="margin-top:5px;font-weight:650">${esc(authorName)} ${authorUsername?`<span class="muted">${esc(authorUsername)}</span>`:''}</div><div class="muted" style="margin-top:3px">Telegram ID: ${esc(x.user_chat_id||'—')}</div>${authorStats}<div class="muted" style="font-size:12px;margin-top:5px">Заявка: ${esc(createdLabel)} · Данные автора защищены от изменения</div></div><span aria-label="Контакт владельца не редактируется" title="Контакт владельца не редактируется" style="font-size:17px;color:#64748b">🔒</span></div>
    ${imgs?`<h3>Фотографии (${photos.length})</h3><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${imgs}</div>`:`<div class="muted" style="margin:12px 0">Фотографии не приложены</div>`}
    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:20px">
     <button type="button" data-moderation-action="approve" style="flex:1;min-width:130px;background:#16834a;color:white;border:0;border-radius:12px;padding:13px;font-weight:750">✓ Одобрить и опубликовать</button>
@@ -15840,7 +15844,35 @@ def mini_app_admin_moderation_detail(request_id):
         price = price_text(data)
     except Exception:
         price = ""
+    # ADMIN-06: read-only author identity for authenticated administrators.
+    # Failure to fetch profile must never block moderation.
+    author_profile = None
+    author_counts = None
+    try:
+        telegram_author_id = int(item.get("user_chat_id") or 0)
+        author_db_id = _supabase_user_id(telegram_author_id) if telegram_author_id > 0 else None
+        if author_db_id is not None:
+            author_rows = supabase_request("GET", "users", params={
+                "select": "id,telegram_id,username,first_name,last_name,created_at",
+                "id": f"eq.{author_db_id}", "limit": "1",
+            }) or []
+            if author_rows:
+                a = author_rows[0]
+                author_profile = {
+                    "name": " ".join(str(a.get(k) or "").strip() for k in ("first_name", "last_name")).strip(),
+                    "username": str(a.get("username") or "").strip(),
+                    "created_at": str(a.get("created_at") or ""),
+                    "telegram_id": str(a.get("telegram_id") or telegram_author_id),
+                }
+                author_counts = {
+                    "published": _supabase_exact_count("listings", {"user_id": f"eq.{author_db_id}", "status": "eq.published"}),
+                    "archived": _supabase_exact_count("listings", {"user_id": f"eq.{author_db_id}", "status": "eq.archived"}),
+                }
+    except Exception as error:
+        print("ADMIN AUTHOR LOOKUP:", type(error).__name__)
     return jsonify({
+        "author_profile": author_profile,
+        "author_counts": author_counts,
         "item": {
             "request_id": int(request_id),
             "user_chat_id": str(item.get("user_chat_id") or ""),
