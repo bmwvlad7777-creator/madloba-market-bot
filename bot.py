@@ -15382,6 +15382,16 @@ async function openAdminModerationDetail(id,initData){
   // Contact can contain a Telegram username in legacy requests. Never show it as a phone.
   box.querySelector('#adminModerationContactText').value=originalPhone;
   box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{const entry=editableDetails[Number(el.dataset.adminDetailIndex)];if(entry)el.value=String(entry[1]??'')});
+  // Compare against the exact form state acknowledged by the server, not
+  // against normalized response values (which can differ in formatting).
+  const moderationFormSnapshot=()=>JSON.stringify({
+   price:priceInput.value.trim(),description:descriptionText.value,
+   district:box.querySelector('#adminModerationDistrictText').value.trim(),
+   contact:box.querySelector('#adminModerationContactText').value.trim(),
+   details:Array.from(box.querySelectorAll('[data-admin-detail-index]')).map(el=>[el.dataset.adminDetailIndex,el.value])
+  });
+  let savedModerationSnapshot=moderationFormSnapshot();
+  let moderationSaveInProgress=false;
   box.querySelector('#adminSaveModerationChanges')?.addEventListener('click',async()=>{
    const save=box.querySelector('#adminSaveModerationChanges'),status=box.querySelector('#adminModerationEditStatus');
    const newPrice=priceInput.value.trim(),newDescription=descriptionText.value;
@@ -15406,6 +15416,9 @@ async function openAdminModerationDetail(id,initData){
    });
    if(Object.keys(detailChanges).length)changes.details=detailChanges;
    if(!Object.keys(changes).length){status.textContent='Изменений нет';return}
+   if(moderationSaveInProgress)return;
+   moderationSaveInProgress=true;
+   const submittedSnapshot=moderationFormSnapshot();
    save.disabled=true;status.textContent='Сохраняем изменения…';
    const headers={'Content-Type':'application/json','X-Telegram-Init-Data':initData};
    try{
@@ -15417,9 +15430,10 @@ async function openAdminModerationDetail(id,initData){
     if('district' in changes)x.district=result.district;
     if('contact' in changes)x.contact=result.contact;
     if(changes.details){Object.assign(x.details,result.details);editableDetails.forEach(entry=>{if(entry[0] in result.details)entry[1]=result.details[entry[0]]})}
-    status.textContent='✓ Изменения сохранены';
+    savedModerationSnapshot=submittedSnapshot;
+    status.textContent=moderationFormSnapshot()===savedModerationSnapshot?'✓ Изменения сохранены':'✓ Сохранено. Есть новые изменения — сохраните ещё раз.';
    }catch(e){status.textContent='Ошибка: '+(e.message||'не удалось сохранить')+'. Данные в форме сохранены для повторной попытки.'}
-   finally{save.disabled=false}
+   finally{moderationSaveInProgress=false;save.disabled=false}
   });
   box.querySelectorAll('[data-remove-moderation-photo]').forEach(btn=>btn.addEventListener('click',async()=>{
    const index=Number(btn.dataset.removeModerationPhoto);
@@ -15443,13 +15457,9 @@ async function openAdminModerationDetail(id,initData){
   });
   box.querySelectorAll('[data-moderation-action]').forEach(btn=>btn.addEventListener('click',async()=>{
    const action=btn.dataset.moderationAction;
-   // Prevent publishing/rejecting an outdated version while form edits are unsaved.
-   const unsavedPrice=priceInput.value.trim()!==String(x.price??'').replace(/[^0-9., ]/g,'').trim();
-   const unsavedDescription=descriptionText.value!==(x.description||'');
-   const unsavedDistrict=box.querySelector('#adminModerationDistrictText').value.trim()!==(x.district||'');
-   const unsavedContact=box.querySelector('#adminModerationContactText').value.trim()!==(/^\+?[\d\s()\-]+$/.test(String(x.contact||'').trim())&&String(x.contact||'').replace(/\D/g,'').length>=9?String(x.contact||'').trim():'');
-   const unsavedDetails=Array.from(box.querySelectorAll('[data-admin-detail-index]')).some(el=>{const entry=editableDetails[Number(el.dataset.adminDetailIndex)];return entry&&el.value!==String(entry[1]??'')});
-   if(unsavedPrice||unsavedDescription||unsavedDistrict||unsavedContact||unsavedDetails){alert('Есть несохранённые изменения. Сначала нажми «Сохранить изменения», затем одобри или отклони заявку.');return}
+   // Do not allow an action while the save request is still running.
+   if(moderationSaveInProgress){alert('Дождитесь завершения сохранения изменений.');return}
+   if(moderationFormSnapshot()!==savedModerationSnapshot){alert('Есть несохранённые изменения. Сначала нажми «Сохранить изменения», затем одобри или отклони заявку.');return}
    const question=action==='approve'?'Опубликовать это объявление?':'Отклонить эту заявку?';
    if(!confirm(question))return;
    btn.disabled=true;btn.textContent='Обрабатываем…';
