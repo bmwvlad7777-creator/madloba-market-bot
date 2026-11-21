@@ -15290,6 +15290,8 @@ async function openAdminModerationDetail(id,initData){
    const numeric=numericFields.has(String(key).toLowerCase())&&String(value).trim()!==''&&!Number.isNaN(Number(value));
    return `<label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#52647b;min-width:0">${esc(label)}<input data-admin-detail-key="${esc(key)}" data-admin-detail-index="${i}" ${numeric?'inputmode="decimal"':''} maxlength="180" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.3;background:white"></label>`;
   }).join('');
+  const originalContact=String(x.contact||'').trim();
+  const originalPhone=/^\+?[\d\s()\-]+$/.test(originalContact) && originalContact.replace(/\D/g,'').length>=9 ? originalContact : '';
   const createdLabel=x.created_at?(()=>{const dt=new Date(x.created_at);return Number.isNaN(dt.getTime())?String(x.created_at):dt.toLocaleString('ru-RU',{timeZone:'Asia/Tbilisi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})})():'';
   box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2 style="margin:0">Заявка #${esc(x.request_id)}</h2><span class="muted">На модерации</span></div>
    <h3 style="margin:14px 0 6px">${esc(x.title||'Объявление')}</h3>
@@ -15321,8 +15323,6 @@ async function openAdminModerationDetail(id,initData){
   descriptionText.value=x.description||'';
   box.querySelector('#adminModerationDistrictText').value=x.district||'';
   // Contact can contain a Telegram username in legacy requests. Never show it as a phone.
-  const originalContact=String(x.contact||'').trim();
-  const originalPhone=/^\+?[\d\s()\-]+$/.test(originalContact) && originalContact.replace(/\D/g,'').length>=9 ? originalContact : '';
   box.querySelector('#adminModerationContactText').value=originalPhone;
   box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{const entry=editableDetails[Number(el.dataset.adminDetailIndex)];if(entry)el.value=String(entry[1]??'')});
   box.querySelector('#adminSaveModerationChanges')?.addEventListener('click',async()=>{
