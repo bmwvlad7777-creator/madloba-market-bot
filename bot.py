@@ -3547,9 +3547,6 @@ AUTO_MILEAGE_MAX = 500000
 REALESTATE_ROOM_OPTIONS = ["Студия"] + [str(n) for n in range(1, 11)] + ["11+"]
 REALESTATE_FLOOR_OPTIONS = [str(n) for n in range(1, 51)] + ["Последний этаж", "Цокольный этаж", "Подвальный этаж", "Не указан"]
 
-def format_grouped_number(value):
-    raw = re.sub(r"[^0-9]", "", str(value or ""))
-    return f"{int(raw):,}".replace(",", " ") if raw else str(value or "")
 
 def listing_picker_keyboard(kind, make="", subcategory=""):
     """Open structured pickers inline so they never replace the admin reply keyboard."""
