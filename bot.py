@@ -19992,6 +19992,8 @@ def mini_app_media(listing_id, index):
             "limit": "1",
         },
     )
+    # PERF-11: measure the mandatory visibility lookup separately from image work.
+    _media_visibility_ms = (time.perf_counter() - _perf_started) * 1000
     owner_media_authorized = False
     if joined is not None:
         if joined:
@@ -20032,6 +20034,7 @@ def mini_app_media(listing_id, index):
     photo_ref=str(rows[index].get("photo_url") or "")
     if not photo_ref:return "Not found",404
     media_cache_policy = "private, max-age=3600" if owner_media_authorized else "public, max-age=86400"
+    print(f"PERF media_visibility ms={_media_visibility_ms:.1f} listing_id={listing_id} index={index} thumb={int(want_thumb)} owner={int(owner_media_authorized)}")
     cached_media = _media_cache_get(photo_ref)
     if cached_media is not None:
         cached_bytes, cached_type = cached_media
