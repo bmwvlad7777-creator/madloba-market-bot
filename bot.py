@@ -18269,17 +18269,22 @@ def mini_app_listings():
     except (ValueError, OverflowError):
         page, per_page = 0, 20
 
-    # City lookup and Telegram identity lookup are independent. Run the city
-    # lookup in the read executor while validating the current Telegram user.
-    # This overlaps network waits without changing listing or favorite semantics.
-    _perf_phase_started = time.perf_counter()
+    # PERF-13: Telegram identity and the city directory are independent reads.
+    # Resolve Telegram authentication on the request thread, then overlap the
+    # Supabase user lookup with the (possibly cold) city directory lookup.
+    _perf_auth_started = time.perf_counter()
+    current_user = _mini_app_authenticated_user()
+    print(f"PERF listings_phase=telegram_auth ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} valid={int(bool(current_user))}")
+    _perf_user_started = time.perf_counter()
+    user_future = LISTING_READ_EXECUTOR.submit(_supabase_user_id, current_user.get("id")) if current_user else None
+
+    _perf_city_started = time.perf_counter()
     city_future = LISTING_READ_EXECUTOR.submit(_supabase_city_id, city) if city != "all" and not selected_city_slugs else None
     selected_city_ids = []
     city_ids_by_slug = {}
     if selected_city_slugs:
-        # PERF-05: reuse the validated city directory instead of making a
-        # separate Supabase request for the same 51 slugs on every navigation.
-        # Keep the selected ID list and cursor RPC semantics unchanged.
+        # Reuse the validated city directory. The independent user lookup is
+        # already in flight, avoiding serial network waits on a cold start.
         _directory = _all_city_ids_by_slug()
         _slug_to_id = {slug: city_id for city_id, slug in _directory.items()}
         _selected_map = {
@@ -18287,27 +18292,16 @@ def mini_app_listings():
             for slug in selected_city_slugs
             if slug in _slug_to_id
         }
-        # Do not silently show a partial selection if a city is missing.
         if any(slug not in _selected_map for slug in selected_city_slugs):
             return jsonify({"items": [], "has_next": False, "total_hint": 0, "error": "selected_city_not_found"}), 400
         selected_city_ids = [_selected_map[slug] for slug in selected_city_slugs]
         city_ids_by_slug = {city_id: slug for slug, city_id in _selected_map.items()}
-    # Resolve the currently supported city IDs so cards can display each listing's
-    # actual city when the user selects All. Unknown future city IDs remain blank
-    # rather than incorrectly inheriting the selected city.
     if city == "all" and not selected_city_slugs:
-        # Resolve every city registered in Supabase, not only Batumi/Tbilisi.
-        # This keeps the "All" feed truly cross-city and lets each card show
-        # the listing's own city rather than inheriting the selected filter.
         city_ids_by_slug = _all_city_ids_by_slug()
-    _perf_auth_started = time.perf_counter()
-    current_user = _mini_app_authenticated_user()
-    print(f"PERF listings_phase=telegram_auth ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} valid={int(bool(current_user))}")
-    _perf_user_started = time.perf_counter()
-    current_user_id = _supabase_user_id(current_user.get("id")) if current_user else None
-    print(f"PERF listings_phase=user_id_lookup ms={(time.perf_counter() - _perf_user_started) * 1000:.1f} found={int(bool(current_user_id))}")
     city_id = city_future.result() if city_future is not None else None
-    print(f"PERF listings_phase=city_lookup ms={(time.perf_counter() - _perf_phase_started) * 1000:.1f}")
+    print(f"PERF listings_phase=city_lookup ms={(time.perf_counter() - _perf_city_started) * 1000:.1f}")
+    current_user_id = user_future.result() if user_future is not None else None
+    print(f"PERF listings_phase=user_id_lookup ms={(time.perf_counter() - _perf_user_started) * 1000:.1f} found={int(bool(current_user_id))}")
     if selected_city_slugs and not selected_city_ids:
         return jsonify({"items": [], "has_next": False, "total_hint": 0})
     if city != "all" and not selected_city_slugs and not city_id:
