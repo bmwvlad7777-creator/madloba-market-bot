@@ -15274,7 +15274,7 @@ async function openAdminModerationDetail(id,initData){
     <textarea id="adminModerationDescriptionText" maxlength="3000" rows="4" style="box-sizing:border-box;width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;line-height:1.4;resize:vertical;background:white"></textarea>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">
      <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#64748b;min-width:0">Район / адрес<input id="adminModerationDistrictText" maxlength="120" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;background:white"></label>
-     <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#64748b;min-width:0">Телефон<input id="adminModerationContactText" inputmode="tel" maxlength="40" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;background:white"></label>
+     <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#64748b;min-width:0">Телефон (необязательно)<input id="adminModerationContactText" placeholder="+995 5XX XX XX XX" inputmode="tel" maxlength="40" style="box-sizing:border-box;width:100%;min-width:0;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;background:white"></label>
     </div>
     ${detailFields?`<div style="font-weight:700;margin:10px 0 12px">Характеристики</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px">${detailFields}</div>`:''}
     <button type="button" id="adminSaveModerationChanges" style="width:100%;margin-top:12px;padding:13px;background:#1478f5;color:white;border:0;border-radius:11px;font-weight:750">Сохранить изменения</button>
@@ -15292,7 +15292,10 @@ async function openAdminModerationDetail(id,initData){
   priceInput.value=String(x.price??'').replace(/[^0-9., ]/g,'').trim();
   descriptionText.value=x.description||'';
   box.querySelector('#adminModerationDistrictText').value=x.district||'';
-  box.querySelector('#adminModerationContactText').value=x.contact||'';
+  // Contact can contain a Telegram username in legacy requests. Never show it as a phone.
+  const originalContact=String(x.contact||'').trim();
+  const originalPhone=/^\+?[\d\s()\-]+$/.test(originalContact) && originalContact.replace(/\D/g,'').length>=9 ? originalContact : '';
+  box.querySelector('#adminModerationContactText').value=originalPhone;
   box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{const entry=editableDetails[Number(el.dataset.adminDetailIndex)];if(entry)el.value=String(entry[1]??'')});
   box.querySelector('#adminSaveModerationChanges')?.addEventListener('click',async()=>{
    const save=box.querySelector('#adminSaveModerationChanges'),status=box.querySelector('#adminModerationEditStatus');
@@ -15304,7 +15307,13 @@ async function openAdminModerationDetail(id,initData){
    const newDistrict=box.querySelector('#adminModerationDistrictText').value.trim();
    const newContact=box.querySelector('#adminModerationContactText').value.trim();
    if(newDistrict!==(x.district||''))changes.district=newDistrict;
-   if(newContact!==(x.contact||''))changes.contact=newContact;
+   // A blank phone field must not erase the Telegram username linked to the owner.
+   if(newContact!==originalPhone){
+    if(newContact && !/^\+?[\d\s()\-]+$/.test(newContact)){
+     status.textContent='Укажите номер телефона цифрами, без Telegram-ника';return;
+    }
+    if(newContact || originalPhone)changes.contact=newContact;
+   }
    const detailChanges={};
    box.querySelectorAll('[data-admin-detail-index]').forEach(el=>{
     const entry=editableDetails[Number(el.dataset.adminDetailIndex)];
@@ -15974,7 +15983,7 @@ def mini_app_admin_moderation_edit(request_id):
         if not isinstance(contact, str) or len(contact) > 40:
             return jsonify({"error": "invalid_contact"}), 400
         digits = re.sub(r"\D", "", contact)
-        if contact.strip() and (len(digits) < 9 or len(digits) > 15):
+        if contact.strip() and (not re.fullmatch(r"\+?[0-9\s()\-]+", contact.strip()) or len(digits) < 9 or len(digits) > 15):
             return jsonify({"error": "invalid_contact", "message": "Проверьте номер телефона"}), 400
         updated_data["contact"] = contact.strip()
     if "details" in body:
