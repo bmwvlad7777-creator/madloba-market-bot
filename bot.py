@@ -18209,10 +18209,13 @@ def mini_app_listings():
         city = DEFAULT_CITY_SLUG
     category = str(request.args.get("category", "")).strip().lower()
     q = str(request.args.get("q", "")).strip()[:80]
+    # SEC-01.2: bound legacy offset pagination so an arbitrary public request
+    # cannot force huge Supabase offsets or expensive in-memory slicing.
+    # Normal scrolling uses cursor_mode=1 and is not affected by this bound.
     try:
-        page = max(0, int(request.args.get("page", "0")))
+        page = max(0, min(1000, int(request.args.get("page", "0"))))
         per_page = min(20, max(1, int(request.args.get("per_page", "20"))))
-    except ValueError:
+    except (ValueError, OverflowError):
         page, per_page = 0, 20
 
     # City lookup and Telegram identity lookup are independent. Run the city
