@@ -353,8 +353,8 @@ def _persistent_thumb_put(photo_ref, thumb):
                      "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
                      "Content-Type": "image/webp", "x-upsert": "false"},
             timeout=(3, 8), allow_redirects=False)
-        if response.status_code not in (200, 201, 400, 409):
-            print("THUMB WRITE ERROR:", response.status_code)
+        if response.status_code not in (200, 201, 409):
+            print("THUMB WRITE ERROR:", response.status_code, response.text[:240])
     except Exception as error:
         print("THUMB WRITE ERROR:", repr(error))
 
@@ -364,6 +364,8 @@ _THUMB_PERSIST_SEMAPHORE = threading.BoundedSemaphore(2)
 
 def _thumb_persist_async(photo_ref, thumb):
     if not _persistent_thumb_object(photo_ref) or not thumb or thumb[1] != "image/webp":
+        if isinstance(photo_ref, str) and not photo_ref.startswith(("http://", "https://")):
+            print("THUMB PERSIST SKIP: telegram bucket unresolved or thumbnail not WebP")
         return
     if not _THUMB_PERSIST_SEMAPHORE.acquire(blocking=False):
         return
@@ -18610,7 +18612,7 @@ def mini_app_listings():
 
     if not cursor_mode_active:
         params = {
-            "select":"id,title,description,price,currency,price_usd,address,metadata,phone,channel_url,created_at,category_id,city_id,status",
+            "select":"id,title,description,price,currency,price_usd,address,metadata,phone,channel_url,created_at,category_id,city_id,status,expires_at",
             "status":"eq.published",
             "expires_at": f"gt.{_utc_now_iso()}",
             "order":"created_at.desc",
