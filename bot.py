@@ -12789,9 +12789,9 @@ body.mm-post-keyboard-open #listingPostView .mm-post-card{max-height:var(--mm-po
 <style id="mm-brand-3d-v3">
 /* Visual-only 3D header; existing API, controls, listing logic remain unchanged. */
 .top .brand{padding-left:52px!important;line-height:1!important;}
-.top .brand .mm-brand-icon{left:-5px!important;top:-4px!important;width:54px!important;height:57px!important;object-fit:contain!important;filter:drop-shadow(0 2px 3px rgba(0,24,65,.24));}
+.top .brand .mm-brand-icon{left:-9px!important;top:-8px!important;width:62px!important;height:66px!important;object-fit:contain!important;filter:drop-shadow(0 2px 3px rgba(0,24,65,.24));}
 .top .brand .brand-market{display:table!important;width:max-content!important;padding:2px 8px 3px!important;margin-top:2px!important;border-radius:999px!important;background:linear-gradient(115deg,#06b5ff,#0875f6)!important;color:#fff!important;letter-spacing:1.6px!important;font-size:.73em!important;line-height:1.05!important;box-shadow:0 2px 7px rgba(0,58,145,.28)!important;}
-@media(max-width:390px){.top .brand{padding-left:44px!important;}.top .brand .mm-brand-icon{width:46px!important;height:50px!important;left:-4px!important;}}
+@media(max-width:390px){.top .brand{padding-left:44px!important;}.top .brand .mm-brand-icon{width:53px!important;height:58px!important;left:-7px!important;top:-7px!important;}}
 </style>
 <style id="madloba-header-category-spacing-20261122">
 /* Keep category controls below the decorative panorama, not on its bottom edge. */
