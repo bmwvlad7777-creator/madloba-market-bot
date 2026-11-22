@@ -18064,26 +18064,82 @@ def mini_app_delete_listing(listing_id):
         return rate_limit
     if not row:
         return jsonify({"error":"not_found"}), 404
-    # Keep the database row and photos until Telegram posts are confirmed deleted.
-    # This preserves message IDs so a failed cleanup can be retried safely.
+    # Serialize owner deletion against lifecycle purge and owner/admin republishing.
+    # Do not remove a listing's files until its Telegram references are durable.
+    lock_time = _utc_now_iso()
+    lock_filter = {"id":f"eq.{listing_id}", "user_id":f"eq.{user_id}",
+                   "status":f"eq.{row.get('status')}"}
+    claimed = supabase_request("PATCH", "listings",
+        params={**lock_filter, "republish_lock_at":"is.null"},
+        payload={"republish_lock_at":lock_time})
+    if not isinstance(claimed, list):
+        return jsonify({"error":"db_unavailable"}), 503
+    if not claimed:
+        return jsonify({"error":"listing_busy_or_changed"}), 409
+
+    def refresh_owner_delete_lock():
+        nonlocal lock_time
+        next_time = _utc_now_iso()
+        updated = supabase_request("PATCH", "listings",
+            params={**lock_filter, "republish_lock_at":f"eq.{lock_time}"},
+            payload={"republish_lock_at":next_time})
+        if not isinstance(updated, list) or not updated:
+            return False
+        lock_time = next_time
+        return True
+
+    def release_owner_delete_lock():
+        supabase_request("PATCH", "listings",
+            params={**lock_filter, "republish_lock_at":f"eq.{lock_time}"},
+            payload={"republish_lock_at":None})
+
+    metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    known_ids = list(metadata.get("channel_message_ids") or []) if isinstance(metadata.get("channel_message_ids"), list) else []
+    if row.get("channel_message_id"):
+        known_ids.append(row["channel_message_id"])
+    if row.get("channel_url") and not known_ids:
+        release_owner_delete_lock()
+        return jsonify({"error":"channel_message_ids_missing"}), 409
+
+    if not refresh_owner_delete_lock():
+        return jsonify({"error":"listing_busy_or_changed"}), 409
     if not _delete_listing_channel_messages(row):
-        return jsonify({"error":"channel_cleanup_failed"}), 502
-    photos_deleted = supabase_request(
-        "DELETE",
-        "listing_photos",
-        params={"listing_id":f"eq.{listing_id}"},
-    )
+        if not _preserve_pending_channel_cleanup(row):
+            release_owner_delete_lock()
+            return jsonify({"error":"cleanup_registry_failed"}), 503
+    if not refresh_owner_delete_lock():
+        return jsonify({"error":"listing_busy_or_changed"}), 409
+
+    photos = supabase_request("GET", "listing_photos",
+        params={"select":"photo_url", "listing_id":f"eq.{listing_id}", "limit":"100"})
+    if photos is None:
+        release_owner_delete_lock()
+        return jsonify({"error":"db_photo_lookup_failed"}), 503
+    for photo in photos:
+        if not refresh_owner_delete_lock():
+            return jsonify({"error":"listing_busy_or_changed"}), 409
+        if not _delete_supabase_storage_photo(photo.get("photo_url")):
+            release_owner_delete_lock()
+            return jsonify({"error":"storage_photo_delete_failed"}), 503
+
+    if not refresh_owner_delete_lock():
+        return jsonify({"error":"listing_busy_or_changed"}), 409
+    photos_deleted = supabase_request("DELETE", "listing_photos",
+        params={"listing_id":f"eq.{listing_id}"})
     if photos_deleted is None:
+        release_owner_delete_lock()
         return jsonify({"error":"db_photo_delete_failed"}), 503
-    deleted = supabase_request(
-        "DELETE",
-        "listings",
-        params={"id":f"eq.{listing_id}","user_id":f"eq.{user_id}"},
-    )
-    if deleted is None:
+    if not refresh_owner_delete_lock():
+        return jsonify({"error":"listing_busy_or_changed"}), 409
+    deleted = supabase_request("DELETE", "listings",
+        params={**lock_filter, "republish_lock_at":f"eq.{lock_time}"})
+    if not isinstance(deleted, list) or not deleted:
+        release_owner_delete_lock()
         return jsonify({"error":"db_delete_failed"}), 503
-    if isinstance(deleted, list) and deleted:
-        _record_listing_status_change(listing_id, row.get("status"), "deleted", "owner_permanent_delete", "owner", user.get("id") or user.get("telegram_id") or user.get("user_id"))
+    _record_listing_status_change(listing_id, row.get("status"), "deleted",
+        "owner_permanent_delete", "owner",
+        user.get("id") or user.get("telegram_id") or user.get("user_id"))
+    load_supabase_published_listings()
     return jsonify({"ok":True})
 
 
