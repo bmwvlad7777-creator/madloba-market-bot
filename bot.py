@@ -12995,6 +12995,10 @@ function updateFilterVisibility(){
  $('autoFilterFields').style.display=state.category==='auto'?'grid':'none';
  $('genericFilterFields').style.display=(show && !['realestate','auto'].includes(state.category))?'grid':'none';
  $('categoriesBlock').style.display=state.category?'none':'block';
+ // Hide the home-only Popular section immediately when switching to a category/search,
+ // rather than waiting for the listings API response (which may take several seconds).
+ const bestSection=$('bestSection');
+ if(bestSection && (state.category || state.q)){bestSection.style.display='none';}
  $('resultsTitle').textContent=state.category?t('category_'+state.category):t('fresh_listings');
  $('sortSelect').style.display='block';
  syncFilterUI();
