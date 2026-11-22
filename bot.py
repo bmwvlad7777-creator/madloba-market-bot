@@ -276,6 +276,59 @@ def _media_variant(image_bytes, content_type, photo_ref, want_thumb):
     return image_bytes, content_type
 
 
+# Persistent thumbnail objects live alongside the originals in Supabase Storage.
+# The proxy still checks listing visibility BEFORE reading any thumbnail.
+def _persistent_thumb_object(photo_ref):
+    parsed = _storage_object_from_url(photo_ref)
+    if not parsed or not SUPABASE_SECRET_KEY:
+        return None
+    bucket, object_path = parsed
+    digest = hashlib.sha256((bucket + "/" + object_path).encode("utf-8")).hexdigest()
+    return bucket, f"_madloba_thumbnails/v1/{digest}.webp"
+
+
+def _persistent_thumb_url(bucket, path):
+    return (f"{SUPABASE_URL}/storage/v1/object/"
+            f"{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(path, safe='/')}")
+
+
+def _persistent_thumb_get(photo_ref):
+    target = _persistent_thumb_object(photo_ref)
+    if target is None:
+        return None
+    bucket, path = target
+    try:
+        response = HTTP_SESSION.get(
+            _persistent_thumb_url(bucket, path),
+            headers={"apikey": SUPABASE_SECRET_KEY,
+                     "Authorization": f"Bearer {SUPABASE_SECRET_KEY}"},
+            timeout=(3, 5), allow_redirects=False)
+        if response.status_code == 200 and response.content.startswith(b"RIFF") and response.content[8:12] == b"WEBP" and len(response.content) <= 1024 * 1024:
+            return response.content, "image/webp"
+    except Exception as error:
+        print("THUMB READ ERROR:", repr(error))
+    return None
+
+
+def _persistent_thumb_put(photo_ref, thumb):
+    target = _persistent_thumb_object(photo_ref)
+    if target is None or not thumb or thumb[1] != "image/webp":
+        return
+    bucket, path = target
+    try:
+        response = HTTP_SESSION.post(
+            _persistent_thumb_url(bucket, path),
+            data=thumb[0],
+            headers={"apikey": SUPABASE_SECRET_KEY,
+                     "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+                     "Content-Type": "image/webp", "x-upsert": "false"},
+            timeout=(3, 8), allow_redirects=False)
+        if response.status_code not in (200, 201, 400, 409):
+            print("THUMB WRITE ERROR:", response.status_code)
+    except Exception as error:
+        print("THUMB WRITE ERROR:", repr(error))
+
+
 def _telegram_file_path_get(file_id):
     now = time.monotonic()
     with _MEDIA_CACHE_LOCK:
@@ -19371,6 +19424,12 @@ def _delete_supabase_storage_photo(photo_ref):
     try:
         response = HTTP_SESSION.delete(url, headers=headers, timeout=(5, 20))
         if response.status_code in (200, 204, 404):
+            thumb = _persistent_thumb_object(photo_ref)
+            if thumb is not None:
+                try:
+                    HTTP_SESSION.delete(_persistent_thumb_url(*thumb), headers=headers, timeout=(3, 8))
+                except Exception as error:
+                    print("THUMB DELETE ERROR:", repr(error))
             return True
         print("STORAGE DELETE ERROR:", response.status_code, response.text[:300])
         return False
@@ -20203,6 +20262,18 @@ def mini_app_media(listing_id, index):
     if not photo_ref:return "Not found",404
     media_cache_policy = "private, no-store" if owner_media_authorized else "no-store"
     print(f"PERF media_visibility ms={_media_visibility_ms:.1f} listing_id={listing_id} index={index} thumb={int(want_thumb)} owner={int(owner_media_authorized)} visibility_cache={int(_visibility_cache_hit)}")
+    # Prefer the pre-generated Supabase thumbnail on a cold worker. Keep
+    # full-size requests unchanged and do not persist Telegram-hosted photos.
+    if want_thumb and _media_cache_get("thumb600:" + photo_ref) is None:
+        persistent_thumb = _persistent_thumb_get(photo_ref)
+        if persistent_thumb is not None:
+            _media_cache_put("thumb600:" + photo_ref, *persistent_thumb)
+            elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+            print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(persistent_thumb[0])} cache=persistent_thumb")
+            headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={elapsed_ms:.1f}"}
+            if owner_media_authorized:
+                headers["Vary"] = "X-Telegram-Init-Data"
+            return Response(persistent_thumb[0], content_type=persistent_thumb[1], headers=headers)
     cached_media = _media_cache_get(photo_ref)
     if cached_media is not None:
         cached_bytes, cached_type = cached_media
@@ -20298,6 +20369,11 @@ def mini_app_media(listing_id, index):
 
             _media_cache_put(photo_ref, image_bytes, media_content_type)
             image_bytes, media_content_type = _media_variant(image_bytes, media_content_type, photo_ref, want_thumb)
+            if want_thumb and media_content_type == "image/webp" and _persistent_thumb_object(photo_ref):
+                # Upload in the background; never delay the user's first image.
+                threading.Thread(target=_persistent_thumb_put,
+                                 args=(photo_ref, (image_bytes, media_content_type)),
+                                 daemon=True).start()
             _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
             _download_ms = (time.perf_counter() - _media_download_started) * 1000
             print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
