@@ -19338,6 +19338,35 @@ def mini_app_listings():
         photo_url = photo.get("photo_url")
         if listing_id and photo_url:
             photos_by_listing.setdefault(listing_id, []).append(photo_url)
+    # PERF: The catalog has already fetched these published listings and their
+    # ordered photos. Reuse that verified snapshot for the first /media calls
+    # instead of making one additional PostgREST request per visible card.
+    # Keep the existing 3-second TTL and all mutation invalidation unchanged.
+    _visibility_seeded = 0
+    _photos_for_visibility = {}
+    for _photo in photo_rows:
+        _photo_id = _photo.get("listing_id")
+        if _photo_id is not None and _photo.get("photo_url"):
+            _photos_for_visibility.setdefault(str(_photo_id), []).append({
+                "photo_url": _photo["photo_url"],
+                "sort_order": _photo.get("sort_order"),
+            })
+    _now_visibility = datetime.now(timezone.utc)
+    for _listing in rows:
+        if str(_listing.get("status") or "") != "published":
+            continue
+        try:
+            _expiry = datetime.fromisoformat(str(_listing.get("expires_at") or "").replace("Z", "+00:00"))
+            if _expiry.tzinfo is None or _expiry <= _now_visibility + timedelta(seconds=_MEDIA_VISIBILITY_TTL):
+                continue
+        except (ValueError, TypeError):
+            continue
+        _lid = _listing.get("id")
+        if _lid is not None:
+            _media_visibility_put(int(_lid), _photos_for_visibility.get(str(_lid), []))
+            _visibility_seeded += 1
+    if _visibility_seeded:
+        print(f"PERF listings_phase=media_visibility_seeded count={_visibility_seeded}")
     items = []
     for row in rows:
         item = _row_to_listing(row)
