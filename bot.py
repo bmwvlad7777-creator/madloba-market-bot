@@ -20262,18 +20262,6 @@ def mini_app_media(listing_id, index):
     if not photo_ref:return "Not found",404
     media_cache_policy = "private, no-store" if owner_media_authorized else "no-store"
     print(f"PERF media_visibility ms={_media_visibility_ms:.1f} listing_id={listing_id} index={index} thumb={int(want_thumb)} owner={int(owner_media_authorized)} visibility_cache={int(_visibility_cache_hit)}")
-    # Prefer the pre-generated Supabase thumbnail on a cold worker. Keep
-    # full-size requests unchanged and do not persist Telegram-hosted photos.
-    if want_thumb and _media_cache_get("thumb600:" + photo_ref) is None:
-        persistent_thumb = _persistent_thumb_get(photo_ref)
-        if persistent_thumb is not None:
-            _media_cache_put("thumb600:" + photo_ref, *persistent_thumb)
-            elapsed_ms = (time.perf_counter() - _perf_started) * 1000
-            print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(persistent_thumb[0])} cache=persistent_thumb")
-            headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={elapsed_ms:.1f}"}
-            if owner_media_authorized:
-                headers["Vary"] = "X-Telegram-Init-Data"
-            return Response(persistent_thumb[0], content_type=persistent_thumb[1], headers=headers)
     cached_media = _media_cache_get(photo_ref)
     if cached_media is not None:
         cached_bytes, cached_type = cached_media
@@ -20369,11 +20357,6 @@ def mini_app_media(listing_id, index):
 
             _media_cache_put(photo_ref, image_bytes, media_content_type)
             image_bytes, media_content_type = _media_variant(image_bytes, media_content_type, photo_ref, want_thumb)
-            if want_thumb and media_content_type == "image/webp" and _persistent_thumb_object(photo_ref):
-                # Upload in the background; never delay the user's first image.
-                threading.Thread(target=_persistent_thumb_put,
-                                 args=(photo_ref, (image_bytes, media_content_type)),
-                                 daemon=True).start()
             _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
             _download_ms = (time.perf_counter() - _media_download_started) * 1000
             print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
