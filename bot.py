@@ -19993,7 +19993,8 @@ def run_listing_lifecycle_once():
         result["deleted"] = _purge_expired_listings(purge_cutoff_iso)
         print("LISTING LIFECYCLE PASS:", result)
     except Exception as error:
-        print("LISTING LIFECYCLE ERROR:", repr(error))
+        print("LISTING LIFECYCLE ERROR:", repr(error), flush=True)
+        raise  # Let Render mark a failed Cron pass as failed instead of successful.
     return result
 
 
