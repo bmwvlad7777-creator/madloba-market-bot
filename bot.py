@@ -278,14 +278,42 @@ def _media_variant(image_bytes, content_type, photo_ref, want_thumb):
     return image_bytes, content_type
 
 
+# Cache the existing Storage bucket for Telegram-origin photo previews.
+_TELEGRAM_THUMB_BUCKET = None
+_TELEGRAM_THUMB_BUCKET_LOCK = threading.Lock()
+
+def _telegram_thumb_bucket():
+    global _TELEGRAM_THUMB_BUCKET
+    configured = str(os.environ.get("SUPABASE_STORAGE_BUCKET", "")).strip()
+    if configured:
+        return configured
+    if _TELEGRAM_THUMB_BUCKET:
+        return _TELEGRAM_THUMB_BUCKET
+    with _TELEGRAM_THUMB_BUCKET_LOCK:
+        if not _TELEGRAM_THUMB_BUCKET:
+            _TELEGRAM_THUMB_BUCKET = _mini_app_storage_bucket()
+    return _TELEGRAM_THUMB_BUCKET
+
+
 # Persistent thumbnail objects live alongside the originals in Supabase Storage.
 # The proxy still checks listing visibility BEFORE reading any thumbnail.
 def _persistent_thumb_object(photo_ref):
-    parsed = _storage_object_from_url(photo_ref)
-    if not parsed or not SUPABASE_SECRET_KEY:
+    if not SUPABASE_SECRET_KEY:
         return None
-    bucket, object_path = parsed
-    digest = hashlib.sha256((bucket + "/" + object_path).encode("utf-8")).hexdigest()
+    parsed = _storage_object_from_url(photo_ref)
+    if parsed:
+        bucket, object_path = parsed
+        digest_source = bucket + "/" + object_path
+    elif isinstance(photo_ref, str) and photo_ref and not photo_ref.startswith(("http://", "https://")):
+        # Telegram file IDs have no Storage URL. Resolve the existing photo bucket
+        # once, rather than inventing a new bucket or changing the original photo.
+        bucket = _telegram_thumb_bucket()
+        if not bucket:
+            return None
+        digest_source = "telegram:" + photo_ref
+    else:
+        return None
+    digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()
     return bucket, f"_madloba_thumbnails/v1/{digest}.webp"
 
 
