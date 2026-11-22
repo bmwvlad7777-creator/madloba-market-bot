@@ -167,7 +167,7 @@ HTTP_SESSION.mount("http://", _HTTP_ADAPTER)
 # PERF-12: short-lived visibility + ordered-photo snapshot for public media.
 # In-process only; mutation invalidation is immediate in this worker. The short
 # TTL bounds stale state from external DB changes and other Render workers.
-_MEDIA_VISIBILITY_TTL = 3.0
+_MEDIA_VISIBILITY_TTL = 8.0
 _MEDIA_VISIBILITY_MAX = 512
 _MEDIA_VISIBILITY = OrderedDict()
 _MEDIA_VISIBILITY_LOCK = threading.Lock()
