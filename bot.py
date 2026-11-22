@@ -247,6 +247,8 @@ def _catalog_thumbnail(image_bytes, content_type):
         with Image.open(BytesIO(image_bytes)) as source:
             if source.width * source.height > 36_000_000:
                 return None
+            if source.format == "JPEG":
+                source.draft("RGB", (900, 900))
             preview = ImageOps.exif_transpose(source)
             preview.thumbnail((600, 600), Image.Resampling.LANCZOS)
             if preview.mode not in ("RGB", "RGBA"):
@@ -302,7 +304,7 @@ def _persistent_thumb_get(photo_ref):
             _persistent_thumb_url(bucket, path),
             headers={"apikey": SUPABASE_SECRET_KEY,
                      "Authorization": f"Bearer {SUPABASE_SECRET_KEY}"},
-            timeout=(3, 5), allow_redirects=False)
+            timeout=(1, 1), allow_redirects=False)
         if response.status_code == 200 and response.content.startswith(b"RIFF") and response.content[8:12] == b"WEBP" and len(response.content) <= 1024 * 1024:
             return response.content, "image/webp"
     except Exception as error:
@@ -327,6 +329,22 @@ def _persistent_thumb_put(photo_ref, thumb):
             print("THUMB WRITE ERROR:", response.status_code)
     except Exception as error:
         print("THUMB WRITE ERROR:", repr(error))
+
+
+# Store generated previews once; failed writes never affect photo delivery.
+_THUMB_PERSIST_SEMAPHORE = threading.BoundedSemaphore(2)
+
+def _thumb_persist_async(photo_ref, thumb):
+    if not _persistent_thumb_object(photo_ref) or not thumb or thumb[1] != "image/webp":
+        return
+    if not _THUMB_PERSIST_SEMAPHORE.acquire(blocking=False):
+        return
+    def _worker():
+        try:
+            _persistent_thumb_put(photo_ref, thumb)
+        finally:
+            _THUMB_PERSIST_SEMAPHORE.release()
+    threading.Thread(target=_worker, daemon=True, name="thumb-persist").start()
 
 
 def _telegram_file_path_get(file_id):
@@ -17003,6 +17021,16 @@ def mini_app_listing_photo_upload():
         print("MINI APP PHOTO UPLOAD REQUEST ERROR:", repr(error))
         return jsonify({"ok": False, "error": "photo_storage_upload_failed"}), 503
     photo_url = f"{SUPABASE_URL}/storage/v1/object/public/{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(object_path, safe='/')}"
+    # Generate/store the thumbnail from the bytes already received, once per upload.
+    if _THUMB_PERSIST_SEMAPHORE.acquire(blocking=False):
+        def _upload_thumb_worker():
+            try:
+                preview = _catalog_thumbnail(content, content_type)
+                if preview:
+                    _persistent_thumb_put(photo_url, preview)
+            finally:
+                _THUMB_PERSIST_SEMAPHORE.release()
+        threading.Thread(target=_upload_thumb_worker, daemon=True, name="upload-thumb").start()
     return jsonify({"ok": True, "photo_url": photo_url}), 201
 
 
@@ -20284,6 +20312,18 @@ def mini_app_media(listing_id, index):
         if owner_media_authorized:
             cached_headers["Vary"] = "X-Telegram-Init-Data"
         return Response(cached_bytes,content_type=cached_type,headers=cached_headers)
+    # Cold cache: use a previously persisted small thumbnail instead of decoding
+    # the original. Visibility/owner checks above remain mandatory.
+    if want_thumb and _persistent_thumb_object(photo_ref):
+        persisted = _persistent_thumb_get(photo_ref)
+        if persisted is not None:
+            _media_cache_put("thumb600:" + photo_ref, persisted[0], persisted[1])
+            elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+            print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(persisted[0])} cache=persistent_thumb")
+            headers = {"Cache-Control": media_cache_policy, "X-Content-Type-Options": "nosniff", "Server-Timing": f"app;dur={elapsed_ms:.1f}"}
+            if owner_media_authorized:
+                headers["Vary"] = "X-Telegram-Init-Data"
+            return Response(persisted[0], content_type=persisted[1], headers=headers)
     # Every request passed visibility/owner checks above before accessing cache.
     # Coalesce simultaneous requests for the same image in this worker.
     photo_lock = _MEDIA_FETCH_LOCKS[int(hashlib.sha256(photo_ref.encode("utf-8")).hexdigest()[:8], 16) % len(_MEDIA_FETCH_LOCKS)]
@@ -20380,6 +20420,8 @@ def mini_app_media(listing_id, index):
             _media_resize_started = time.perf_counter()
             image_bytes, media_content_type = _media_variant(image_bytes, media_content_type, photo_ref, want_thumb)
             _media_resize_ms = (time.perf_counter() - _media_resize_started) * 1000
+            if want_thumb and media_content_type == "image/webp" and _persistent_thumb_object(photo_ref):
+                _thumb_persist_async(photo_ref, (image_bytes, media_content_type))
             _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
             _download_ms = (time.perf_counter() - _media_download_started) * 1000
             print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} source={_media_source} getfile_ms={_media_getfile_ms:.1f} headers_ms={_media_headers_ms:.1f} body_ms={_media_body_ms:.1f} resize_ms={_media_resize_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
