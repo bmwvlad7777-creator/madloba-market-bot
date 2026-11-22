@@ -20262,6 +20262,18 @@ def mini_app_media(listing_id, index):
     if not photo_ref:return "Not found",404
     media_cache_policy = "private, no-store" if owner_media_authorized else "no-store"
     print(f"PERF media_visibility ms={_media_visibility_ms:.1f} listing_id={listing_id} index={index} thumb={int(want_thumb)} owner={int(owner_media_authorized)} visibility_cache={int(_visibility_cache_hit)}")
+    # Serve an already-generated thumbnail without requiring the original to
+    # remain in the 64 MB cache. Visibility/ownership was checked above.
+    if want_thumb:
+        cached_thumb = _media_cache_get("thumb600:" + photo_ref)
+        if cached_thumb is not None:
+            thumb_bytes, thumb_type = cached_thumb
+            elapsed_ms = (time.perf_counter() - _perf_started) * 1000
+            print(f"PERF media ms={elapsed_ms:.1f} listing_id={listing_id} index={index} bytes={len(thumb_bytes)} cache=thumb_hit")
+            thumb_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={elapsed_ms:.1f}"}
+            if owner_media_authorized:
+                thumb_headers["Vary"] = "X-Telegram-Init-Data"
+            return Response(thumb_bytes, content_type=thumb_type, headers=thumb_headers)
     cached_media = _media_cache_get(photo_ref)
     if cached_media is not None:
         cached_bytes, cached_type = cached_media
@@ -20287,6 +20299,10 @@ def mini_app_media(listing_id, index):
                 cached_headers["Vary"] = "X-Telegram-Init-Data"
             return Response(cached_bytes,content_type=cached_type,headers=cached_headers)
         _media_download_started = time.perf_counter()
+        _media_source = "supabase" if photo_ref.startswith(("http://", "https://")) else "telegram"
+        _media_getfile_ms = 0.0
+        _media_headers_ms = 0.0
+        _media_body_ms = 0.0
         try:
             if photo_ref.startswith("http://") or photo_ref.startswith("https://"):
                 # Treat photo_url as untrusted data: only fetch HTTPS URLs from the
@@ -20309,9 +20325,12 @@ def mini_app_media(listing_id, index):
                     upstream.close()
                     return "Not found",404
             else:
+                _getfile_started = time.perf_counter()
                 file_path = _telegram_file_path_get(photo_ref)
+                _media_getfile_ms = (time.perf_counter() - _getfile_started) * 1000
                 if not file_path:return "Not found",404
                 upstream=HTTP_SESSION.get(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}",timeout=(5, 20),stream=True)
+            _media_headers_ms = (time.perf_counter() - _media_download_started) * 1000 - _media_getfile_ms
             if not upstream.ok:
                 upstream.close()
                 return "Not found",404
@@ -20328,6 +20347,7 @@ def mini_app_media(listing_id, index):
                 except (TypeError, ValueError):
                     upstream.close()
                     return "Media unavailable", 502
+            _media_body_started = time.perf_counter()
             image_chunks = []
             image_size = 0
             try:
@@ -20340,6 +20360,7 @@ def mini_app_media(listing_id, index):
                     image_chunks.append(chunk)
             finally:
                 upstream.close()
+            _media_body_ms = (time.perf_counter() - _media_body_started) * 1000
             image_bytes = b"".join(image_chunks)
 
             # Only serve formats accepted by the listing photo pipeline. Ignore an
@@ -20359,7 +20380,7 @@ def mini_app_media(listing_id, index):
             image_bytes, media_content_type = _media_variant(image_bytes, media_content_type, photo_ref, want_thumb)
             _perf_elapsed_ms = (time.perf_counter() - _perf_started) * 1000
             _download_ms = (time.perf_counter() - _media_download_started) * 1000
-            print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
+            print(f"PERF media ms={_perf_elapsed_ms:.1f} upstream_ms={_download_ms:.1f} source={_media_source} getfile_ms={_media_getfile_ms:.1f} headers_ms={_media_headers_ms:.1f} body_ms={_media_body_ms:.1f} listing_id={listing_id} index={index} bytes={image_size} cache=miss")
             media_headers = {"Cache-Control":media_cache_policy,"X-Content-Type-Options":"nosniff","Server-Timing":f"app;dur={_perf_elapsed_ms:.1f}"}
             if owner_media_authorized:
                 media_headers["Vary"] = "X-Telegram-Init-Data"
