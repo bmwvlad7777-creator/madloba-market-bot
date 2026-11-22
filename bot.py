@@ -12803,6 +12803,12 @@ body.mm-post-keyboard-open #listingPostView .mm-post-card{max-height:var(--mm-po
   #filterBar.filter-bar.show{margin-top:20px!important;top:0!important;}
   #bestSection.best-section{margin-top:20px!important;}
 }
+/* MM-AUDIT-UI-01: breathing room below the hero on account tabs only. */
+#favoritesView.show > .view-back,
+#mineView.show > .view-back,
+#profileView.show > .view-back {
+  margin-top: 14px !important;
+}
 </style>
 </head>
 <body>
