@@ -10686,6 +10686,7 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   font-weight:850!important;text-align:center!important;
 }
 .quick-action.active{border-radius:9px!important;}
+.best-section[hidden]{display:none!important;}
 .best-section{margin-top:9px!important;}
 .best-section .section-head{margin-bottom:7px!important;}
 @media(max-width:390px){
@@ -12998,7 +12999,7 @@ function updateFilterVisibility(){
  // Hide the home-only Popular section immediately when switching to a category/search,
  // rather than waiting for the listings API response (which may take several seconds).
  const bestSection=$('bestSection');
- if(bestSection && (state.category || state.q)){bestSection.style.display='none';}
+ if(bestSection){const hideBest=Boolean(state.category || state.q);bestSection.hidden=hideBest;bestSection.style.setProperty('display',hideBest?'none':'block','important');}
  $('resultsTitle').textContent=state.category?t('category_'+state.category):t('fresh_listings');
  $('sortSelect').style.display='block';
  syncFilterUI();
@@ -13373,7 +13374,7 @@ function favoriteCard(x){return `<div class="fav-card">${card(x)}</div>`}
 function updateBestCityLabel(){if(!$('bestCityName'))return;const label=cityNames[state.city]?.[state.lang]||cityNames[state.city]?.en||state.city;const n=state.selectedCities?.length||0;if(n>1){$('bestCityName').textContent=state.lang==='en'?`in ${{n}} cities`:state.lang==='ka'?`${{n}} ქალაქში`:state.lang==='uk'?`у ${{n}} містах`:`в ${{n}} городах`;return}$('bestCityName').textContent=state.city==='all'?(state.lang==='en'?'in all cities':state.lang==='ka'?'ყველა ქალაქში':state.lang==='uk'?'у всіх містах':'во всех городах'):(state.lang==='en'?'in '+label:state.lang==='ka'?label:state.lang==='uk'?'у '+label:'в '+label)}
 function bestCard(x){const photo=(x.photos||[])[0];const text=cardText(x);const categoryLabel=String(localizedCategory(x.category_name||x.category||'')).trim();const deal=cardDealLabel(x);const when=cardTimeLabel(x);return `<article class="best-card" data-best-id="${esc(x.id)}">${favButton(x)}<div class="best-photo">${photo?`<img src="/media/${encodeURIComponent(x.id)}/0?thumb=1" loading="lazy" onerror="this.parentElement.innerHTML='<span>📷</span>'">`:`<div class="photo-empty"><span>📷</span><small>${t('photo_missing')}</small></div>`}</div><div class="best-body"><div class="card-kickers">${deal?`<span class="deal-badge deal-${esc(deal.key)}">${esc(deal.label)}</span>`:''}<span class="best-tag">${esc(categoryLabel)}</span></div>${x.price?priceMarkup(x,'best-price'):''}<div class="best-title">${esc(localizeListingText(text.title||''))}</div><div class="best-subtitle">${esc(localizeListingText(text.subtitle||''))}</div><div class="card-meta">${text.location?`<div class="best-loc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${esc(text.location)}</span></div>`:'<span></span>'}${when?`<time class="card-time">◷ ${esc(when)}</time>`:''}</div></div></article>`}
 function bindBestCards(){document.querySelectorAll('#bestRow [data-mm-price-toggle]').forEach(bindPriceToggle);document.querySelectorAll('#bestRow [data-best-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.bestId));document.querySelectorAll('#bestRow [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)})}
-function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.style.display='none';row.innerHTML='';return}section.style.display='block';const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
+function renderBestListings(items){const section=$('bestSection');const row=$('bestRow');if(!section||!row)return;const visible=!state.category&&!state.q;if(!visible){section.hidden=true;section.style.setProperty('display','none','important');row.innerHTML='';return}section.hidden=false;section.style.setProperty('display','block','important');const picks=(items||[]).filter(x=>x).slice(0,4);if(!picks.length){row.innerHTML=`<div class="best-empty">${t('empty_list')}</div>`;return}row.innerHTML=picks.map(bestCard).join('');bindBestCards()}
 
 let favoritesNextCursor=null;let favoritesLoadingMore=false;let favoritesLoadedAt=0;let favoritesDirty=false;
 function bindFavoriteCards(){document.querySelectorAll('#favoritesList [data-mm-price-toggle]').forEach(bindPriceToggle);document.querySelectorAll('#favoritesList [data-id]').forEach(el=>el.onclick=()=>openDetail(el.dataset.id));document.querySelectorAll('#favoritesList [data-fav]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();toggleFavorite(btn.dataset.fav,btn)});}
