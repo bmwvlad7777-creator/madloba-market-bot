@@ -19968,6 +19968,71 @@ def _archive_expired_listings(now_iso):
     return archived
 
 
+def _preserve_pending_channel_cleanup(row):
+    """Durably retain Telegram references before purging an archived listing.
+
+    Fail closed if the registry is missing, inaccessible, or inconsistent.
+    Never claim a post was deleted merely because Telegram rejected deletion.
+    """
+    listing_id = row.get("id")
+    if not listing_id:
+        return False
+    metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    ids = []
+    for value in (metadata.get("channel_message_ids") or []):
+        if str(value).isdigit():
+            ids.append(int(value))
+    for value in (metadata.get("channel_cleanup_manual_ids") or []):
+        if str(value).isdigit():
+            ids.append(int(value))
+    if str(row.get("channel_message_id") or "").isdigit():
+        ids.append(int(row["channel_message_id"]))
+    ids = sorted(set(ids))
+    # Without IDs, do not silently discard a channel URL.
+    if not ids:
+        print("LISTING PURGE: channel cleanup has no message IDs", {"listing_id": listing_id})
+        return False
+    channel = str(CHANNEL_USERNAME or "").strip()
+    if not channel:
+        print("LISTING PURGE: channel username missing", {"listing_id": listing_id})
+        return False
+    record = {
+        "listing_id": listing_id,
+        "channel": channel,
+        "message_ids": ids,
+        "channel_url": str(row.get("channel_url") or ""),
+        "reason": "telegram_delete_rejected_after_expiry",
+        "status": "pending",
+    }
+    existing = supabase_request("GET", "mm_channel_cleanup_queue", params={
+        "select": "listing_id,channel,message_ids,status",
+        "listing_id": f"eq.{listing_id}", "limit": "1",
+    })
+    if existing is None:
+        return False
+    if existing:
+        previous = existing[0]
+        # Never overwrite a prior task or mark it done without a human check.
+        if (str(previous.get("channel")) != channel
+                or str(previous.get("status")) != "pending"
+                or not set(ids).issubset(set(previous.get("message_ids") or []))):
+            print("LISTING PURGE: cleanup registry mismatch", {"listing_id": listing_id})
+            return False
+    else:
+        created = supabase_request("POST", "mm_channel_cleanup_queue", payload=record)
+        if not isinstance(created, list) or not created:
+            print("LISTING PURGE: cleanup registry insert failed", {"listing_id": listing_id})
+            return False
+    # Read-after-write verification: no purge without durable cleanup references.
+    verified = supabase_request("GET", "mm_channel_cleanup_queue", params={
+        "select": "listing_id,channel,message_ids,status",
+        "listing_id": f"eq.{listing_id}", "limit": "1",
+    })
+    return bool(verified and str(verified[0].get("channel")) == channel
+                and verified[0].get("status") == "pending"
+                and set(ids).issubset(set(verified[0].get("message_ids") or [])))
+
+
 def _purge_expired_listings(purge_cutoff_iso):
     rows = supabase_request(
         "GET", "listings",
@@ -20045,8 +20110,11 @@ def _purge_expired_listings(purge_cutoff_iso):
         if not refresh_purge_lock():
             continue
         if not _delete_listing_channel_messages(row):
-            release_purge_lock()
-            continue
+            # Telegram cannot delete many 10-day-old posts. Preserve a separate,
+            # durable admin cleanup task before deleting the listing and photos.
+            if not _preserve_pending_channel_cleanup(row):
+                release_purge_lock()
+                continue
         if not refresh_purge_lock():
             continue
 
