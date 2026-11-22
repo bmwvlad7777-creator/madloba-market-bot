@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+import uuid
 
 import os
 import html
@@ -12776,9 +12777,18 @@ body.mm-post-keyboard-open #listingPostView .mm-post-card{max-height:var(--mm-po
   .top #cityMultiBtn{flex-basis:108px!important;width:108px!important;max-width:108px!important;font-size:11px!important;}
 }
 </style>
+<style id="mm-brand-icon-only-v1">
+/* Brand-only change: existing catalog, controls and functionality untouched. */
+.top .brand{position:relative!important;display:block!important;min-width:0!important;padding-left:44px!important;font-size:clamp(19px,5.0vw,25px)!important;line-height:.98!important;letter-spacing:-.7px!important;}
+.top .brand .mm-brand-words{display:block!important;min-width:0!important;}
+.top .brand .brand-main,.top .brand .brand-market{display:block!important;white-space:nowrap!important;}
+.top .brand .mm-brand-icon{position:absolute!important;top:1px!important;left:0!important;width:39px!important;height:44px!important;display:block!important;overflow:visible!important;filter:drop-shadow(0 2px 5px rgba(2,20,48,.28));}
+.top .brand::after{margin-left:-44px!important;margin-top:10px!important;}
+@media(max-width:390px){.top .brand{padding-left:37px!important;font-size:clamp(17px,4.8vw,20px)!important;}.top .brand .mm-brand-icon{width:34px!important;height:39px!important;}.top .brand::after{margin-left:-37px!important;}}
+</style>
 </head>
 <body>
-<div class="wrap"><div class="top"><div class="brand"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option><option value="uk">🇺🇦 UA</option></select><button class="city" id="cityMultiBtn" type="button" aria-haspopup="dialog" aria-expanded="false"><svg class="mm-city-drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-7.1 8-13A8 8 0 1 0 4 9c0 5.9 8 13 8 13Z" fill="url(#mmCityDropGradient)" stroke="#2F80ED" stroke-width="1.15"/><defs><linearGradient id="mmCityDropGradient" x1="7" y1="3" x2="18" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#8CC8FF"/><stop offset="1" stop-color="#2878E8"/></linearGradient></defs><circle cx="12" cy="9" r="2.15" fill="#fff"/></svg><span id="cityMultiBtnText">Cities</span></button><select class="city" id="citySelect" aria-label="City" style="display:none!important"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option><option value="kutaisi">Kutaisi</option><option value="rustavi">Rustavi</option><option value="zugdidi">Zugdidi</option><option value="gori">Gori</option><option value="poti">Poti</option><option value="kobuleti">Kobuleti</option><option value="telavi">Telavi</option><option value="боржоми">Borjomi</option><optgroup id="cityOtherGroup" label="Other cities"><option value="ахалцихе">Akhaltsikhe</option><option value="озургети">Ozurgeti</option><option value="сенаки">Senaki</option><option value="самтредиа">Samtredia</option><option value="зестафони">Zestafoni</option><option value="марнеули">Marneuli</option><option value="хашури">Khashuri</option><option value="чиатура">Chiatura</option><option value="цхалтубо">Tskaltubo</option><option value="сагареджо">Sagarejo</option><option value="гардабани">Gardabani</option><option value="болниси">Bolnisi</option><option value="каспи">Kaspi</option><option value="хони">Khoni</option><option value="ланчхути">Lanchkhuti</option><option value="мцхета">Mtskheta</option><option value="ахалкалаки">Akhalkalaki</option><option value="ниноцминда">Ninotsminda</option><option value="дедоплисцкаро">Dedoplistskaro</option><option value="лагодехи">Lagodekhi</option><option value="кварели">Kvareli</option><option value="гурджаани">Gurjaani</option><option value="сигнахи">Sighnaghi</option><option value="цнори">Tsnori</option><option value="абаша">Abasha</option><option value="мартвили">Martvili</option><option value="хоби">Khobi</option><option value="цаленджиха">Tsalenjikha</option><option value="чхороцку">Chkhorotsku</option><option value="вани">Vani</option><option value="багдати">Baghdati</option><option value="тержола">Terjola</option><option value="сачхере">Sachkhere</option><option value="амбролаури">Ambrolauri</option><option value="они">Oni</option><option value="цагери">Tsageri</option><option value="местиа">Mestia</option><option value="хелвачаури">Khelvachauri</option><option value="кеда">Keda</option><option value="шуахеви">Shuakhevi</option><option value="хуло">Khulo</option></optgroup></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><button class="quick-arrow quick-arrow-left" id="quickArrowLeft" type="button" aria-label="Previous categories" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><div class="quick-actions" aria-label="Категории">
+<div class="wrap"><div class="top"><div class="brand"><svg class="mm-brand-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M14 24h36l5 32H9l5-32Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M22 25v-8a10 10 0 0 1 20 0v8" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M19 47V32l9 9 9-9v15" fill="none" stroke="#0D58B5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M51 12c-7 0-12 5-12 12 0 9 12 20 12 20s12-11 12-20c0-7-5-12-12-12Z" fill="#1988FF" stroke="#fff" stroke-width="2"/><circle cx="51" cy="24" r="4" fill="#fff"/></svg><span class="mm-brand-words"><span class="brand-main">MADLOBA</span><span class="brand-market">MARKET</span></span></div><div style="display:flex;gap:7px;align-items:center"><select class="city" id="langSelect" aria-label="Language"><option value="ru">🇷🇺 RU</option><option value="en">🇬🇧 EN</option><option value="ka">🇬🇪 GE</option><option value="uk">🇺🇦 UA</option></select><button class="city" id="cityMultiBtn" type="button" aria-haspopup="dialog" aria-expanded="false"><svg class="mm-city-drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-7.1 8-13A8 8 0 1 0 4 9c0 5.9 8 13 8 13Z" fill="url(#mmCityDropGradient)" stroke="#2F80ED" stroke-width="1.15"/><defs><linearGradient id="mmCityDropGradient" x1="7" y1="3" x2="18" y2="20" gradientUnits="userSpaceOnUse"><stop stop-color="#8CC8FF"/><stop offset="1" stop-color="#2878E8"/></linearGradient></defs><circle cx="12" cy="9" r="2.15" fill="#fff"/></svg><span id="cityMultiBtnText">Cities</span></button><select class="city" id="citySelect" aria-label="City" style="display:none!important"><option value="all">All</option><option value="batumi">Batumi</option><option value="tbilisi">Tbilisi</option><option value="kutaisi">Kutaisi</option><option value="rustavi">Rustavi</option><option value="zugdidi">Zugdidi</option><option value="gori">Gori</option><option value="poti">Poti</option><option value="kobuleti">Kobuleti</option><option value="telavi">Telavi</option><option value="боржоми">Borjomi</option><optgroup id="cityOtherGroup" label="Other cities"><option value="ахалцихе">Akhaltsikhe</option><option value="озургети">Ozurgeti</option><option value="сенаки">Senaki</option><option value="самтредиа">Samtredia</option><option value="зестафони">Zestafoni</option><option value="марнеули">Marneuli</option><option value="хашури">Khashuri</option><option value="чиатура">Chiatura</option><option value="цхалтубо">Tskaltubo</option><option value="сагареджо">Sagarejo</option><option value="гардабани">Gardabani</option><option value="болниси">Bolnisi</option><option value="каспи">Kaspi</option><option value="хони">Khoni</option><option value="ланчхути">Lanchkhuti</option><option value="мцхета">Mtskheta</option><option value="ахалкалаки">Akhalkalaki</option><option value="ниноцминда">Ninotsminda</option><option value="дедоплисцкаро">Dedoplistskaro</option><option value="лагодехи">Lagodekhi</option><option value="кварели">Kvareli</option><option value="гурджаани">Gurjaani</option><option value="сигнахи">Sighnaghi</option><option value="цнори">Tsnori</option><option value="абаша">Abasha</option><option value="мартвили">Martvili</option><option value="хоби">Khobi</option><option value="цаленджиха">Tsalenjikha</option><option value="чхороцку">Chkhorotsku</option><option value="вани">Vani</option><option value="багдати">Baghdati</option><option value="тержола">Terjola</option><option value="сачхере">Sachkhere</option><option value="амбролаури">Ambrolauri</option><option value="они">Oni</option><option value="цагери">Tsageri</option><option value="местиа">Mestia</option><option value="хелвачаури">Khelvachauri</option><option value="кеда">Keda</option><option value="шуахеви">Shuakhevi</option><option value="хуло">Khulo</option></optgroup></select></div></div><div class="hero"><h1 data-i18n="hero_title">Покупай. Продавай.<br><span>Находи рядом.</span></h1><p data-i18n="hero_subtitle"></p><div class="search"><button class="search-icon" id="searchSubmit" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.7"></circle><path d="M16.1 16.1 21 21"></path></svg></button><input id="search" data-i18n-placeholder="search_placeholder" placeholder="Что ищете? Например: квартира" autocomplete="off" enterkeyhint="search"></div><div class="quick-actions-shell"><button class="quick-arrow quick-arrow-left" id="quickArrowLeft" type="button" aria-label="Previous categories" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button><div class="quick-actions" aria-label="Категории">
 <button class="quick-action" data-cat="realestate"><span class="quick-icon" data-icon="realestate"></span><span class="quick-label" data-i18n="category_realestate">Недвижимость</span></button>
 <button class="quick-action" data-cat="auto"><span class="quick-icon" data-icon="auto"></span><span class="quick-label" data-i18n="category_auto">Авто</span></button>
 <button class="quick-action" data-cat="tech"><span class="quick-icon" data-icon="tech"></span><span class="quick-label" data-i18n="category_tech">Техника</span></button>
@@ -17475,50 +17485,71 @@ def mini_app_admin_review_description_change(change_id):
     decision = body.get("decision")
     if decision not in ("approved", "rejected"):
         return jsonify({"error": "invalid_decision"}), 400
-    changes = supabase_request("GET", "mm_listing_description_changes", params={
-        "select": "*", "id": f"eq.{change_id}", "status": "eq.pending", "limit": "1"
-    })
-    if not changes:
-        return jsonify({"error": "not_pending"}), 409
-    change = changes[0]
-    listing_id = int(change["listing_id"])
-    rows = supabase_request("GET", "listings", params={
-        "select": "id,user_id,title,description,price,currency,address,metadata,channel_message_id,status,phone,category_id,city_id",
-        "id": f"eq.{listing_id}", "limit": "1"
-    })
-    if not rows or str(rows[0].get("status") or "").lower() != "published":
-        return jsonify({"error": "listing_not_published"}), 409
-    row = rows[0]
-    if str(row.get("description") or "").strip() != str(change.get("old_description") or "").strip():
-        return jsonify({"error": "listing_changed_since_request"}), 409
-    if decision == "approved":
-        new_description = str(change.get("proposed_description") or "").strip()
-        if not 1 <= len(new_description) <= 3000:
-            return jsonify({"error": "invalid_description"}), 409
-        metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
-        edited = dict(metadata)
-        edited.update({"description": new_description, "price": row.get("price"),
-                       "currency": row.get("currency"), "district": row.get("address") or "",
-                       "contact": row.get("phone") or ""})
-        edited["details"] = dict(edited.get("details") or {})
-        edited["photos"] = list(edited.get("photos") or [])
-        # Never mark the proposal approved if the channel edit fails.
-        if not _sync_edited_listing_to_channel(row, edited):
-            return jsonify({"error": "channel_sync_failed"}), 502
-        metadata["description"] = new_description
-        updated = supabase_request("PATCH", "listings", params={
-            "id": f"eq.{listing_id}", "status": "eq.published",
-            "description": f"eq.{str(row.get('description') or '')}"
-        }, payload={"description": new_description, "metadata": metadata})
-        if not isinstance(updated, list) or not updated:
-            return jsonify({"error": "listing_update_failed_check_channel"}), 503
-    reviewed = supabase_request("PATCH", "mm_listing_description_changes", params={
-        "id": f"eq.{change_id}", "status": "eq.pending"
-    }, payload={"status": decision, "reviewed_at": datetime.now(timezone.utc).isoformat(),
-                "reviewed_by_telegram_id": int(user["id"])})
-    if not isinstance(reviewed, list) or not reviewed:
-        return jsonify({"error": "review_status_update_failed"}), 503
-    return jsonify({"ok": True, "decision": decision})
+    # Atomically claim the pending review before any Telegram or listing side effects.
+    # The conditional PATCH guarantees that concurrent reviewers cannot both proceed.
+    claim_token = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    claim_expiry = (now + timedelta(minutes=10)).isoformat()
+    claimed = supabase_request("PATCH", "mm_listing_description_changes", params={
+        "id": f"eq.{change_id}", "status": "eq.pending",
+        "or": f"(review_claim_token.is.null,review_claim_expires_at.lt.{now.isoformat()})"
+    }, payload={"review_claim_token": claim_token,
+                "review_claim_expires_at": claim_expiry})
+    if claimed is None:
+        return jsonify({"error": "db_unavailable"}), 503
+    if not claimed:
+        return jsonify({"error": "not_pending_or_being_reviewed"}), 409
+    change = claimed[0]
+    completed = False
+    try:
+        listing_id = int(change["listing_id"])
+        rows = supabase_request("GET", "listings", params={
+            "select": "id,user_id,title,description,price,currency,address,metadata,channel_message_id,status,phone,category_id,city_id",
+            "id": f"eq.{listing_id}", "limit": "1"
+        })
+        if not rows or str(rows[0].get("status") or "").lower() != "published":
+            return jsonify({"error": "listing_not_published"}), 409
+        row = rows[0]
+        if str(row.get("description") or "").strip() != str(change.get("old_description") or "").strip():
+            return jsonify({"error": "listing_changed_since_request"}), 409
+        if decision == "approved":
+            new_description = str(change.get("proposed_description") or "").strip()
+            if not 1 <= len(new_description) <= 3000:
+                return jsonify({"error": "invalid_description"}), 409
+            metadata = dict(row.get("metadata") or {}) if isinstance(row.get("metadata"), dict) else {}
+            edited = dict(metadata)
+            edited.update({"description": new_description, "price": row.get("price"),
+                           "currency": row.get("currency"), "district": row.get("address") or "",
+                           "contact": row.get("phone") or ""})
+            edited["details"] = dict(edited.get("details") or {})
+            edited["photos"] = list(edited.get("photos") or [])
+            # Keep the proposal pending when Telegram synchronization fails.
+            if not _sync_edited_listing_to_channel(row, edited):
+                return jsonify({"error": "channel_sync_failed"}), 502
+            metadata["description"] = new_description
+            updated = supabase_request("PATCH", "listings", params={
+                "id": f"eq.{listing_id}", "status": "eq.published",
+                "description": f"eq.{str(row.get('description') or '')}"
+            }, payload={"description": new_description, "metadata": metadata})
+            if not isinstance(updated, list) or not updated:
+                return jsonify({"error": "listing_update_failed_check_channel"}), 503
+        reviewed = supabase_request("PATCH", "mm_listing_description_changes", params={
+            "id": f"eq.{change_id}", "status": "eq.pending",
+            "review_claim_token": f"eq.{claim_token}"
+        }, payload={"status": decision, "reviewed_at": datetime.now(timezone.utc).isoformat(),
+                    "reviewed_by_telegram_id": int(user["id"]),
+                    "review_claim_token": None, "review_claim_expires_at": None})
+        if not isinstance(reviewed, list) or not reviewed:
+            return jsonify({"error": "review_status_update_failed"}), 503
+        completed = True
+        return jsonify({"ok": True, "decision": decision})
+    finally:
+        # Release failed reviews for retry, but never release another worker's claim.
+        if not completed:
+            supabase_request("PATCH", "mm_listing_description_changes", params={
+                "id": f"eq.{change_id}", "status": "eq.pending",
+                "review_claim_token": f"eq.{claim_token}"
+            }, payload={"review_claim_token": None, "review_claim_expires_at": None})
 
 
 @app.patch("/api/my-listing/<int:listing_id>")
