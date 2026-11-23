@@ -20339,15 +20339,21 @@ def mini_app_listing_detail(listing_id):
     )
     if not rows:
         return jsonify({"error":"not_found"}), 404
-    item = _attach_catalog_photos(rows)[0]
     row = rows[0]
     seller_id = row.get("user_id")
-    item["seller"] = None
+    # Photo lookup and seller lookup are independent I/O operations.
+    # Run them concurrently without changing the response or the Mini App UI.
+    photos_future = LISTING_READ_EXECUTOR.submit(_attach_catalog_photos, rows)
+    seller_future = None
     if seller_id is not None:
-        seller_rows = supabase_request(
-            "GET", "users",
+        seller_future = LISTING_READ_EXECUTOR.submit(
+            supabase_request, "GET", "users",
             params={"select":"id,first_name,last_name","id":f"eq.{seller_id}","limit":"1"},
-        ) or []
+        )
+    item = photos_future.result()[0]
+    item["seller"] = None
+    if seller_future is not None:
+        seller_rows = seller_future.result() or []
         if seller_rows:
             seller_row = seller_rows[0]
             seller_name = " ".join(str(seller_row.get(k) or "").strip() for k in ("first_name","last_name")).strip()
