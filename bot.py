@@ -14813,6 +14813,15 @@ html body [contenteditable="true"] {
 
 </style>
 
+<style id="mm-detail-photo-cover-v1">
+/* Detail preview only; fullscreen viewer retains the original proportions. */
+#detailView #detailContent .detail-photo img#detailImg {
+ width:100% !important;
+ height:100% !important;
+ object-fit:cover !important;
+ object-position:center center !important;
+}
+</style>
 </body></html>'''
 
 
