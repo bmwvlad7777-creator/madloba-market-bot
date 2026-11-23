@@ -20351,6 +20351,14 @@ def mini_app_listing_detail(listing_id):
             params={"select":"id,first_name,last_name","id":f"eq.{seller_id}","limit":"1"},
         )
     item = photos_future.result()[0]
+    # Reuse the ordered photos just fetched for this published listing when
+    # /media requests arrive immediately after opening the detail view.
+    # The existing 3-second visibility TTL and mutation invalidation remain
+    # unchanged; /media still performs its normal authorization checks.
+    _media_visibility_put(listing_id, [
+        {"photo_url": url, "sort_order": idx}
+        for idx, url in enumerate(item.get("photos") or [])
+    ])
     item["seller"] = None
     if seller_future is not None:
         seller_rows = seller_future.result() or []
