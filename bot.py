@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+import gzip
 import uuid
 
 import os
@@ -16664,11 +16665,21 @@ def mini_app_admin_report_action(report_id):
     return jsonify({"ok":True,"action":action})
 
 
+MINI_APP_HTML_GZIP = gzip.compress(MINI_APP_HTML.encode("utf-8"), compresslevel=6, mtime=0)
+
+
 @app.get("/app")
 def mini_app():
     # Overlap the city lookup with HTML delivery and Mini App initialization.
     _warm_city_directory()
-    return Response(MINI_APP_HTML, mimetype="text/html")
+    encodings = request.accept_encodings
+    if encodings.best_match(["gzip", "identity"]) == "gzip":
+        response = Response(MINI_APP_HTML_GZIP, mimetype="text/html")
+        response.headers["Content-Encoding"] = "gzip"
+    else:
+        response = Response(MINI_APP_HTML, mimetype="text/html")
+    response.vary.add("Accept-Encoding")
+    return response
 
 
 
