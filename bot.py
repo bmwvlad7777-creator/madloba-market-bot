@@ -20399,7 +20399,8 @@ def mini_app_listing_detail(listing_id):
     item["telegram"] = telegram_username
     item["category_name"] = item.get("category") or "Объявление"
     if current_user:
-        _track_mm_event("listing_view", current_user.get("id"), listing_id)
+        # Analytics is best-effort and must not delay the detail response.
+        LISTING_READ_EXECUTOR.submit(_track_mm_event, "listing_view", current_user.get("id"), listing_id)
     item["is_favorite"] = bool(favorite_future.result() or []) if favorite_future is not None else False
     _strip_public_listing_fields(item)
     return jsonify(item)
