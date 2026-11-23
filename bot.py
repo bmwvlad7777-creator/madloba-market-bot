@@ -11721,9 +11721,9 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .hero { background:transparent !important; overflow:visible !important; padding-bottom:8px !important; margin-bottom:8px !important; }
   .hero .quick-actions {
     display:flex !important; flex-flow:row nowrap !important; justify-content:flex-start !important;
-    width:100% !important; max-width:100% !important; height:92px !important; min-height:92px !important; max-height:92px !important;
+    width:100% !important; max-width:100% !important; height:100px !important; min-height:100px !important; max-height:100px !important;
     box-sizing:border-box !important; overflow-x:auto !important; overflow-y:hidden !important;
-    gap:8px !important; padding:7px 10px !important; margin:10px 0 0 !important;
+    gap:8px !important; padding:8px 10px !important; margin:10px 0 0 !important;
     background:#fff !important; background-image:none !important; border:1px solid rgba(92,157,255,.62) !important;
     border-radius:20px !important; box-shadow:0 7px 20px rgba(20,111,232,.09) !important;
     scroll-snap-type:x mandatory !important; scroll-padding-left:10px !important; scrollbar-width:none !important;
@@ -11732,7 +11732,7 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .hero .quick-actions::-webkit-scrollbar { display:none !important; }
   .hero .quick-actions .quick-action {
     flex:0 0 88px !important; width:88px !important; min-width:88px !important; max-width:88px !important;
-    height:76px !important; min-height:76px !important; max-height:76px !important;
+    height:80px !important; min-height:80px !important; max-height:80px !important;
     display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:flex-start !important;
     gap:5px !important; padding:1px 3px !important; margin:0 !important; border:1px solid transparent !important;
     border-radius:13px !important; background:transparent !important; box-shadow:none !important; overflow:hidden !important;
