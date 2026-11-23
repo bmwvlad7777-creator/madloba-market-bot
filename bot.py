@@ -1053,6 +1053,24 @@ _ALL_CITY_DIRECTORY_LOCK = threading.Lock()
 _ALL_CITY_DIRECTORY = {}
 _ALL_CITY_DIRECTORY_EXPIRES = 0.0
 _ALL_CITY_DIRECTORY_TTL = 300.0
+_ALL_CITY_DIRECTORY_WARMUP = None
+_ALL_CITY_DIRECTORY_WARMUP_RETRY_AT = 0.0
+
+
+def _warm_city_directory():
+    global _ALL_CITY_DIRECTORY_WARMUP, _ALL_CITY_DIRECTORY_WARMUP_RETRY_AT
+    if not supabase_enabled() or not _ALL_CITY_DIRECTORY_LOCK.acquire(blocking=False):
+        return
+    try:
+        now = time.monotonic()
+        if now < _ALL_CITY_DIRECTORY_EXPIRES or now < _ALL_CITY_DIRECTORY_WARMUP_RETRY_AT:
+            return
+        if _ALL_CITY_DIRECTORY_WARMUP is not None and not _ALL_CITY_DIRECTORY_WARMUP.done():
+            return
+        _ALL_CITY_DIRECTORY_WARMUP = LISTING_READ_EXECUTOR.submit(_all_city_ids_by_slug)
+        _ALL_CITY_DIRECTORY_WARMUP_RETRY_AT = now + 10.0
+    finally:
+        _ALL_CITY_DIRECTORY_LOCK.release()
 
 
 def _all_city_ids_by_slug():
@@ -16648,6 +16666,8 @@ def mini_app_admin_report_action(report_id):
 
 @app.get("/app")
 def mini_app():
+    # Overlap the city lookup with HTML delivery and Mini App initialization.
+    _warm_city_directory()
     return Response(MINI_APP_HTML, mimetype="text/html")
 
 
