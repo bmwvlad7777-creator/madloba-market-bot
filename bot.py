@@ -18575,7 +18575,6 @@ def mini_app_listings():
     _perf_auth_started = time.perf_counter()
     current_user = _mini_app_authenticated_user()
     print(f"PERF listings_phase=telegram_auth ms={(time.perf_counter() - _perf_auth_started) * 1000:.1f} valid={int(bool(current_user))}")
-    _perf_user_started = time.perf_counter()
     user_future = LISTING_READ_EXECUTOR.submit(_supabase_user_id, current_user.get("id")) if current_user else None
 
     _perf_city_started = time.perf_counter()
@@ -18600,8 +18599,6 @@ def mini_app_listings():
         city_ids_by_slug = _all_city_ids_by_slug()
     city_id = city_future.result() if city_future is not None else None
     print(f"PERF listings_phase=city_lookup ms={(time.perf_counter() - _perf_city_started) * 1000:.1f}")
-    current_user_id = user_future.result() if user_future is not None else None
-    print(f"PERF listings_phase=user_id_lookup ms={(time.perf_counter() - _perf_user_started) * 1000:.1f} found={int(bool(current_user_id))}")
     if selected_city_slugs and not selected_city_ids:
         return jsonify({"items": [], "has_next": False, "total_hint": 0})
     if city != "all" and not selected_city_slugs and not city_id:
@@ -19397,6 +19394,12 @@ def mini_app_listings():
     photo_future = LISTING_READ_EXECUTOR.submit(
         _supabase_photo_rows, [row.get("id") for row in rows]
     ) if rows else None
+
+    # Only favorite flags need the user ID. Let the catalog and photo
+    # queries make progress while the lookup is still running.
+    _perf_user_wait_started = time.perf_counter()
+    current_user_id = user_future.result() if user_future is not None else None
+    print(f"PERF listings_phase=user_id_lookup wait_ms={(time.perf_counter() - _perf_user_wait_started) * 1000:.1f} found={int(bool(current_user_id))}")
 
     # Favorite lookup is independent from photo lookup. Run both at once so
     # their network latency overlaps, while still waiting for both before the
