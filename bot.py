@@ -11746,6 +11746,32 @@ body::before{height:435px!important;min-height:0!important;max-height:435px!impo
   .popular-section { position:relative !important; z-index:1 !important; margin-top:14px !important; }
 }
 
+/* Category strip refinement: larger artwork, less empty vertical space; preserve swipe. */
+@media (max-width: 619px) {
+  .hero .quick-actions {
+    height:92px !important; min-height:92px !important; max-height:92px !important;
+    padding-top:6px !important; padding-bottom:6px !important;
+  }
+  .hero .quick-actions .quick-action {
+    height:78px !important; min-height:78px !important; max-height:78px !important;
+    gap:3px !important;
+  }
+  .hero .quick-actions .quick-icon {
+    flex:0 0 52px !important; width:52px !important; height:52px !important;
+    min-width:52px !important; min-height:52px !important;
+    max-width:52px !important; max-height:52px !important;
+  }
+  .hero .quick-actions .quick-icon img,
+  .hero .quick-actions .quick-icon svg,
+  .hero .quick-actions .quick-icon .mm-category-3d,
+  .hero .quick-actions .quick-icon .mm-category-svg,
+  .hero .quick-actions .quick-icon .reference-category-icon {
+    width:50px !important; height:50px !important;
+    min-width:50px !important; min-height:50px !important;
+    max-width:50px !important; max-height:50px !important;
+  }
+}
+
 /* Keep the floating support shortcut from covering seller listing cards while browsing a seller profile. */
 body.mm-seller-view-open .mm-support-fab{display:none!important;visibility:hidden!important;pointer-events:none!important}
 
