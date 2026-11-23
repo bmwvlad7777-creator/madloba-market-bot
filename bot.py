@@ -20350,6 +20350,17 @@ def mini_app_listing_detail(listing_id):
             supabase_request, "GET", "users",
             params={"select":"id,first_name,last_name","id":f"eq.{seller_id}","limit":"1"},
         )
+    # Overlap the favorite lookup with the independent photo/seller requests.
+    current_user = _mini_app_authenticated_user()
+    favorite_future = None
+    if current_user:
+        current_user_id = _supabase_user_id(current_user.get("id"))
+        if current_user_id:
+            favorite_future = LISTING_READ_EXECUTOR.submit(
+                supabase_request, "GET", "favorites",
+                params={"select":"id", "user_id":f"eq.{current_user_id}",
+                        "listing_id":f"eq.{listing_id}", "limit":"1"},
+            )
     item = photos_future.result()[0]
     # Reuse the ordered photos just fetched for this published listing when
     # /media requests arrive immediately after opening the detail view.
@@ -20387,15 +20398,9 @@ def mini_app_listing_detail(listing_id):
     item["telegram_username"] = telegram_username
     item["telegram"] = telegram_username
     item["category_name"] = item.get("category") or "Объявление"
-    current_user=_mini_app_authenticated_user()
     if current_user:
         _track_mm_event("listing_view", current_user.get("id"), listing_id)
-    item["is_favorite"]=False
-    if current_user:
-        current_user_id=_supabase_user_id(current_user.get("id"))
-        if current_user_id:
-            fav=supabase_request("GET","favorites",params={"select":"id","user_id":f"eq.{current_user_id}","listing_id":f"eq.{listing_id}","limit":"1"}) or []
-            item["is_favorite"]=bool(fav)
+    item["is_favorite"] = bool(favorite_future.result() or []) if favorite_future is not None else False
     _strip_public_listing_fields(item)
     return jsonify(item)
 
