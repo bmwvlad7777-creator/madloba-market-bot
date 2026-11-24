@@ -13658,7 +13658,19 @@ async function mmPostPreparePhoto(file){
   return file.size<=maxBytes?file:null;
  }finally{if(objectUrl)URL.revokeObjectURL(objectUrl)}
 }
-$('mmPostPhotos').addEventListener('change',async e=>{const files=Array.from(e.target.files||[]);if(mmPostPhotos.length+files.length>10){$('mmPostError').textContent=mmPostText('photoLimit');e.target.value='';return}for(const file of files){const prepared=await mmPostPreparePhoto(file);if(!prepared){$('mmPostError').textContent=mmPostText('photoType');continue}mmDraftAddPhoto({file:prepared,url:null})}mmDraftSave();e.target.value=''});
+const mmAndroidPhotoPicker=window.Telegram?.WebApp?.platform==='android';
+if(mmAndroidPhotoPicker){$('mmPostPhotos').accept='image/*';}
+async function mmAndroidNormalizePhoto(file){
+ const bytes=new Uint8Array(await file.slice(0,12).arrayBuffer());
+ let mime='';
+ if(bytes[0]===255&&bytes[1]===216&&bytes[2]===255)mime='image/jpeg';
+ else if(bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71)mime='image/png';
+ else if(String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP')mime='image/webp';
+ if(!mime)return null;
+ const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[mime];
+ return new File([file],(file.name||'photo').replace(/\.[^.]+$/,'')+'.'+ext,{type:mime,lastModified:file.lastModified});
+}
+$('mmPostPhotos').addEventListener('change',async e=>{const files=Array.from(e.target.files||[]);if(mmPostPhotos.length+files.length>10){$('mmPostError').textContent=mmPostText('photoLimit');e.target.value='';return}for(const file of files){let prepared;try{const source=mmAndroidPhotoPicker?await mmAndroidNormalizePhoto(file):file;prepared=source?await mmPostPreparePhoto(source):null}catch(err){if(!mmAndroidPhotoPicker)throw err;console.warn('MM Android photo read failed',err);prepared=null}if(!prepared){$('mmPostError').textContent=mmPostText('photoType');continue}mmDraftAddPhoto({file:prepared,url:null})}mmDraftSave();e.target.value=''});
 $('mmPostNext').addEventListener('click',async()=>{const d=mmPostCollect();$('mmPostError').textContent='';if(!mmPostPreviewMode){const err=mmPostValidate(d);if(err){$('mmPostError').textContent=err;return}$('mmPostPreview').textContent=mmPostPreview(d);$('mmPostPreview').classList.add('show');mmPostPreviewMode=true;$('mmPostNext').textContent=mmPostText('send');$('mmPostCancel').textContent=mmPostText('back');return}const btn=$('mmPostNext');btn.disabled=true;btn.textContent=mmPostText('sending');try{
  const pending=mmPostPhotos.filter(photo=>!photo.url);
  const total=mmPostPhotos.length;
