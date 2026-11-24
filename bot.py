@@ -14785,6 +14785,32 @@ html body [contenteditable="true"] {
 
 </style>
 
+<style id="mm-android-hero-fit-v1">
+html.mm-android body::before {
+  height:var(--mm-android-hero-height, 320px)!important;
+  min-height:0!important;
+  max-height:none!important;
+}
+</style>
+<script>
+(function(){
+  var platform=window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform;
+  if(platform !== 'android') return;
+  document.documentElement.classList.add('mm-android');
+  var hero=document.querySelector('.hero');
+  if(!hero) return;
+  function fitHero(){
+    var strip=hero.querySelector('.quick-actions-shell') || hero.querySelector('.quick-actions');
+    if(!strip || !strip.getClientRects().length) return;
+    var bottom=strip.getBoundingClientRect().bottom-document.body.getBoundingClientRect().top;
+    if(bottom>0) document.documentElement.style.setProperty('--mm-android-hero-height', Math.ceil(bottom+8)+'px');
+  }
+  fitHero();
+  window.addEventListener('resize',fitHero);
+  window.addEventListener('load',fitHero);
+  if(window.ResizeObserver){var observer=new ResizeObserver(fitHero);observer.observe(hero);}
+})();
+</script>
 <style id="mm-detail-photo-cover-v1">
 /* Detail preview only; fullscreen viewer retains the original proportions. */
 #detailView #detailContent .detail-photo img#detailImg {
