@@ -13406,7 +13406,9 @@ function openListingReport(listing){
 // Explicitly hand the phone URI to the platform from the user's tap.
 const callLink=$('detailContent').querySelector('a.contact-btn[href^="tel:"]');
 if(callLink){
-  callLink.addEventListener('click',function(e){
+  if(window.Telegram?.WebApp?.platform==='android'){
+    callLink.removeAttribute('target');
+  }else callLink.addEventListener('click',function(e){
     const href=this.getAttribute('href')||'';
     if(!/^tel:\\+?[0-9(). -]+$/i.test(href))return;
     e.preventDefault();
