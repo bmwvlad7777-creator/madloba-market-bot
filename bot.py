@@ -14853,6 +14853,68 @@ html.mm-android.mm-android-fullscreen body.mm-detail-open #detailView {
  object-position:center center !important;
 }
 </style>
+<style id="mm-android-select-v1">
+#mmAndroidSelectDialog{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.48);box-sizing:border-box;font-family:inherit}
+#mmAndroidSelectDialog[hidden]{display:none!important}
+#mmAndroidSelectDialog .mm-as-panel{width:min(100%,480px);max-height:78vh;max-height:78dvh;display:flex;flex-direction:column;overflow:hidden;background:#fff;color:#17243a;border-radius:20px;box-shadow:0 12px 40px #0003}
+#mmAndroidSelectDialog .mm-as-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #e8edf4;font-size:17px;font-weight:700}
+#mmAndroidSelectDialog .mm-as-close{border:0;background:#eef3f9;color:#52627a;border-radius:50%;width:36px;height:36px;flex:none;font:inherit;padding:0}
+#mmAndroidSelectDialog .mm-as-list{overflow:auto;overscroll-behavior:contain;min-height:0;padding:4px 12px 10px;touch-action:pan-y}
+#mmAndroidSelectDialog .mm-as-option{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:46px;padding:10px 12px;border:0;border-bottom:1px solid #edf1f6;background:#fff;color:#17243a;text-align:left;font-family:inherit;font-size:15px;font-weight:500;line-height:1.35;white-space:normal;box-sizing:border-box}
+#mmAndroidSelectDialog .mm-as-option[aria-pressed="true"]{background:#eef5ff;color:#1764db;border-radius:10px;font-weight:650}
+#mmAndroidSelectDialog .mm-as-option:disabled{opacity:.45}
+#mmAndroidSelectDialog .mm-as-mark{flex:none;color:#1764db;font-size:19px}
+</style>
+<script id="mm-android-select-script-v1">
+(function(){
+  if(window.Telegram?.WebApp?.platform !== 'android') return;
+  const root=document.getElementById('listingPostView');
+  if(!root) return;
+  const overlay=document.createElement('div');
+  overlay.id='mmAndroidSelectDialog';overlay.hidden=true;
+  overlay.innerHTML='<div class="mm-as-panel" role="dialog" aria-modal="true" aria-labelledby="mmAsTitle"><div class="mm-as-head"><span id="mmAsTitle"></span><button type="button" class="mm-as-close">×</button></div><div class="mm-as-list"></div></div>';
+  document.body.appendChild(overlay);
+  const title=overlay.querySelector('#mmAsTitle'),list=overlay.querySelector('.mm-as-list'),closeButton=overlay.querySelector('.mm-as-close');
+  let active=null;
+  function close(){overlay.hidden=true;active=null;list.replaceChildren();}
+  function target(e){const s=e.target.closest?.('select');return s&&root.contains(s)&&!s.disabled&&!s.multiple&&s.size<=1?s:null;}
+  function open(s){
+    active=s;
+    const lang=typeof state!=='undefined'?state.lang:'ru';
+    const fallback={ru:'Выберите значение',en:'Choose an option',ka:'აირჩიეთ მნიშვნელობა',uk:'Виберіть значення'};
+    const closeText={ru:'Закрыть',en:'Close',ka:'დახურვა',uk:'Закрити'};
+    title.textContent=(s.labels?.[0]?.textContent||'').trim()||fallback[lang]||fallback.ru;
+    closeButton.setAttribute('aria-label',closeText[lang]||closeText.ru);
+    list.replaceChildren();
+    Array.from(s.options).forEach((opt,i)=>{
+      if(opt.hidden)return;
+      const b=document.createElement('button');b.type='button';b.className='mm-as-option';
+      b.disabled=opt.disabled||!!opt.closest('optgroup[disabled]');
+      b.setAttribute('aria-pressed',String(i===s.selectedIndex));
+      const label=document.createElement('span');label.textContent=opt.textContent;b.appendChild(label);
+      if(i===s.selectedIndex){const mark=document.createElement('span');mark.className='mm-as-mark';mark.textContent='✓';mark.setAttribute('aria-hidden','true');b.appendChild(mark);}
+      b.addEventListener('click',()=>{
+        if(active!==s||!s.isConnected||s.disabled||s.options[i]!==opt||b.disabled){close();return;}
+        const changed=s.selectedIndex!==i;close();
+        if(changed){s.selectedIndex=i;s.dispatchEvent(new Event('input',{bubbles:true}));s.dispatchEvent(new Event('change',{bubbles:true}));}
+      });
+      list.appendChild(b);
+    });
+    overlay.hidden=false;
+    list.scrollTop=0;
+    const selected=list.querySelector('[aria-pressed="true"]');
+    if(selected)list.scrollTop=Math.max(0,selected.offsetTop-list.offsetTop-list.clientHeight/2);
+    closeButton.focus({preventScroll:true});
+  }
+  root.addEventListener('mousedown',e=>{if(target(e))e.preventDefault();},true);
+  root.addEventListener('click',e=>{const s=target(e);if(s){e.preventDefault();e.stopPropagation();open(s);}},true);
+  root.addEventListener('keydown',e=>{const s=target(e);if(s&&['Enter',' ','ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();open(s);}},true);
+  closeButton.addEventListener('click',close);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+  document.addEventListener('keydown',e=>{if(!overlay.hidden&&e.key==='Escape'){e.preventDefault();close();}},true);
+  new MutationObserver(()=>{if(active&&(!active.isConnected||!root.classList.contains('show')))close();}).observe(root,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+})();
+</script>
 </body></html>'''
 
 
