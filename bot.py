@@ -14883,7 +14883,7 @@ html.mm-android.mm-android-fullscreen body.mm-detail-open #detailView {
     const lang=typeof state!=='undefined'?state.lang:'ru';
     const fallback={ru:'Выберите значение',en:'Choose an option',ka:'აირჩიეთ მნიშვნელობა',uk:'Виберіть значення'};
     const closeText={ru:'Закрыть',en:'Close',ka:'დახურვა',uk:'Закрити'};
-    title.textContent=(s.labels?.[0]?.textContent||'').trim()||fallback[lang]||fallback.ru;
+    title.textContent=(dialogFields.includes(s.id)?(fallback[lang]||fallback.ru):((s.labels?.[0]?.textContent||'').trim()||fallback[lang]||fallback.ru));
     closeButton.setAttribute('aria-label',closeText[lang]||closeText.ru);
     list.replaceChildren();
     Array.from(s.options).forEach((opt,i)=>{
@@ -14906,6 +14906,27 @@ html.mm-android.mm-android-fullscreen body.mm-detail-open #detailView {
     if(selected)list.scrollTop=Math.max(0,selected.offsetTop-list.offsetTop-list.clientHeight/2);
     closeButton.focus({preventScroll:true});
   }
+  // Keep native selects as the source of truth, but use a real button for dialog fields on Android.
+  const dialogFields=['mmReportReason','mmSupportTopic'];
+  function enhanceDialogFields(){
+    dialogFields.forEach(id=>{
+      const s=document.getElementById(id);if(!s)return;
+      let button=s.nextElementSibling;
+      if(!button||!button.classList.contains('mm-as-dialog-trigger')){
+        button=document.createElement('button');button.type='button';button.className='mm-as-dialog-trigger';
+        button.style.cssText='display:block;width:100%;margin-top:7px;padding:12px;border:1px solid #dce6f2;border-radius:12px;background:#f8fafc;color:#172033;font:inherit;font-size:15px;min-height:46px;text-align:left;box-sizing:border-box';
+        button.setAttribute('aria-haspopup','dialog');
+        s.insertAdjacentElement('afterend',button);s.style.display='none';s.hidden=true;
+        button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(!s.disabled)open(s);});
+        s.addEventListener('change',()=>{button.textContent=(s.options[s.selectedIndex]?.textContent||'')+'  ▾';});
+      }
+      const label=(s.options[s.selectedIndex]?.textContent||'')+'  ▾';
+      if(button.textContent!==label)button.textContent=label;
+      button.disabled=s.disabled;
+    });
+  }
+  enhanceDialogFields();
+  new MutationObserver(enhanceDialogFields).observe(document.body,{childList:true,subtree:true,characterData:true});
   document.addEventListener('mousedown',e=>{if(target(e))e.preventDefault();},true);
   document.addEventListener('click',e=>{const s=target(e);if(s){e.preventDefault();e.stopPropagation();open(s);}},true);
   document.addEventListener('keydown',e=>{const s=target(e);if(s&&['Enter',' ','ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();open(s);}},true);
