@@ -1959,7 +1959,7 @@ CATEGORIES = {
             ("💰 Продам", "sell"),
             ("🔎 Куплю", "buy"),
             ("🔑 Сдам", "rent"),
-            ("🚗 Ищу", "seek"),
+            ("🚗 Сниму авто", "seek"),
         ],
 
         "fields": [
@@ -2093,8 +2093,8 @@ CATEGORIES = {
 
         "types": [
 
-            ("💼 Предлагаю", "offer"),
-            ("🔎 Ищу", "seek"),
+            ("💼 Предлагаю работу", "offer"),
+            ("🔎 Ищу работу", "seek"),
         ],
 
         "fields": [
@@ -8018,40 +8018,10 @@ def _handle_update_core(
         ] = type_key
 
 
-        # Для недвижимости seek = Сниму.
-        if (
-
-            listing[
-                "category_key"
-            ]
-
-            ==
-
-            "realestate"
-
-            and
-
-            type_key
-            ==
-            "seek"
-
-        ):
-
-            listing[
-                "type"
-            ] = "🔎 Сниму"
-
-        else:
-
-            listing[
-                "type"
-            ] = TYPE_NAMES.get(
-
-                type_key,
-
-                type_key
-            )
-
+        listing["type"] = next(
+            (label for label, key in CATEGORIES[listing["category_key"]]["types"] if key == type_key),
+            TYPE_NAMES.get(type_key, type_key),
+        )
 
         ask_detail(
             chat_id,
@@ -13079,7 +13049,7 @@ function syncGenericFilterOptions(){
   tech:{types:[['','Все'],['sell','Продам'],['buy','Куплю']],subs:[['','Все подкатегории'],['phones','Телефоны и планшеты'],['computers','Компьютеры и ноутбуки'],['tv','Телевизоры и аудио'],['appliances','Бытовая техника'],['photo','Фото и видео'],['other','Другая техника']]},
   home:{types:[['','Все'],['sell','Продам'],['buy','Куплю']],subs:[['','Все подкатегории'],['furniture','Мебель'],['household','Для дома'],['kitchen','Посуда и кухня'],['repair','Ремонт'],['decor','Декор'],['garden','Сад и дача'],['other','Другое']]},
   kids:{types:[['','Все'],['sell','Продам'],['buy','Куплю'],['give','Отдам']],subs:[['','Все подкатегории'],['clothes','Одежда и обувь'],['toys','Игрушки'],['strollers','Коляски и автокресла'],['furniture','Детская мебель'],['sports','Детский спорт'],['feeding','Кормление и уход'],['school','Школьные товары'],['other','Другое']]},
-  work:{types:[['','Все'],['offer','Предлагаю'],['seek','Ищу']],subs:[['','Все подкатегории'],['jobs','Вакансии'],['part_time','Подработка'],['remote','Удалённая работа'],['resume','Резюме и поиск работы'],['other','Другое']]},
+  work:{types:[['','Все'],['offer','Предлагаю работу'],['seek','Ищу работу']],subs:[['','Все подкатегории'],['jobs','Вакансии'],['part_time','Подработка'],['remote','Удалённая работа'],['resume','Резюме и поиск работы'],['other','Другое']]},
   services:{types:[['','Все'],['offer','Предлагаю услугу'],['seek','Ищу специалиста']],subs:[['','Все подкатегории'],['beauty','Красота и уход'],['massage','Массаж и wellness'],['repair','Ремонт и строительство'],['cleaning','Уборка'],['delivery','Транспорт и доставка'],['education','Обучение и репетиторы'],['it','IT и цифровые услуги'],['photo_video','Фото и видеосъёмка'],['events','Мероприятия'],['moving','Переезды'],['other','Другие услуги']]},
   pets:{types:[['','Все'],['sell','Продам'],['give','Отдам'],['seek','Ищу']],subs:[['','Все подкатегории'],['dogs','Собаки'],['cats','Кошки'],['other_animals','Другие животные'],['supplies','Товары и аксессуары'],['adoption','Пристройство питомцев'],['lost_found','Потерянные и найденные'],['services','Уход и услуги'],['other','Другое']]},
   give:{types:[['','Все'],['give','Отдам бесплатно']],subs:[['','Все подкатегории'],['home','Для дома'],['clothes','Одежда'],['kids','Детское'],['tech','Техника'],['other','Другое']]},
@@ -13087,7 +13057,7 @@ function syncGenericFilterOptions(){
  };
  const c=cfg[state.category]; const deal=$('genericFilterDeal'),sub=$('genericFilterSub'); if(!deal||!sub)return;
  const opts=(arr)=>arr.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
- deal.innerHTML=opts(c?c.types:[['','Все']]); sub.innerHTML=opts(c?c.subs:[['','Все подкатегории']]);
+ deal.innerHTML=opts(c?c.types.map(([v,l])=>[v,v?mmDealLabel(state.category,v,l):t('all')]):[['',t('all')]]); sub.innerHTML=opts(c?c.subs:[['','Все подкатегории']]);
  deal.value=state.filters.deal||''; sub.value=state.filters.sub||'';
  $('genericFilterMinPrice').value=state.filters.min_price||''; $('genericFilterMaxPrice').value=state.filters.max_price||''; $('genericFilterCondition').value=state.filters.condition||'';
  const brandWrap=$('genericBrandWrap'),modelWrap=$('genericModelWrap'),brand=$('genericFilterMake'),model=$('genericFilterModel');
@@ -13331,13 +13301,15 @@ function cardLocation(x){
   // Preserve user-provided city names, only tidy separators/capitalization.
   return city.replace(/[_-]+/g,' ').replace(/\s+/g,' ').replace(/(^|\s)\p{L}/gu,m=>m.toLocaleUpperCase());
 }
+function mmDealLabel(category,key,fallback="",lang=state.lang){const specific={"realestate":{"seek":["Сниму","Looking to rent","ვიქირავებ","Орендую"]},"auto":{"seek":["Сниму авто","Looking to rent a car","ვიქირავებ ავტომობილს","Орендую авто"]},"work":{"offer":["Предлагаю работу","Offering a job","გთავაზობთ სამუშაოს","Пропоную роботу"],"seek":["Ищу работу","Looking for work","ვეძებ სამუშაოს","Шукаю роботу"]},"services":{"offer":["Предлагаю услугу","Offering a service","გთავაზობთ მომსახურებას","Пропоную послугу"],"seek":["Ищу специалиста","Looking for a specialist","ვეძებ სპეციალისტს","Шукаю спеціаліста"]},"pets":{"seek":["Ищу","Looking for a pet","ვეძებ","Шукаю"]},"search":{"seek":["Ищу","Looking for","ვეძებ","Шукаю"]},"give":{"give":["Отдам бесплатно","Free giveaway","უფასოდ გაჩუქებთ","Віддам безкоштовно"]}};const common={"sell":["Продам","For sale","იყიდება","Продам"],"buy":["Куплю","Looking to buy","ვიყიდი","Куплю"],"rent":["Сдам","For rent","ქირავდება","Здам"],"give":["Отдам","Give away","გაჩუქებთ","Віддам"],"seek":["Ищу","Looking for","ვეძებ","Шукаю"],"offer":["Предлагаю","Offering","გთავაზობთ","Пропоную"]};const i=({ru:0,en:1,ka:2,uk:3})[lang]??0;return (specific[category]?.[key]||common[key])?.[i]||fallback;}
 function cardDealLabel(x){
  const raw=String(x?.type_key||x?.deal_type||x?.listing_type||x?.type||'').trim();
  const normalized=raw.toLowerCase().replace(/[🔑🔎🏡💰🚗🎁💼]/gu,'').trim();
  const aliases={sell:['sell','продам','продажа'],buy:['buy','куплю','покупка'],rent:['rent','сдам','аренда'],seek:['seek','сниму','ищу'],give:['give','отдам','отдам бесплатно'],offer:['offer','предлагаю','предлагаю услугу']};
  for(const [key,values] of Object.entries(aliases)) if(values.includes(normalized)){
    const labels={sell:{ru:'ПРОДАЮ',en:'FOR SALE',ka:'იყიდება',uk:'ПРОДАЮ'},buy:{ru:'КУПЛЮ',en:'WANTED',ka:'ვიყიდი',uk:'КУПЛЮ'},rent:{ru:'СДАЮ',en:'FOR RENT',ka:'ქირავდება',uk:'ЗДАЮ'},seek:{ru:'СНИМУ',en:'WANTED TO RENT',ka:'ვიქირავებ',uk:'ЗНІМУ'},give:{ru:'ОТДАМ',en:'GIVE AWAY',ka:'გაჩუქებთ',uk:'ВІДДАМ'},offer:{ru:'ПРЕДЛАГАЮ',en:'OFFER',ka:'გთავაზობთ',uk:'ПРОПОНУЮ'}};
-   return {key,label:labels[key][state.lang]||labels[key].en};
+   const category=String(x.category_key||x.category_slug||x.category||'').toLowerCase();
+   return {key,label:(['seek','offer'].includes(key)?mmDealLabel(category,key):labels[key][state.lang]||labels[key].en).toUpperCase()};
  }
  return null;
 }
@@ -13616,7 +13588,7 @@ function mmPostSelect(id,label,values,required=true){return `<div class="mm-post
 function mmPostInput(key){const label=mmPostLabel(key),id='mmPostField_'+key;const numeric=['year','mileage','area','floor','experience','age','rooms'].includes(key);let options=null;if(key==='condition')options=['Новое','Б/у'];if(key==='warranty')options=['Есть гарантия','Нет гарантии'];if(key==='gender')options=['Мужской','Женский','Не указан'];if(key==='drivetrain')options=['Передний (FWD)','Задний (RWD)','Полный (AWD/4WD)','Другой / не знаю'];if(key==='color')options=['Белый','Чёрный','Серебристый','Серый','Красный','Синий','Тёмно-синий','Голубой','Зелёный','Коричневый','Бежевый','Жёлтый','Оранжевый','Фиолетовый','Золотистый','Другой'];if(key==='year')options=Array.from({length:47},(_,i)=>String(2026-i));if(key==='mileage')options=Array.from({length:501},(_,i)=>String(i*1000));if(key==='color')options=mmPostConfig.auto_colors;if(key==='drivetrain')options=mmPostConfig.auto_drivetrains;if(key==='age'&&$('mmPostCategory').value==='pets')options=mmPostConfig.pet_ages;if(key==='gender'&&$('mmPostCategory').value==='pets')options=mmPostConfig.pet_genders;if(key==='age'&&$('mmPostCategory').value==='kids')options=mmPostConfig.kid_ages;if(key==='rooms')options=['Студия',...Array.from({length:10},(_,i)=>String(i+1)),'11+'];if(key==='floor')options=[...Array.from({length:50},(_,i)=>String(i+1)),'Последний этаж','Цокольный этаж','Подвальный этаж','Не указан'];if(key==='experience')options=Array.from({length:41},(_,i)=>String(i));if(key==='age'&&['pets'].includes($('mmPostCategory').value))options=['До 1 месяца','1–3 месяца','3–6 месяцев','6–12 месяцев','1 год','2 года','3 года','4 года','5+ лет'];if(key==='engine_volume')return `<div class="mm-post-field mm-post-engine-field"><label for="${id}">${label}</label><div class="mm-post-engine-value" id="mmPostEngineValue" aria-live="polite">${mmPostText('empty')}</div><input id="${id}" type="range" min="0" max="10" step="0.1" value="0" data-selected="false" aria-describedby="mmPostEngineValue" required><div class="mm-post-engine-scale"><span>0.0</span><span>10.0</span></div></div>`;if(key==='fuel_type'){const fuelOptions=[['Бензин','fuelPetrol'],['Дизель','fuelDiesel'],['Гибрид','fuelHybrid'],['Электро','fuelElectric']];return `<div class="mm-post-field"><label for="${id}">${label}</label><select id="${id}" required><option value="">${mmPostText('empty')}</option>${fuelOptions.map(([value,labelKey])=>`<option value="${value}">${mmPostText(labelKey)}</option>`).join('')}</select></div>`}if(key==='make_model' &&$('mmPostCategory').value==='auto'){return `<div class="mm-post-field"><label>${mmPostLabel('make')}</label><select id="mmPostField_make" required><option value="">${mmPostText('empty')}</option>${(mmPostConfig.auto_makes||[]).map(x=>`<option>${x}</option>`).join('')}</select></div><div class="mm-post-field"><label>${mmPostLabel('model')}</label><select id="mmPostField_model" required disabled><option value="">${mmPostText('chooseMakeFirst')}</option></select></div>`}if(key==='brand_model'&&$('mmPostCategory').value==='tech'){const sub=$('mmPostSubcategory').value,brands=(mmPostConfig.tech_brands||{})[sub]||[];return `<div class="mm-post-field"><label>${mmPostLabel('brand')}</label><select id="mmPostField_brand" required><option value="">${mmPostText('empty')}</option>${brands.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="mm-post-field"><label>${mmPostLabel('model')}</label><select id="mmPostField_model" required><option value="">${mmPostText('empty')}</option></select></div>`}if(options)return mmPostSelect(id,label,options,true);return `<div class="mm-post-field"><label for="${id}">${label}</label><input id="${id}" ${numeric?'inputmode="numeric" pattern="[0-9]*"':''} ${numeric?'maxlength="8"':''} maxlength="160" ${numeric?'':'type="text"'} required></div>`}
 function mmPostFields(){const category=$('mmPostCategory').value,sub=$('mmPostSubcategory').value;const categoryDef=mmPostConfig?.categories?.[category];let fields=[];if(category==='auto'){fields=(sub==='cars'||sub==='suv')?['make_model','year','mileage','color','drivetrain','engine_volume','fuel_type']:(sub==='moto'?['engine_volume','fuel_type']:[])}else if(category==='realestate'){fields=['rooms','area','floor'];if(sub==='land'||sub==='garage')fields=['area'];if(sub==='room')fields=['area','floor']}else if(category==='pets'){fields=['age','breed','gender'];if(sub==='supplies')fields=['condition'];if(sub==='services')fields=['service','experience']}else fields=(categoryDef?.fields||[]).map(x=>x[0]);if(category==='tech')fields=['brand_model','condition','warranty'];$('mmPostDetails').innerHTML=fields.map(mmPostInput).join('');const engineSlider=$('mmPostField_engine_volume'),engineValue=$('mmPostEngineValue');if(engineSlider&&engineValue){const markEngineSelected=()=>{engineSlider.dataset.selected='true';engineValue.textContent=Number(engineSlider.value).toFixed(1)};engineSlider.addEventListener('input',markEngineSelected);engineSlider.addEventListener('pointerdown',markEngineSelected);engineSlider.addEventListener('touchstart',markEngineSelected,{passive:true});}if(category==='auto'&&['cars','suv'].includes(sub)){$('mmPostField_make')?.addEventListener('change',()=>{const models=autoModelsForMake($('mmPostField_make').value);$('mmPostField_model').innerHTML='<option value="">'+mmPostText('empty')+'</option>'+models.map(x=>`<option>${x}</option>`).join('');$('mmPostField_model').disabled=!models.length})}if(category==='tech')$('mmPostField_brand')?.addEventListener('change',()=>{const models=mmPostConfig?.tech_models?.[sub]?.[$('mmPostField_brand').value]||[];$('mmPostField_model').innerHTML='<option value="">'+mmPostText('empty')+'</option>'+models.map(x=>`<option>${x}</option>`).join('')});}
 function autoModelsForMake(make){return (mmPostConfig?.auto_models?.[make])||[]}
-function mmPostSetOptions(){const cat=$('mmPostCategory'),sub=$('mmPostSubcategory'),type=$('mmPostType');const categoryNames={realestate:{ru:'Недвижимость',en:'Real estate',ka:'უძრავი ქონება',uk:'Нерухомість'},auto:{ru:'Авто',en:'Cars',ka:'ავტო',uk:'Авто'},tech:{ru:'Техника',en:'Electronics',ka:'ტექნიკა',uk:'Техніка'},home:{ru:'Дом и мебель',en:'Home & furniture',ka:'სახლი და ავეჯი',uk:'Дім і меблі'},kids:{ru:'Детское',en:'Kids',ka:'ბავშვები',uk:'Дитячі товари'},work:{ru:'Работа',en:'Jobs',ka:'სამუშაო',uk:'Робота'},services:{ru:'Услуги',en:'Services',ka:'სერვისები',uk:'Послуги'},pets:{ru:'Животные',en:'Pets',ka:'ცხოველები',uk:'Тварини'},give:{ru:'Отдам',en:'Free items',ka:'გაჩუქება',uk:'Віддам'},search:{ru:'Ищу',en:'Wanted',ka:'ვეძებ',uk:'Шукаю'}};cat.innerHTML=Object.entries(mmPostConfig.categories).map(([k,v])=>`<option value="${k}">${categoryNames[k]?.[state.lang]||v.name}</option>`).join('');function updateSub(){const c=mmPostConfig.categories[cat.value];sub.innerHTML=Object.entries(c.subs||{}).map(([k,v])=>`<option value="${k}">${mmPostTranslateOption(k,v)}</option>`).join('');type.innerHTML=(c.types||[]).map(x=>`<option value="${x.key}">${mmPostTranslateOption(x.key,x.label)}</option>`).join('');mmPostFields()}cat.onchange=()=>{updateSub();mmPostUpdateDistricts()};sub.onchange=()=>{mmPostFields();mmPostUpdateDistricts()};updateSub();$('mmPostCity').innerHTML=mmPostConfig.cities.map(x=>`<option value="${x}">${x}</option>`).join('');$('mmPostCity').value=state.city==='all'?'Батуми':(CITY_SLUG_TO_ALIAS[state.city]||'Батуми');$('mmPostCity').onchange=mmPostUpdateDistricts;mmPostUpdateDistricts()}
+function mmPostSetOptions(){const cat=$('mmPostCategory'),sub=$('mmPostSubcategory'),type=$('mmPostType');const categoryNames={realestate:{ru:'Недвижимость',en:'Real estate',ka:'უძრავი ქონება',uk:'Нерухомість'},auto:{ru:'Авто',en:'Cars',ka:'ავტო',uk:'Авто'},tech:{ru:'Техника',en:'Electronics',ka:'ტექნიკა',uk:'Техніка'},home:{ru:'Дом и мебель',en:'Home & furniture',ka:'სახლი და ავეჯი',uk:'Дім і меблі'},kids:{ru:'Детское',en:'Kids',ka:'ბავშვები',uk:'Дитячі товари'},work:{ru:'Работа',en:'Jobs',ka:'სამუშაო',uk:'Робота'},services:{ru:'Услуги',en:'Services',ka:'სერვისები',uk:'Послуги'},pets:{ru:'Животные',en:'Pets',ka:'ცხოველები',uk:'Тварини'},give:{ru:'Отдам',en:'Free items',ka:'გაჩუქება',uk:'Віддам'},search:{ru:'Ищу',en:'Wanted',ka:'ვეძებ',uk:'Шукаю'}};cat.innerHTML=Object.entries(mmPostConfig.categories).map(([k,v])=>`<option value="${k}">${categoryNames[k]?.[state.lang]||v.name}</option>`).join('');function updateSub(){const c=mmPostConfig.categories[cat.value];sub.innerHTML=Object.entries(c.subs||{}).map(([k,v])=>`<option value="${k}">${mmPostTranslateOption(k,v)}</option>`).join('');type.innerHTML=(c.types||[]).map(x=>`<option value="${x.key}">${mmDealLabel(cat.value,x.key,x.label)}</option>`).join('');mmPostFields()}cat.onchange=()=>{updateSub();mmPostUpdateDistricts()};sub.onchange=()=>{mmPostFields();mmPostUpdateDistricts()};updateSub();$('mmPostCity').innerHTML=mmPostConfig.cities.map(x=>`<option value="${x}">${x}</option>`).join('');$('mmPostCity').value=state.city==='all'?'Батуми':(CITY_SLUG_TO_ALIAS[state.city]||'Батуми');$('mmPostCity').onchange=mmPostUpdateDistricts;mmPostUpdateDistricts()}
 function mmPostTranslateOption(key,value){const dict={
 'cars':{ru:'Легковые автомобили',en:'Passenger cars',ka:'მსუბუქი ავტომობილები',uk:'Легкові автомобілі'},'suv':{ru:'Внедорожники',en:'SUVs',ka:'ჯიპები',uk:'Позашляховики'},'moto':{ru:'Мотоциклы',en:'Motorcycles',ka:'მოტოციკლები',uk:'Мотоцикли'},'apartments':{ru:'Квартиры',en:'Apartments',ka:'ბინები',uk:'Квартири'},'house':{ru:'Дома',en:'Houses',ka:'სახლები',uk:'Будинки'},'sell':{ru:'Продам',en:'For sale',ka:'იყიდება',uk:'Продам'},'buy':{ru:'Куплю',en:'Looking to buy',ka:'ვიყიდი',uk:'Куплю'},'rent':{ru:'Сдам',en:'For rent',ka:'ქირავდება',uk:'Здам'},'seek':{ru:'Сниму',en:'Looking to rent',ka:'ვიქირავებ',uk:'Орендую'},'give':{ru:'Отдам',en:'Give away',ka:'გაჩუქება',uk:'Віддам'},'wanted':{ru:'Ищу',en:'Wanted',ka:'ვეძებ',uk:'Шукаю'}};return dict[key]?.[state.lang]||localizeListingText(value)||value}
 function mmPostUpdateDistricts(){const wrap=$('mmPostDistrictSelectWrap'),sel=$('mmPostDistrictSelect');if(!wrap||!sel)return;const enabled=$('mmPostCategory').value==='realestate'&&['batumi','tbilisi'].includes(CITY_ALIAS_TO_SLUG[$('mmPostCity').value]);wrap.style.display=enabled?'flex':'none';const slug=CITY_ALIAS_TO_SLUG[$('mmPostCity').value];const rows=mmPostConfig?.realestate_districts?.[slug]||[];sel.innerHTML='<option value="" data-mm-post-i18n="districtNone">Не указывать</option>'+rows.map(x=>`<option value="${x.key}">${x.label}</option>`).join('')}
@@ -15461,7 +15433,7 @@ function moderationLabel(value,kind){
 function moderationMeta(category,type,subcategory,district){
  const values=[
   moderationLabel(category,'category'),
-  moderationLabel(type,'type'),
+  mmDealLabel(String(category||'').toLowerCase(),String(type||'').toLowerCase(),moderationLabel(type,'type'),'ru'),
   moderationLabel(subcategory,'subcategory'),
   district?String(district):''
  ].filter(Boolean);
