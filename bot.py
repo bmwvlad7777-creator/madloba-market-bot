@@ -14877,7 +14877,7 @@ html.mm-android.mm-android-fullscreen body.mm-detail-open #detailView {
   const title=overlay.querySelector('#mmAsTitle'),list=overlay.querySelector('.mm-as-list'),closeButton=overlay.querySelector('.mm-as-close');
   let active=null;
   function close(){overlay.hidden=true;active=null;list.replaceChildren();}
-  function target(e){const s=e.target.closest?.('select');return s&&root.contains(s)&&!s.disabled&&!s.multiple&&s.size<=1?s:null;}
+  function target(e){const s=e.target.closest?.('select');return s&&(root.contains(s)||["mmReportReason","mmSupportTopic"].includes(s.id))&&!s.disabled&&!s.multiple&&s.size<=1?s:null;}
   function open(s){
     active=s;
     const lang=typeof state!=='undefined'?state.lang:'ru';
@@ -14906,13 +14906,13 @@ html.mm-android.mm-android-fullscreen body.mm-detail-open #detailView {
     if(selected)list.scrollTop=Math.max(0,selected.offsetTop-list.offsetTop-list.clientHeight/2);
     closeButton.focus({preventScroll:true});
   }
-  root.addEventListener('mousedown',e=>{if(target(e))e.preventDefault();},true);
-  root.addEventListener('click',e=>{const s=target(e);if(s){e.preventDefault();e.stopPropagation();open(s);}},true);
-  root.addEventListener('keydown',e=>{const s=target(e);if(s&&['Enter',' ','ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();open(s);}},true);
+  document.addEventListener('mousedown',e=>{if(target(e))e.preventDefault();},true);
+  document.addEventListener('click',e=>{const s=target(e);if(s){e.preventDefault();e.stopPropagation();open(s);}},true);
+  document.addEventListener('keydown',e=>{const s=target(e);if(s&&['Enter',' ','ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();open(s);}},true);
   closeButton.addEventListener('click',close);
   overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
   document.addEventListener('keydown',e=>{if(!overlay.hidden&&e.key==='Escape'){e.preventDefault();close();}},true);
-  new MutationObserver(()=>{if(active&&(!active.isConnected||!root.classList.contains('show')))close();}).observe(root,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+  new MutationObserver(()=>{if(active&&(!active.isConnected||(root.contains(active)&&!root.classList.contains('show'))||(active.id==='mmSupportTopic'&&!active.closest('#mmSupportOverlay')?.classList.contains('show'))))close();}).observe(document.body,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
 })();
 </script>
 </body></html>'''
