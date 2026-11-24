@@ -15430,6 +15430,7 @@ function moderationLabel(value,kind){
  const map=kind==='category'?moderationCategoryNames:kind==='type'?moderationTypeNames:moderationSubcategoryNames;
  return map[key]||raw;
 }
+function mmDealLabel(category,key,fallback="",lang="ru"){const specific={"realestate":{"seek":["Сниму","Looking to rent","ვიქირავებ","Орендую"]},"auto":{"seek":["Сниму авто","Looking to rent a car","ვიქირავებ ავტომობილს","Орендую авто"]},"work":{"offer":["Предлагаю работу","Offering a job","გთავაზობთ სამუშაოს","Пропоную роботу"],"seek":["Ищу работу","Looking for work","ვეძებ სამუშაოს","Шукаю роботу"]},"services":{"offer":["Предлагаю услугу","Offering a service","გთავაზობთ მომსახურებას","Пропоную послугу"],"seek":["Ищу специалиста","Looking for a specialist","ვეძებ სპეციალისტს","Шукаю спеціаліста"]},"pets":{"seek":["Ищу","Looking for a pet","ვეძებ","Шукаю"]},"search":{"seek":["Ищу","Looking for","ვეძებ","Шукаю"]},"give":{"give":["Отдам бесплатно","Free giveaway","უფასოდ გაჩუქებთ","Віддам безкоштовно"]}};const common={"sell":["Продам","For sale","იყიდება","Продам"],"buy":["Куплю","Looking to buy","ვიყიდი","Куплю"],"rent":["Сдам","For rent","ქირავდება","Здам"],"give":["Отдам","Give away","გაჩუქებთ","Віддам"],"seek":["Ищу","Looking for","ვეძებ","Шукаю"],"offer":["Предлагаю","Offering","გთავაზობთ","Пропоную"]};const i=({ru:0,en:1,ka:2,uk:3})[lang]??0;return (specific[category]?.[key]||common[key])?.[i]||fallback;}
 function moderationMeta(category,type,subcategory,district){
  const values=[
   moderationLabel(category,'category'),
