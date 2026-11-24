@@ -13408,6 +13408,10 @@ const callLink=$('detailContent').querySelector('a.contact-btn[href^="tel:"]');
 if(callLink){
   if(window.Telegram?.WebApp?.platform==='android'){
     callLink.removeAttribute('target');
+    const dialNumber=(callLink.getAttribute('href')||'').slice(4).replace(/[^0-9+]/g,'');
+    if(dialNumber && /^[+]?[0-9]+$/.test(dialNumber)){
+      callLink.setAttribute('href','intent:'+dialNumber+'#Intent;scheme=tel;action=android.intent.action.DIAL;end');
+    }
   }else callLink.addEventListener('click',function(e){
     const href=this.getAttribute('href')||'';
     if(!/^tel:\\+?[0-9(). -]+$/i.test(href))return;
