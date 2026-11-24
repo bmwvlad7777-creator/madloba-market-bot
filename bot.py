@@ -14811,6 +14811,27 @@ html.mm-android body::before {
   if(window.ResizeObserver){var observer=new ResizeObserver(fitHero);observer.observe(hero);}
 })();
 </script>
+<style id="mm-android-detail-top-v1">
+/* Android embedded Telegram already reserves its native header space. */
+html.mm-android body.mm-detail-open #detailView {
+  padding-top:12px!important;
+}
+/* Preserve native control clearance if Telegram enters fullscreen. */
+html.mm-android.mm-android-fullscreen body.mm-detail-open #detailView {
+  padding-top:max(12px,calc(var(--tg-content-safe-area-inset-top,0px) + var(--tg-safe-area-inset-top,0px) + 12px))!important;
+}
+</style>
+<script>
+(function(){
+  var tg=window.Telegram && window.Telegram.WebApp;
+  if(!tg || tg.platform !== 'android') return;
+  function syncFullscreen(){
+    document.documentElement.classList.toggle('mm-android-fullscreen',tg.isFullscreen===true);
+  }
+  syncFullscreen();
+  if(typeof tg.onEvent==='function') tg.onEvent('fullscreenChanged',syncFullscreen);
+})();
+</script>
 <style id="mm-detail-photo-cover-v1">
 /* Detail preview only; fullscreen viewer retains the original proportions. */
 #detailView #detailContent .detail-photo img#detailImg {
