@@ -14973,7 +14973,7 @@ html.mm-estate-category .hero > h1,html.mm-estate-category .hero > p,html.mm-est
 html.mm-estate-category #mmEstateBanner{display:flex!important;flex-direction:column;justify-content:space-between;align-items:flex-start;min-height:140px;box-sizing:border-box;padding:16px;border-radius:20px;margin:0 0 12px;color:white;background:linear-gradient(90deg,rgba(8,31,64,.94),rgba(8,31,64,.35)),var(--madloba-shared-hero-image) center 52% / cover no-repeat;position:relative;overflow:hidden;isolation:isolate}
 #mmEstateBanner svg{position:absolute;right:0;bottom:0;width:55%;height:100%;z-index:-1;opacity:.85}
 html.mm-estate-category #mmEstateBanner h1{display:block!important;color:white!important;font-size:clamp(22px,6vw,34px)!important;line-height:1.15!important;margin:0!important;max-width:100%!important;text-shadow:0 2px 8px #123!important}
-#mmEstateBanner button{border:1px solid #ffffff70;background:#ffffff20;color:white;border-radius:12px;padding:9px 12px;font:inherit;font-size:13px;min-height:40px;text-align:left}
+#mmEstateBanner button{border:1px solid #ffffff70;background:#ffffff20;color:white;border-radius:12px;padding:5px 9px;font:inherit;font-size:12px;min-height:32px;text-align:left}
 #mmEstateBanner small{display:block;color:#e5efff;font-size:13px;margin-top:5px}
 html.mm-estate-category .hero .search{margin:0 0 10px!important;max-width:100%!important;box-sizing:border-box}
 #mmEstateDeals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 10px}
@@ -14985,7 +14985,9 @@ html.mm-estate-category .results-head{margin-top:8px!important;min-width:0;flex-
 html.mm-estate-category #mmEstateBanner,html.mm-estate-category #mmEstateDeals,html.mm-estate-category .hero .search{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin-left:0!important;margin-right:0!important}
 html.mm-estate-category #mmEstateBanner svg{display:none!important}
 html.mm-estate-category .hero .search input{min-width:0!important;width:0!important;flex:1 1 0!important}
-html.mm-estate-category #mmEstateDeals{margin-bottom:0!important}
+html.mm-estate-category #mmEstateDeals{margin-bottom:8px!important}
+html.mm-estate-category .hero .search{height:44px!important;min-height:44px!important;border-radius:15px!important}
+html.mm-estate-category .hero .search-icon{width:32px!important;height:32px!important;flex-basis:32px!important}
 html.mm-estate-category .results-head{margin-top:10px!important}
 </style>
 </body></html>'''
