@@ -15057,61 +15057,47 @@ html.mm-estate-category #mmEstateDeals{margin-bottom:8px!important}
 html.mm-estate-category .hero .search{height:44px!important;min-height:44px!important;border-radius:15px!important}
 html.mm-estate-category .hero .search-icon{width:32px!important;height:32px!important;flex-basis:32px!important}
 html.mm-estate-category .results-head{margin-top:10px!important}
-html.mm-auto-category #mmEstateBanner{background:linear-gradient(90deg,rgba(8,31,64,.88),rgba(8,31,64,.12)),url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NDAgMjQwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciPjxzdG9wIHN0b3AtY29sb3I9IiMxNTJmNTAiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM0Nzc5YTQiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjI0MCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0wIDIwNUg2NDAiIHN0cm9rZT0iIzllYjlkMyIgb3BhY2l0eT0iLjM1Ii8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjY1IDUwKSI+PHBhdGggZD0iTTE1IDEwNUwzNSA3OSA3OSA2OCAxMTcgMjRRMTI2IDE1IDE0NyAxNUgyMjNRMjQzIDE1IDI1NiAzMkwyODkgNzAgMzIyIDgxUTMzOSA4OCAzNDAgMTA1VjEzOUgxNVoiIGZpbGw9IiNhNGJmZDgiLz48cGF0aCBkPSJNOTEgNjhMMTI3IDMwSDE3MFY2OFpNMTgxIDMwSDIyMlEyMzMgMzAgMjQ0IDQ1TDI2MiA2OEgxODFaIiBmaWxsPSIjMjQzZDU5Ii8+PHBhdGggZD0iTTE4IDEwNUgzNDAiIHN0cm9rZT0iI2UwZWRmNyIgc3Ryb2tlLXdpZHRoPSI0Ii8+PGNpcmNsZSBjeD0iNzkiIGN5PSIxMzgiIHI9IjMwIiBmaWxsPSIjMTUyMzM3Ii8+PGNpcmNsZSBjeD0iNzkiIGN5PSIxMzgiIHI9IjE0IiBmaWxsPSIjYTRiZmQ4Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM4IiByPSIzMCIgZmlsbD0iIzE1MjMzNyIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzOCIgcj0iMTQiIGZpbGw9IiNhNGJmZDgiLz48L2c+PC9zdmc+") center / cover no-repeat!important}
 
-html.mm-estate-category #mmEstateBanner:is([data-category="tech"],[data-category="home"],[data-category="kids"],[data-category="work"],[data-category="services"],[data-category="pets"],[data-category="give"],[data-category="search"],[data-category="fashion"],[data-category="sports"],[data-category="construction"],[data-category="other"]){background:linear-gradient(110deg,#102e52,#315c85)!important;isolation:isolate}
-html.mm-estate-category #mmEstateBanner:is([data-category="tech"],[data-category="home"],[data-category="kids"],[data-category="work"],[data-category="services"],[data-category="pets"],[data-category="give"],[data-category="search"],[data-category="fashion"],[data-category="sports"],[data-category="construction"],[data-category="other"])::after{content:"";position:absolute;inset:8px 12px 8px 52%;background:var(--mm-category-art) center right/contain no-repeat;opacity:.42;z-index:-1;pointer-events:none}
 </style>
 <style id="mm-category-premium">
-html.mm-estate-category #mmEstateBanner[data-category="all"]{background:linear-gradient(110deg,#102e52,#376fa8)!important;isolation:isolate}
-html.mm-estate-category #mmEstateBanner[data-category="all"]::after{content:"";position:absolute;inset:8px 12px 8px 55%;background:var(--mm-category-art) center right/contain no-repeat;opacity:.65;z-index:-1;pointer-events:none}
 .quick-action[data-cat="all"] .quick-icon,#categoriesBlock .cat[data-cat="all"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 
 .quick-action[data-cat="realestate"] .quick-icon,#categoriesBlock .cat[data-cat="realestate"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="realestate"]){--mm-accent:#24636e;--mm-tint:#e1f2f3}
 .quick-action[data-cat="auto"] .quick-icon,#categoriesBlock .cat[data-cat="auto"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="auto"]){--mm-accent:#344c69;--mm-tint:#dce8f5}
-html.mm-estate-category #mmEstateBanner[data-category="auto"]{background:linear-gradient(110deg,#142c40,#344c69)!important}
 .quick-action[data-cat="tech"] .quick-icon,#categoriesBlock .cat[data-cat="tech"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="tech"]){--mm-accent:#6250a0;--mm-tint:#eae2fa}
-html.mm-estate-category #mmEstateBanner[data-category="tech"]{background:linear-gradient(110deg,#142c40,#6250a0)!important}
 .quick-action[data-cat="home"] .quick-icon,#categoriesBlock .cat[data-cat="home"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="home"]){--mm-accent:#896344;--mm-tint:#f6e8d8}
-html.mm-estate-category #mmEstateBanner[data-category="home"]{background:linear-gradient(110deg,#142c40,#896344)!important}
 .quick-action[data-cat="fashion"] .quick-icon,#categoriesBlock .cat[data-cat="fashion"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="fashion"]){--mm-accent:#96516d;--mm-tint:#f6dfeb}
-html.mm-estate-category #mmEstateBanner[data-category="fashion"]{background:linear-gradient(110deg,#142c40,#96516d)!important}
 .quick-action[data-cat="kids"] .quick-icon,#categoriesBlock .cat[data-cat="kids"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="kids"]){--mm-accent:#286b80;--mm-tint:#ddf3fa}
-html.mm-estate-category #mmEstateBanner[data-category="kids"]{background:linear-gradient(110deg,#142c40,#286b80)!important}
 .quick-action[data-cat="sports"] .quick-icon,#categoriesBlock .cat[data-cat="sports"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="sports"]){--mm-accent:#3b7954;--mm-tint:#e0f2e3}
-html.mm-estate-category #mmEstateBanner[data-category="sports"]{background:linear-gradient(110deg,#142c40,#3b7954)!important}
 .quick-action[data-cat="work"] .quick-icon,#categoriesBlock .cat[data-cat="work"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="work"]){--mm-accent:#315f91;--mm-tint:#dfeaf8}
-html.mm-estate-category #mmEstateBanner[data-category="work"]{background:linear-gradient(110deg,#142c40,#315f91)!important}
 .quick-action[data-cat="services"] .quick-icon,#categoriesBlock .cat[data-cat="services"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="services"]){--mm-accent:#237c73;--mm-tint:#ddf2eb}
-html.mm-estate-category #mmEstateBanner[data-category="services"]{background:linear-gradient(110deg,#142c40,#237c73)!important}
 .quick-action[data-cat="pets"] .quick-icon,#categoriesBlock .cat[data-cat="pets"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="pets"]){--mm-accent:#586b36;--mm-tint:#eaf0d9}
-html.mm-estate-category #mmEstateBanner[data-category="pets"]{background:linear-gradient(110deg,#142c40,#586b36)!important}
 .quick-action[data-cat="construction"] .quick-icon,#categoriesBlock .cat[data-cat="construction"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="construction"]){--mm-accent:#97652f;--mm-tint:#f8e8d1}
-html.mm-estate-category #mmEstateBanner[data-category="construction"]{background:linear-gradient(110deg,#142c40,#97652f)!important}
 .quick-action[data-cat="give"] .quick-icon,#categoriesBlock .cat[data-cat="give"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="give"]){--mm-accent:#85601e;--mm-tint:#fff0cf}
-html.mm-estate-category #mmEstateBanner[data-category="give"]{background:linear-gradient(110deg,#142c40,#85601e)!important}
 .quick-action[data-cat="other"] .quick-icon,#categoriesBlock .cat[data-cat="other"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="other"]){--mm-accent:#646a83;--mm-tint:#e6e7f2}
-html.mm-estate-category #mmEstateBanner[data-category="other"]{background:linear-gradient(110deg,#142c40,#646a83)!important}
 .quick-action[data-cat="search"] .quick-icon,#categoriesBlock .cat[data-cat="search"] .ico{background:transparent!important;border:0!important;box-shadow:none!important}
 html.mm-estate-category:has(#mmEstateBanner[data-category="search"]){--mm-accent:#454d79;--mm-tint:#e5e9fa}
-html.mm-estate-category #mmEstateBanner[data-category="search"]{background:linear-gradient(110deg,#142c40,#454d79)!important}
 html.mm-estate-category #mmEstateDeals button[aria-pressed="true"]{background:var(--mm-accent,#176bd1)!important;border-color:var(--mm-accent,#176bd1)!important;color:white!important}
 html.mm-estate-category #mmEstateDeals button:not([aria-pressed="true"]){color:var(--mm-accent,#176bd1)!important;border-color:var(--mm-tint,#d7e5f5)!important}
-html.mm-estate-category #mmEstateBanner:not([data-category="realestate"])::after{content:"";position:absolute;inset:8px 12px 8px 62%;background:var(--mm-category-art) center right/contain no-repeat;opacity:.85;z-index:-1;pointer-events:none}
-html.mm-estate-category #mmEstateBanner h1{max-width:76%!important;overflow-wrap:anywhere}
+/* Category artwork is a single full-bleed background, with a readable color overlay. */
+html.mm-estate-category #mmEstateBanner:not([data-category="realestate"]){background:linear-gradient(90deg,rgba(12,30,48,.96) 0%,rgba(12,30,48,.85) 32%,rgba(12,30,48,.38) 100%),linear-gradient(110deg,var(--mm-accent,#376fa8),transparent),var(--mm-category-art,none) right 48% / cover no-repeat,var(--mm-accent,#376fa8)!important}
+html.mm-estate-category #mmEstateBanner > div{width:100%!important;min-width:0!important;max-width:100%!important;align-self:stretch!important;position:relative}
+html.mm-estate-category #mmEstateBanner h1{width:100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;hyphens:none!important;font-size:clamp(19px,5.5vw,30px)!important;line-height:1.15!important;letter-spacing:-.35px!important}
+html.mm-estate-category #mmEstateBanner small{max-width:100%;overflow-wrap:normal;word-break:normal}
+@media(max-width:360px){html.mm-estate-category #mmEstateBanner h1{font-size:19px!important}}
 
 /* Single artwork per category; no second background or transform. */
 html .quick-actions-shell .quick-actions .quick-action .quick-icon,html #categoriesBlock .cat .ico:has(img.mm-category-3d){background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:hidden!important;border-radius:12px!important}
