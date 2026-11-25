@@ -13106,20 +13106,23 @@ function syncFilterUI(){
 }
 let mmEstateHome=null;
 function mmEstateEnter(next){
- if(next==='realestate' && state.category!=='realestate') mmEstateHome={category:state.category,q:state.q,sort:state.sort,filters:{...state.filters},scroll:window.scrollY};
- else if(next!=='realestate') mmEstateHome=null;
+ if(['realestate','auto'].includes(next) && !['realestate','auto'].includes(state.category)) mmEstateHome={category:state.category,q:state.q,sort:state.sort,filters:{...state.filters},scroll:window.scrollY};
+ else if(!['realestate','auto'].includes(next)) mmEstateHome=null;
  clearTimeout(window.__search);
 }
 function mmEstateLayout(){
- const active=state.category==='realestate';
+ const auto=state.category==='auto';
+ const active=auto||state.category==='realestate';
  document.documentElement.classList.toggle('mm-estate-category',active);
+ document.documentElement.classList.toggle('mm-auto-category',auto);
  const banner=$('mmEstateBanner');
- if(banner){banner.hidden=!active;banner.querySelector('h1').textContent=t('category_realestate');banner.querySelector('button').textContent=t('all_categories');}
+ if(banner){banner.hidden=!active;banner.querySelector('h1').textContent=t(auto?'category_auto':'category_realestate');banner.querySelector('button').textContent=t('all_categories');}
  const words={ru:['Найди свой новый дом','Все','Продажа','Аренда'],en:['Find your new home','All','For sale','For rent'],ka:['იპოვე შენი ახალი სახლი','ყველა','იყიდება','ქირავდება'],uk:['Знайди свій новий дім','Усі','Продаж','Оренда']};
- const w=words[state.lang]||words.ru; $('mmEstateTag').textContent=w[0]; $('mmEstateDeals').hidden=!active;
+ const autoWords={ru:['Найди свой автомобиль','Все','Продажа','Покупка'],en:['Find your next car','All','For sale','Wanted'],ka:['იპოვე შენი ავტომობილი','ყველა','იყიდება','შევიძენ'],uk:['Знайди своє авто','Усі','Продаж','Купівля']};
+ const labels=auto?autoWords:words; const w=labels[state.lang]||labels.ru; $('mmEstateDeals').querySelectorAll('button')[2].dataset.deal=auto?'buy':'rent'; $('mmEstateTag').textContent=w[0]; $('mmEstateDeals').hidden=!active;
  document.querySelectorAll('#mmEstateDeals button').forEach((b,i)=>{b.textContent=w[i+1];b.setAttribute('aria-pressed',String(b.dataset.deal===(state.filters.deal||'')));b.onclick=()=>{clearTimeout(window.__search);state.filters.deal=b.dataset.deal;syncFilterUI();load(true)}});
  const placeholders={ru:'Поиск недвижимости' ,en:'Search real estate',ka:'უძრავი ქონების ძიება',uk:'Пошук нерухомості'};
- $('search').placeholder=active?(placeholders[state.lang]||placeholders.ru):t('search_placeholder');
+ const autoPlaceholders={ru:'Поиск автомобиля',en:'Search cars',ka:'ავტომობილის ძიება',uk:'Пошук автомобіля'}; const ph=auto?autoPlaceholders:placeholders; $('search').placeholder=active?(ph[state.lang]||ph.ru):t('search_placeholder');
 }
 function updateFilterVisibility(){
  mmEstateLayout();
@@ -13135,7 +13138,7 @@ function updateFilterVisibility(){
  // rather than waiting for the listings API response (which may take several seconds).
  const bestSection=$('bestSection');
  if(bestSection && (state.category || state.q)){bestSection.style.display='none';}
- $('resultsTitle').textContent=state.category==='realestate'?({ru:'Объявления',en:'Listings',ka:'განცხადებები',uk:'Оголошення'}[state.lang]||'Объявления'):state.category?t('category_'+state.category):t('fresh_listings');
+ $('resultsTitle').textContent=['realestate','auto'].includes(state.category)?({ru:'Объявления',en:'Listings',ka:'განცხადებები',uk:'Оголошення'}[state.lang]||'Объявления'):state.category?t('category_'+state.category):t('fresh_listings');
  $('sortSelect').style.display='block';
  syncFilterUI();
  if(state.category==='auto')loadAutoOptions(state.filters.make||'');
@@ -13567,7 +13570,7 @@ const initCityMultiUI=()=>{
 };
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCityMultiUI,{once:true});else initCityMultiUI();
 $('langSelect').onchange=e=>{state.lang=e.target.value;localStorage.setItem('mm_lang',state.lang);applyLang();if(currentDetailData&&$('detailView').classList.contains('show'))renderDetail(currentDetailData);load(true);};
-function activateGlobalSearch(){if(!state.q||state.category==='realestate')return;if(state.category){state.category='';setQuickActive('');$('backBtn').classList.remove('show');updateFilterVisibility();$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');}}
+function activateGlobalSearch(){if(!state.q||['realestate','auto'].includes(state.category))return;if(state.category){state.category='';setQuickActive('');$('backBtn').classList.remove('show');updateFilterVisibility();$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');}}
 function submitSearch(){state.q=$('search').value.trim();activateGlobalSearch();clearTimeout(window.__search);load(true);const target=$('resultsTitle');if(target)target.scrollIntoView({behavior:'smooth',block:'start'});}
 $('search').oninput=e=>{state.q=e.target.value.trim();activateGlobalSearch();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
 $('search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submitSearch();$('search').blur()}};
@@ -13592,7 +13595,7 @@ $('filterApply').onclick=()=>{
 };
 $('filterReset').onclick=()=>{state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};syncFilterUI();$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');load(true)};
 $('prevBtn').onclick=()=>{if(state.page>0){state.page--;load(false).then(()=>window.scrollTo({top:document.querySelector('.results-head')?.offsetTop||0,behavior:'smooth'}))}};$('nextBtn').onclick=()=>{if(!$('nextBtn').disabled){state.page++;load(false).then(()=>window.scrollTo({top:document.querySelector('.results-head')?.offsetTop||0,behavior:'smooth'}))}};
-$('backBtn').onclick=()=>{if(state.category==='realestate'&&mmEstateHome){const saved=mmEstateHome;mmEstateHome=null;clearTimeout(window.__search);state.category=saved.category;state.q=saved.q;state.sort=saved.sort;state.filters=saved.filters;$('search').value=state.q;$('sortSelect').value=state.sort;$('backBtn').classList.toggle('show',!!state.category);$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');setQuickActive(state.category);updateFilterVisibility();syncFilterUI();load(true).then(()=>{if(state.category===saved.category&&state.q===saved.q)window.scrollTo(0,saved.scroll)});return;}state.category='';state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};$('sortSelect').value='new';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};
+$('backBtn').onclick=()=>{if(['realestate','auto'].includes(state.category)&&mmEstateHome){const saved=mmEstateHome;mmEstateHome=null;clearTimeout(window.__search);state.category=saved.category;state.q=saved.q;state.sort=saved.sort;state.filters=saved.filters;$('search').value=state.q;$('sortSelect').value=state.sort;$('backBtn').classList.toggle('show',!!state.category);$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');setQuickActive(state.category);updateFilterVisibility();syncFilterUI();load(true).then(()=>{if(state.category===saved.category&&state.q===saved.q)window.scrollTo(0,saved.scroll)});return;}state.category='';state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};$('sortSelect').value='new';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};
 $('detailBack').onclick=()=>leaveDetail();
 // iOS-style horizontal swipe back while a listing is open. Ignore taps/controls and vertical scrolling.
 (()=>{let sx=0,sy=0,tracking=false;const root=document.getElementById('app')||document.body;root.addEventListener('touchstart',e=>{if(!$('detailView').classList.contains('show')||e.touches.length!==1)return;const t=e.target;if(t.closest('button,a,input,textarea,select,[role=button],#mmPhoneSheet')){tracking=false;return}sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=sx<42;},{passive:true});root.addEventListener('touchend',e=>{if(!tracking||!$('detailView').classList.contains('show')||!e.changedTouches.length)return;tracking=false;const dx=e.changedTouches[0].clientX-sx;const dy=e.changedTouches[0].clientY-sy;if(dx>95&&Math.abs(dx)>Math.abs(dy)*1.35)leaveDetail();},{passive:true})})();
@@ -14970,7 +14973,7 @@ html.mm-estate-category .top .brand::after{display:none!important}
 html.mm-estate-category .top{background:#193c56!important;border-radius:16px!important;padding:10px!important;margin-bottom:10px!important;box-sizing:border-box!important}
 html.mm-estate-category .hero{width:100%!important;max-width:100%!important;min-width:0!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 0 8px!important;padding:0!important;background:none!important;box-shadow:none!important;overflow:visible!important}
 html.mm-estate-category .hero > h1,html.mm-estate-category .hero > p,html.mm-estate-category .hero .quick-actions-shell,html.mm-estate-category #backBtn{display:none!important}
-html.mm-estate-category #mmEstateBanner{display:flex!important;flex-direction:column;justify-content:space-between;align-items:flex-start;min-height:140px;box-sizing:border-box;padding:16px;border-radius:20px;margin:0 0 12px;color:white;background:linear-gradient(90deg,rgba(8,31,64,.94),rgba(8,31,64,.35)),var(--madloba-shared-hero-image) center 52% / cover no-repeat;position:relative;overflow:hidden;isolation:isolate}
+html.mm-estate-category #mmEstateBanner{display:flex!important;flex-direction:column;justify-content:space-between;align-items:flex-start;min-height:124px;box-sizing:border-box;padding:16px;border-radius:20px;margin:0 0 12px;color:white;background:linear-gradient(90deg,rgba(8,31,64,.94),rgba(8,31,64,.35)),var(--madloba-shared-hero-image) center 52% / cover no-repeat;position:relative;overflow:hidden;isolation:isolate}
 #mmEstateBanner svg{position:absolute;right:0;bottom:0;width:55%;height:100%;z-index:-1;opacity:.85}
 html.mm-estate-category #mmEstateBanner h1{display:block!important;color:white!important;font-size:clamp(22px,6vw,34px)!important;line-height:1.15!important;margin:0!important;max-width:100%!important;text-shadow:0 2px 8px #123!important}
 #mmEstateBanner button{border:1px solid #ffffff70;background:#ffffff20;color:white;border-radius:12px;padding:5px 9px;font:inherit;font-size:12px;min-height:32px;text-align:left}
@@ -14989,6 +14992,7 @@ html.mm-estate-category #mmEstateDeals{margin-bottom:8px!important}
 html.mm-estate-category .hero .search{height:44px!important;min-height:44px!important;border-radius:15px!important}
 html.mm-estate-category .hero .search-icon{width:32px!important;height:32px!important;flex-basis:32px!important}
 html.mm-estate-category .results-head{margin-top:10px!important}
+html.mm-auto-category #mmEstateBanner{background:linear-gradient(90deg,rgba(8,31,64,.88),rgba(8,31,64,.12)),url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NDAgMjQwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciPjxzdG9wIHN0b3AtY29sb3I9IiMxNTJmNTAiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM0Nzc5YTQiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjI0MCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0wIDIwNUg2NDAiIHN0cm9rZT0iIzllYjlkMyIgb3BhY2l0eT0iLjM1Ii8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjY1IDUwKSI+PHBhdGggZD0iTTE1IDEwNUwzNSA3OSA3OSA2OCAxMTcgMjRRMTI2IDE1IDE0NyAxNUgyMjNRMjQzIDE1IDI1NiAzMkwyODkgNzAgMzIyIDgxUTMzOSA4OCAzNDAgMTA1VjEzOUgxNVoiIGZpbGw9IiNhNGJmZDgiLz48cGF0aCBkPSJNOTEgNjhMMTI3IDMwSDE3MFY2OFpNMTgxIDMwSDIyMlEyMzMgMzAgMjQ0IDQ1TDI2MiA2OEgxODFaIiBmaWxsPSIjMjQzZDU5Ii8+PHBhdGggZD0iTTE4IDEwNUgzNDAiIHN0cm9rZT0iI2UwZWRmNyIgc3Ryb2tlLXdpZHRoPSI0Ii8+PGNpcmNsZSBjeD0iNzkiIGN5PSIxMzgiIHI9IjMwIiBmaWxsPSIjMTUyMzM3Ii8+PGNpcmNsZSBjeD0iNzkiIGN5PSIxMzgiIHI9IjE0IiBmaWxsPSIjYTRiZmQ4Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM4IiByPSIzMCIgZmlsbD0iIzE1MjMzNyIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzOCIgcj0iMTQiIGZpbGw9IiNhNGJmZDgiLz48L2c+PC9zdmc+") center / cover no-repeat!important}
 </style>
 </body></html>'''
 
