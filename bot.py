@@ -13104,25 +13104,47 @@ function syncFilterUI(){
  document.querySelectorAll('#mmEstateDeals button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.deal===(f.deal||''))));
  $('filterActive').textContent=(state.category==='realestate'?realEstateFiltersActive():state.category==='auto'?autoFiltersActive():genericFiltersActive())?' • ✓':'';
 }
+const mmCategoryKeys=['realestate','auto','tech','home','kids','work','services','pets','give','search'];
 let mmEstateHome=null;
 function mmEstateEnter(next){
- if(['realestate','auto'].includes(next) && !['realestate','auto'].includes(state.category)) mmEstateHome={category:state.category,q:state.q,sort:state.sort,filters:{...state.filters},scroll:window.scrollY};
- else if(!['realestate','auto'].includes(next)) mmEstateHome=null;
+ if(mmCategoryKeys.includes(next) && !mmCategoryKeys.includes(state.category)) mmEstateHome={category:state.category,q:state.q,sort:state.sort,filters:{...state.filters},scroll:window.scrollY};
+ else if(!mmCategoryKeys.includes(next)) mmEstateHome=null;
  clearTimeout(window.__search);
 }
 function mmEstateLayout(){
  const auto=state.category==='auto';
- const active=auto||state.category==='realestate';
+ const active=mmCategoryKeys.includes(state.category);
+ const generic=active&&!auto&&state.category!=='realestate';
  document.documentElement.classList.toggle('mm-estate-category',active);
  document.documentElement.classList.toggle('mm-auto-category',auto);
  const banner=$('mmEstateBanner');
- if(banner){banner.hidden=!active;banner.querySelector('h1').textContent=t(auto?'category_auto':'category_realestate');banner.querySelector('button').textContent=t('all_categories');}
+ if(banner){banner.hidden=!active;banner.querySelector('h1').textContent=t('category_'+state.category);banner.querySelector('button').textContent=t('all_categories');}
  const words={ru:['Найди свой новый дом','Все','Продажа','Аренда'],en:['Find your new home','All','For sale','For rent'],ka:['იპოვე შენი ახალი სახლი','ყველა','იყიდება','ქირავდება'],uk:['Знайди свій новий дім','Усі','Продаж','Оренда']};
  const autoWords={ru:['Найди свой автомобиль','Все','Продажа','Покупка'],en:['Find your next car','All','For sale','Wanted'],ka:['იპოვე შენი ავტომობილი','ყველა','იყიდება','შევიძენ'],uk:['Знайди своє авто','Усі','Продаж','Купівля']};
- const labels=auto?autoWords:words; const w=labels[state.lang]||labels.ru; $('mmEstateDeals').querySelectorAll('button')[2].dataset.deal=auto?'buy':'rent'; $('mmEstateTag').textContent=w[0]; $('mmEstateDeals').hidden=!active;
- document.querySelectorAll('#mmEstateDeals button').forEach((b,i)=>{b.textContent=w[i+1];b.setAttribute('aria-pressed',String(b.dataset.deal===(state.filters.deal||'')));b.onclick=()=>{clearTimeout(window.__search);state.filters.deal=b.dataset.deal;syncFilterUI();load(true)}});
- const placeholders={ru:'Поиск недвижимости' ,en:'Search real estate',ka:'უძრავი ქონების ძიება',uk:'Пошук нерухомості'};
- const autoPlaceholders={ru:'Поиск автомобиля',en:'Search cars',ka:'ავტომობილის ძიება',uk:'Пошук автомобіля'}; const ph=auto?autoPlaceholders:placeholders; $('search').placeholder=active?(ph[state.lang]||ph.ru):t('search_placeholder');
+ const meta={
+ tech:[['Найди нужную технику','Find the tech you need','იპოვე სასურველი ტექნიკა','Знайди потрібну техніку'],['sell','buy']],
+ home:[['Всё для уютного дома','Everything for your home','ყველაფერი სახლისთვის','Усе для затишного дому'],['sell','buy']],
+ kids:[['Всё для детей','Everything for kids','ყველაფერი ბავშვებისთვის','Усе для дітей'],['sell','buy','give']],
+ work:[['Найди новые возможности','Find new opportunities','იპოვე ახალი შესაძლებლობები','Знайди нові можливості'],['offer','seek']],
+ services:[['Найди нужного специалиста','Find the right specialist','იპოვე საჭირო სპეციალისტი','Знайди потрібного фахівця'],['offer','seek']],
+ pets:[['Всё для любимых питомцев','Everything for your pets','ყველაფერი შინაური ცხოველებისთვის','Усе для улюбленців'],['sell','give','seek']],
+ give:[['Поделись с другими','Share with others','გაუზიარე სხვებს','Поділися з іншими'],['give']],
+ search:[['Найди то, что нужно','Find what you need','იპოვე რაც გჭირდება','Знайди те, що потрібно'],['seek']]
+ };
+ const li=['ru','en','ka','uk'].indexOf(state.lang), idx=li<0?0:li;
+ const labels=auto?autoWords:words, w=labels[state.lang]||labels.ru;
+ const m=meta[state.category]; const deals=$('mmEstateDeals');
+ const keys=generic?['',...m[1]]:['','sell',auto?'buy':'rent'];
+ $('mmEstateTag').textContent=generic?m[0][idx]:w[0];
+ deals.hidden=!active; deals.style.gridTemplateColumns=`repeat(${keys.length},minmax(0,1fr))`;
+ deals.replaceChildren();
+ if(active)keys.forEach((key,i)=>{const b=document.createElement('button');b.type='button';b.dataset.deal=key;b.textContent=generic?(key?mmDealLabel(state.category,key,key):t('all')):w[i+1];b.setAttribute('aria-pressed',String(key===(state.filters.deal||'')));b.onclick=()=>{clearTimeout(window.__search);state.filters.deal=key;syncFilterUI();load(true)};deals.appendChild(b)});
+ const placeholders={ru:'Поиск недвижимости',en:'Search real estate',ka:'უძრავი ქონების ძიება',uk:'Пошук нерухомості'};
+ const autoPlaceholders={ru:'Поиск автомобиля',en:'Search cars',ka:'ავტომობილის ძიება',uk:'Пошук автомобіля'};
+ const ph=auto?autoPlaceholders:placeholders;
+ $('search').placeholder=generic?({ru:'Поиск в категории',en:'Search this category',ka:'ძიება კატეგორიაში',uk:'Пошук у категорії'}[state.lang]||'Search this category'):active?(ph[state.lang]||ph.ru):t('search_placeholder');
+ if(banner){banner.dataset.category=active?state.category:'';banner.style.setProperty('--mm-category-art',generic&&REAL_3D_ICONS[state.category]?'url(\"'+REAL_3D_ICONS[state.category]+'\")':'none');}
+
 }
 function updateFilterVisibility(){
  mmEstateLayout();
@@ -13138,7 +13160,7 @@ function updateFilterVisibility(){
  // rather than waiting for the listings API response (which may take several seconds).
  const bestSection=$('bestSection');
  if(bestSection && (state.category || state.q)){bestSection.style.display='none';}
- $('resultsTitle').textContent=['realestate','auto'].includes(state.category)?({ru:'Объявления',en:'Listings',ka:'განცხადებები',uk:'Оголошення'}[state.lang]||'Объявления'):state.category?t('category_'+state.category):t('fresh_listings');
+ $('resultsTitle').textContent=mmCategoryKeys.includes(state.category)?({ru:'Объявления',en:'Listings',ka:'განცხადებები',uk:'Оголошення'}[state.lang]||'Объявления'):state.category?t('category_'+state.category):t('fresh_listings');
  $('sortSelect').style.display='block';
  syncFilterUI();
  if(state.category==='auto')loadAutoOptions(state.filters.make||'');
@@ -13570,7 +13592,7 @@ const initCityMultiUI=()=>{
 };
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCityMultiUI,{once:true});else initCityMultiUI();
 $('langSelect').onchange=e=>{state.lang=e.target.value;localStorage.setItem('mm_lang',state.lang);applyLang();if(currentDetailData&&$('detailView').classList.contains('show'))renderDetail(currentDetailData);load(true);};
-function activateGlobalSearch(){if(!state.q||['realestate','auto'].includes(state.category))return;if(state.category){state.category='';setQuickActive('');$('backBtn').classList.remove('show');updateFilterVisibility();$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');}}
+function activateGlobalSearch(){if(!state.q||mmCategoryKeys.includes(state.category))return;if(state.category){state.category='';setQuickActive('');$('backBtn').classList.remove('show');updateFilterVisibility();$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');}}
 function submitSearch(){state.q=$('search').value.trim();activateGlobalSearch();clearTimeout(window.__search);load(true);const target=$('resultsTitle');if(target)target.scrollIntoView({behavior:'smooth',block:'start'});}
 $('search').oninput=e=>{state.q=e.target.value.trim();activateGlobalSearch();clearTimeout(window.__search);window.__search=setTimeout(()=>load(true),350)};
 $('search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submitSearch();$('search').blur()}};
@@ -13595,7 +13617,7 @@ $('filterApply').onclick=()=>{
 };
 $('filterReset').onclick=()=>{state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};syncFilterUI();$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');load(true)};
 $('prevBtn').onclick=()=>{if(state.page>0){state.page--;load(false).then(()=>window.scrollTo({top:document.querySelector('.results-head')?.offsetTop||0,behavior:'smooth'}))}};$('nextBtn').onclick=()=>{if(!$('nextBtn').disabled){state.page++;load(false).then(()=>window.scrollTo({top:document.querySelector('.results-head')?.offsetTop||0,behavior:'smooth'}))}};
-$('backBtn').onclick=()=>{if(['realestate','auto'].includes(state.category)&&mmEstateHome){const saved=mmEstateHome;mmEstateHome=null;clearTimeout(window.__search);state.category=saved.category;state.q=saved.q;state.sort=saved.sort;state.filters=saved.filters;$('search').value=state.q;$('sortSelect').value=state.sort;$('backBtn').classList.toggle('show',!!state.category);$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');setQuickActive(state.category);updateFilterVisibility();syncFilterUI();load(true).then(()=>{if(state.category===saved.category&&state.q===saved.q)window.scrollTo(0,saved.scroll)});return;}state.category='';state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};$('sortSelect').value='new';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};
+$('backBtn').onclick=()=>{if(mmCategoryKeys.includes(state.category)&&mmEstateHome){const saved=mmEstateHome;mmEstateHome=null;clearTimeout(window.__search);state.category=saved.category;state.q=saved.q;state.sort=saved.sort;state.filters=saved.filters;$('search').value=state.q;$('sortSelect').value=state.sort;$('backBtn').classList.toggle('show',!!state.category);$('filterPanel').classList.remove('show');$('filterToggle').classList.remove('open');setQuickActive(state.category);updateFilterVisibility();syncFilterUI();load(true).then(()=>{if(state.category===saved.category&&state.q===saved.q)window.scrollTo(0,saved.scroll)});return;}state.category='';state.sort='new';state.filters={deal:'',sub:'',min_price:'',max_price:'',rooms:'',min_area:'',max_area:'',district:'',make:'',model:'',min_year:'',max_year:'',min_mileage:'',max_mileage:'',condition:''};$('sortSelect').value='new';$('backBtn').classList.remove('show');updateFilterVisibility();load(true)};
 $('detailBack').onclick=()=>leaveDetail();
 // iOS-style horizontal swipe back while a listing is open. Ignore taps/controls and vertical scrolling.
 (()=>{let sx=0,sy=0,tracking=false;const root=document.getElementById('app')||document.body;root.addEventListener('touchstart',e=>{if(!$('detailView').classList.contains('show')||e.touches.length!==1)return;const t=e.target;if(t.closest('button,a,input,textarea,select,[role=button],#mmPhoneSheet')){tracking=false;return}sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=sx<42;},{passive:true});root.addEventListener('touchend',e=>{if(!tracking||!$('detailView').classList.contains('show')||!e.changedTouches.length)return;tracking=false;const dx=e.changedTouches[0].clientX-sx;const dy=e.changedTouches[0].clientY-sy;if(dx>95&&Math.abs(dx)>Math.abs(dy)*1.35)leaveDetail();},{passive:true})})();
@@ -14993,6 +15015,9 @@ html.mm-estate-category .hero .search{height:44px!important;min-height:44px!impo
 html.mm-estate-category .hero .search-icon{width:32px!important;height:32px!important;flex-basis:32px!important}
 html.mm-estate-category .results-head{margin-top:10px!important}
 html.mm-auto-category #mmEstateBanner{background:linear-gradient(90deg,rgba(8,31,64,.88),rgba(8,31,64,.12)),url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NDAgMjQwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciPjxzdG9wIHN0b3AtY29sb3I9IiMxNTJmNTAiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM0Nzc5YTQiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjI0MCIgZmlsbD0idXJsKCNnKSIvPjxwYXRoIGQ9Ik0wIDIwNUg2NDAiIHN0cm9rZT0iIzllYjlkMyIgb3BhY2l0eT0iLjM1Ii8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjY1IDUwKSI+PHBhdGggZD0iTTE1IDEwNUwzNSA3OSA3OSA2OCAxMTcgMjRRMTI2IDE1IDE0NyAxNUgyMjNRMjQzIDE1IDI1NiAzMkwyODkgNzAgMzIyIDgxUTMzOSA4OCAzNDAgMTA1VjEzOUgxNVoiIGZpbGw9IiNhNGJmZDgiLz48cGF0aCBkPSJNOTEgNjhMMTI3IDMwSDE3MFY2OFpNMTgxIDMwSDIyMlEyMzMgMzAgMjQ0IDQ1TDI2MiA2OEgxODFaIiBmaWxsPSIjMjQzZDU5Ii8+PHBhdGggZD0iTTE4IDEwNUgzNDAiIHN0cm9rZT0iI2UwZWRmNyIgc3Ryb2tlLXdpZHRoPSI0Ii8+PGNpcmNsZSBjeD0iNzkiIGN5PSIxMzgiIHI9IjMwIiBmaWxsPSIjMTUyMzM3Ii8+PGNpcmNsZSBjeD0iNzkiIGN5PSIxMzgiIHI9IjE0IiBmaWxsPSIjYTRiZmQ4Ii8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iMTM4IiByPSIzMCIgZmlsbD0iIzE1MjMzNyIvPjxjaXJjbGUgY3g9IjI4MCIgY3k9IjEzOCIgcj0iMTQiIGZpbGw9IiNhNGJmZDgiLz48L2c+PC9zdmc+") center / cover no-repeat!important}
+
+html.mm-estate-category #mmEstateBanner:is([data-category="tech"],[data-category="home"],[data-category="kids"],[data-category="work"],[data-category="services"],[data-category="pets"],[data-category="give"],[data-category="search"]){background:linear-gradient(110deg,#102e52,#315c85)!important;isolation:isolate}
+html.mm-estate-category #mmEstateBanner:is([data-category="tech"],[data-category="home"],[data-category="kids"],[data-category="work"],[data-category="services"],[data-category="pets"],[data-category="give"],[data-category="search"])::after{content:"";position:absolute;inset:8px 12px 8px 52%;background:var(--mm-category-art) center right/contain no-repeat;opacity:.42;z-index:-1;pointer-events:none}
 </style>
 </body></html>'''
 
