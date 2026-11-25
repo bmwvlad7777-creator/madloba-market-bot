@@ -13135,7 +13135,7 @@ function updateFilterVisibility(){
  // rather than waiting for the listings API response (which may take several seconds).
  const bestSection=$('bestSection');
  if(bestSection && (state.category || state.q)){bestSection.style.display='none';}
- $('resultsTitle').textContent=state.category?t('category_'+state.category):t('fresh_listings');
+ $('resultsTitle').textContent=state.category==='realestate'?({ru:'Объявления',en:'Listings',ka:'განცხადებები',uk:'Оголошення'}[state.lang]||'Объявления'):state.category?t('category_'+state.category):t('fresh_listings');
  $('sortSelect').style.display='block';
  syncFilterUI();
  if(state.category==='auto')loadAutoOptions(state.filters.make||'');
@@ -14968,19 +14968,25 @@ html.mm-android.mm-android-fullscreen body.mm-detail-open #detailView {
 html.mm-estate-category body::before{display:none!important}
 html.mm-estate-category .top .brand::after{display:none!important}
 html.mm-estate-category .top{background:#193c56!important;border-radius:16px!important;padding:10px!important;margin-bottom:10px!important;box-sizing:border-box!important}
-html.mm-estate-category .hero{height:auto!important;min-height:0!important;max-height:none!important;margin:0 0 10px!important;padding:0!important;background:none!important;box-shadow:none!important;overflow:visible!important}
+html.mm-estate-category .hero{width:100%!important;max-width:100%!important;min-width:0!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 0 8px!important;padding:0!important;background:none!important;box-shadow:none!important;overflow:visible!important}
 html.mm-estate-category .hero > h1,html.mm-estate-category .hero > p,html.mm-estate-category .hero .quick-actions-shell,html.mm-estate-category #backBtn{display:none!important}
-html.mm-estate-category #mmEstateBanner{display:flex!important;flex-direction:column;justify-content:space-between;align-items:flex-start;min-height:150px;box-sizing:border-box;padding:16px;border-radius:20px;margin:0 0 12px;color:white;background:linear-gradient(115deg,#103c45,#236c73);position:relative;overflow:hidden;isolation:isolate}
+html.mm-estate-category #mmEstateBanner{display:flex!important;flex-direction:column;justify-content:space-between;align-items:flex-start;min-height:140px;box-sizing:border-box;padding:16px;border-radius:20px;margin:0 0 12px;color:white;background:linear-gradient(90deg,rgba(8,31,64,.94),rgba(8,31,64,.35)),var(--madloba-shared-hero-image) center 52% / cover no-repeat;position:relative;overflow:hidden;isolation:isolate}
 #mmEstateBanner svg{position:absolute;right:0;bottom:0;width:55%;height:100%;z-index:-1;opacity:.85}
 html.mm-estate-category #mmEstateBanner h1{display:block!important;color:white!important;font-size:clamp(22px,6vw,34px)!important;line-height:1.15!important;margin:0!important;max-width:100%!important;text-shadow:0 2px 8px #123!important}
 #mmEstateBanner button{border:1px solid #ffffff70;background:#ffffff20;color:white;border-radius:12px;padding:9px 12px;font:inherit;font-size:13px;min-height:40px;text-align:left}
-#mmEstateBanner small{display:block;color:#e1f4ef;font-size:13px;margin-top:5px}
+#mmEstateBanner small{display:block;color:#e5efff;font-size:13px;margin-top:5px}
 html.mm-estate-category .hero .search{margin:0 0 10px!important;max-width:100%!important;box-sizing:border-box}
 #mmEstateDeals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 10px}
-#mmEstateDeals button{min-width:0;min-height:40px;border:1px solid #d7e5e4;background:white;color:#24535a;border-radius:12px;font:inherit;font-size:13px;font-weight:700;padding:6px;overflow-wrap:anywhere}
-#mmEstateDeals button[aria-pressed="true"]{background:#236c73;color:white;border-color:#236c73}
-html.mm-estate-category #filterBar{margin:0!important;max-width:100%!important}
+#mmEstateDeals button{min-width:0;min-height:40px;border:1px solid #d7e5f5;background:white;color:#174477;border-radius:12px;font:inherit;font-size:13px;font-weight:700;padding:6px;overflow-wrap:anywhere}
+#mmEstateDeals button[aria-pressed="true"]{background:#176bd1;color:white;border-color:#176bd1}
+html.mm-estate-category #filterBar.filter-bar.show{margin:0!important;max-width:100%!important;top:0!important}
 html.mm-estate-category .results-head{margin-top:8px!important;min-width:0;flex-wrap:wrap}
+
+html.mm-estate-category #mmEstateBanner,html.mm-estate-category #mmEstateDeals,html.mm-estate-category .hero .search{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin-left:0!important;margin-right:0!important}
+html.mm-estate-category #mmEstateBanner svg{display:none!important}
+html.mm-estate-category .hero .search input{min-width:0!important;width:0!important;flex:1 1 0!important}
+html.mm-estate-category #mmEstateDeals{margin-bottom:0!important}
+html.mm-estate-category .results-head{margin-top:10px!important}
 </style>
 </body></html>'''
 
