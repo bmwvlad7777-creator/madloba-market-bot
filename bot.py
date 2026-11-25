@@ -14798,7 +14798,7 @@ html body [contenteditable="true"] {
 </style>
 
 <style id="mm-android-hero-fit-v1">
-html.mm-android body::before {
+html.mm-hero-measured body::before {
   height:var(--mm-android-hero-height, 320px)!important;
   min-height:0!important;
   max-height:none!important;
@@ -14807,20 +14807,24 @@ html.mm-android body::before {
 <script>
 (function(){
   var platform=window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform;
-  if(platform !== 'android') return;
-  document.documentElement.classList.add('mm-android');
+  if(platform === 'android') document.documentElement.classList.add('mm-android');
   var hero=document.querySelector('.hero');
   if(!hero) return;
   function fitHero(){
     var strip=hero.querySelector('.quick-actions-shell') || hero.querySelector('.quick-actions');
     if(!strip || !strip.getClientRects().length) return;
     var bottom=strip.getBoundingClientRect().bottom-document.body.getBoundingClientRect().top;
-    if(bottom>0) document.documentElement.style.setProperty('--mm-android-hero-height', Math.ceil(bottom+8)+'px');
+    if(bottom>0 && Number.isFinite(bottom)){
+      var root=document.documentElement;
+      var height=Math.ceil(bottom+8)+'px';
+      if(root.style.getPropertyValue('--mm-android-hero-height')!==height) root.style.setProperty('--mm-android-hero-height',height);
+      root.classList.add('mm-hero-measured');
+    }
   }
   fitHero();
   window.addEventListener('resize',fitHero);
   window.addEventListener('load',fitHero);
-  if(window.ResizeObserver){var observer=new ResizeObserver(fitHero);observer.observe(hero);}
+  if(window.ResizeObserver){var observer=new ResizeObserver(fitHero);observer.observe(hero);var top=document.querySelector('.top');if(top)observer.observe(top);var strip=hero.querySelector('.quick-actions-shell') || hero.querySelector('.quick-actions');if(strip)observer.observe(strip);}
 })();
 </script>
 <style id="mm-android-detail-top-v1">
