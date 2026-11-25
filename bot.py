@@ -8562,6 +8562,8 @@ def validate_telegram_init_data(init_data, max_age=86400):
 MINI_APP_HTML = r'''<!doctype html>
 <html lang="ru">
 <head>
+<style id="mm-startup-first-paint">html:not(.mm-first-paint-ready) body{visibility:hidden!important}</style>
+<noscript><style>html:not(.mm-first-paint-ready) body{visibility:visible!important}</style></noscript>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b73f6">
@@ -15200,6 +15202,8 @@ html body #detailView #detailContent .detail-deal-badge.deal-seek{background:#f0
 html body #detailView #detailContent .detail-deal-badge.deal-give{background:#fff1d9!important;color:#956b25!important;}
 html body #detailView #detailContent .detail-deal-badge.deal-offer{background:#e1f3f1!important;color:#287d77!important;}
 </style>
+
+<script id="mm-startup-reveal">document.documentElement.classList.add("mm-first-paint-ready");</script>
 </body></html>'''
 
 
