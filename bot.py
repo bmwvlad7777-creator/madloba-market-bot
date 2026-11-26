@@ -15685,6 +15685,7 @@ body::before{height:390px!important;min-height:0!important;max-height:none!impor
 .admin-detail-listing b{display:block;font-size:14px;line-height:1.35}
 .admin-detail-listing small{display:block;color:#718198;font-size:12px;margin-top:4px}
 .admin-detail-listing>span:last-child{color:#1478f5;font-size:19px}
+.admin-user-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}.admin-user-thumb{position:relative;display:grid;place-items:center;flex:0 0 56px;height:56px;border-radius:9px;background:#eef3f9;overflow:hidden}.admin-user-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.admin-user-thumb small{font-size:10px;text-align:center;margin:0}.admin-user-list-info{flex:1;min-width:0;overflow-wrap:anywhere}.admin-user-list-info strong{display:block;color:#1478f5;font-size:14px;margin-top:4px}@media(max-width:340px){.admin-user-grid{grid-template-columns:1fr}}
 .admin-detail-empty{font-size:14px;color:#718198;padding:8px 0}
 .admin-detail-loading{padding:20px 0;color:#718198}
 @media(max-width:520px){#detailModal{padding-left:12px!important;padding-right:12px!important}#detailModal>div{padding:15px!important;border-radius:17px!important}.admin-detail-top{padding-right:72px;gap:7px}#detailContent h2{font-size:22px}.admin-detail-value{font-size:15px}.admin-detail-price{font-size:22px}}
@@ -16174,8 +16175,8 @@ if(kind==='listing'){
  const userListings=Array.isArray(d.listings)?d.listings:[];
  const statusCounts=userListings.reduce((acc,item)=>{const key=String(item.status||'other');acc[key]=(acc[key]||0)+1;return acc},{});
  html=`<div class="admin-detail-top"><div><div class="admin-detail-kicker">КАРТОЧКА ПОЛЬЗОВАТЕЛЯ</div><h2>${esc(fullName)}</h2></div><span class="admin-detail-status">ID #${esc(id)}</span></div>
- <section class="admin-detail-section"><h3>Профиль</h3>${adminDetailField('Telegram ID',x.telegram_id||'')}${adminDetailField('Имя пользователя',x.username?'@'+String(x.username).replace(/^@/,''):'')}${adminDetailField('Телефон',x.phone||'')}${adminDetailField('Дата регистрации',adminDetailDate(x.created_at))}${x.updated_at?adminDetailField('Последнее обновление',adminDetailDate(x.updated_at)):''}</section>
- <section class="admin-detail-section"><h3>Объявления пользователя</h3><div class="admin-detail-count">Показано объявлений: ${userListings.length}${userListings.length===100?' · отображены первые 100':''}</div>${Object.keys(statusCounts).length?`<div class="admin-detail-chips">${Object.entries(statusCounts).map(([k,v])=>`<span>${esc(adminDetailStatus(k))}: ${v}</span>`).join('')}</div>`:''}${userListings.length?userListings.slice(0,20).map(y=>`<button type="button" class="admin-detail-listing" data-user-listing="${esc(y.id)}"><span><b>#${esc(y.id)} · ${esc(y.title||'Без названия')}</b><small>${esc(adminDetailStatus(y.status))} · ${esc(y.price??'')} ${esc(y.currency||'')}</small></span><span aria-hidden="true">↗</span></button>`).join(''):'<div class="admin-detail-empty">У пользователя пока нет объявлений</div>'}${userListings.length>20?`<div class="admin-detail-note">Показаны первые 20 объявлений из ${userListings.length} загруженных.</div>`:''}</section>
+ <section class="admin-detail-section"><h3>Профиль</h3><div class="admin-user-grid">${adminDetailField('Telegram ID',x.telegram_id||'')}${adminDetailField('Имя пользователя',x.username?'@'+String(x.username).replace(/^@/,''):'')}${adminDetailField('Телефон',x.phone||'')}${adminDetailField('Дата регистрации',adminDetailDate(x.created_at))}${x.updated_at?adminDetailField('Последнее обновление',adminDetailDate(x.updated_at)):''}</div></section>
+ <section class="admin-detail-section"><h3>Объявления пользователя</h3><div class="admin-detail-count">Показано объявлений: ${userListings.length}${userListings.length===100?' · отображены первые 100':''}</div>${Object.keys(statusCounts).length?`<div class="admin-detail-chips">${Object.entries(statusCounts).map(([k,v])=>`<span>${esc(adminDetailStatus(k))}: ${v}</span>`).join('')}</div>`:''}${userListings.length?userListings.slice(0,20).map(y=>`<button type="button" class="admin-detail-listing" data-user-listing="${esc(y.id)}"><span class="admin-user-thumb">${y.has_photo&&y.status==='published'?`<img loading="lazy" decoding="async" src="/media/${esc(y.id)}/0?thumb=1" onerror="this.remove()" alt="">`:''}<small>${y.has_photo?'Фото':'Нет фото'}</small></span><span class="admin-user-list-info"><b>${esc(admin4Clean(y.display_title||y.title)||'Без названия')}</b><small>#${esc(y.id)} · ${esc(adminDetailStatus(y.status))}</small><strong>${esc(admin4Price(y))}</strong></span><span aria-hidden="true">↗</span></button>`).join(''):'<div class="admin-detail-empty">У пользователя пока нет объявлений</div>'}${userListings.length>20?`<div class="admin-detail-note">Показаны первые 20 объявлений из ${userListings.length} загруженных.</div>`:''}</section>
  <details class="admin-detail-technical"><summary>Дополнительная техническая информация</summary><div class="admin-detail-tech-grid">${[['Внутренний ID пользователя',x.id],['Дата последнего обновления',x.updated_at]].filter(([,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>adminDetailField(k,k.includes('Дата')?adminDetailDate(v):v)).join('')}</div></details>`;
 }
 box.innerHTML=html;
@@ -16321,10 +16322,40 @@ def mini_app_admin_data():
             return jsonify({"error":"user_not_found"}), 404
         user_row = rows[0]
         listings = supabase_request("GET", "listings", params={
-            "select":"id,title,status,price,currency,created_at", "user_id":f"eq.{user_id}",
+            "select":"id,title,status,price,currency,created_at,metadata,city_id", "user_id":f"eq.{user_id}",
             "order":"created_at.desc", "limit":"100"
         })
-        return jsonify({"item":user_row, "listings":listings if isinstance(listings,list) else []})
+        if not isinstance(listings, list):
+            return jsonify({"error":"user_listings_unavailable"}), 503
+        photo_ids = set()
+        try:
+            photo_ids = {str(photo.get("listing_id")) for photo in _supabase_photo_rows([row.get("id") for row in listings[:20]]) if photo.get("photo_url")}
+        except Exception as error:
+            print("ADMIN USER PHOTO ERROR:", repr(error))
+        items = []
+        for row in listings:
+            item = {k:v for k,v in row.items() if k != "metadata"}
+            try:
+                data = _row_to_listing(row)
+                details = data.get("details") or {}
+                if not isinstance(details, dict):
+                    details = {}
+                clean = lambda v: re.sub(r"^[^\w]+", "", str(v or "")).strip()
+                category = clean(data.get("category_name") or data.get("category"))
+                title = clean(data.get("title"))
+                if not title or title.casefold() in {category.casefold(), "авто", "техника", "недвижимость", "объявление", "ищу"}:
+                    generated = ""
+                    if data.get("category_key"):
+                        generated = make_title({**data, "details": details})
+                    title = clean(details.get("make_model") or details.get("brand_model") or details.get("product_name") or generated or title or category)
+                    if details.get("make_model") and details.get("year"):
+                        title += " · " + str(details["year"])
+                item["display_title"] = title or "Без названия"
+            except Exception as error:
+                print("ADMIN USER TITLE ERROR:", repr(error))
+            item["has_photo"] = str(row.get("id")) in photo_ids
+            items.append(item)
+        return jsonify({"item":user_row, "listings":items})
 
     if kind == "listing":
         listing_id = (request.args.get("id") or "").strip()
