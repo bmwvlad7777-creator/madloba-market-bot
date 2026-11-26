@@ -13213,7 +13213,7 @@ function mmEstateLayout(){
  const placeholders={ru:'Поиск недвижимости',en:'Search real estate',ka:'უძრავი ქონების ძიება',uk:'Пошук нерухомості'};
  const autoPlaceholders={ru:'Поиск автомобиля',en:'Search cars',ka:'ავტომობილის ძიება',uk:'Пошук автомобіля'};
  const ph=auto?autoPlaceholders:placeholders;
- $('search').placeholder=state.category==='all'?t('catalog_search'):generic?({ru:'Поиск в категории',en:'Search this category',ka:'ძიება კატეგორიაში',uk:'Пошук у категорії'}[state.lang]||'Search this category'):active?(ph[state.lang]||ph.ru):t('search_placeholder');
+ $('search').placeholder=state.category==='all'?t('catalog_search'):generic?({ru:'Поиск в категории',en:'Search this category',ka:'ძიება კატეგორიაში',uk:'Пошук у категорії'}[state.lang]||'Search this category'):active?(ph[state.lang]||ph.ru):({ru:'Что вы ищете?',en:'What are you looking for?',ka:'რას ეძებთ?',uk:'Що ви шукаєте?'}[state.lang]||'What are you looking for?');
  if(banner){banner.dataset.category=active?state.category:'';banner.style.setProperty('--mm-category-art',active&&MM_CATEGORY_PHOTOS[state.category]?'url(\"'+MM_CATEGORY_PHOTOS[state.category]+'\")':'none');}
 
 }
@@ -15273,6 +15273,30 @@ html body #detailView #detailContent .mm-detail-spec-section{padding-top:10px!im
 html body #detailView #detailContent .detail-description{margin-top:9px!important;padding-top:9px!important;}
 html body #detailView #detailContent .detail-desc{line-height:1.38!important;}
 html body #detailView #detailContent .seller-inline-card{min-height:64px!important;margin:12px 0 10px!important;padding:9px 12px!important;}
+</style>
+<style id="mm-home-header-search-polish-v1">
+/* Home only: retain original photo, geometry and category controls. */
+html:not(.mm-estate-category) body::before{
+ background-image:linear-gradient(90deg,rgba(8,28,56,.46),rgba(8,28,56,.25) 52%,rgba(8,28,56,.16)),linear-gradient(180deg,rgba(10,35,65,.24),rgba(10,35,65,.08) 48%,rgba(10,35,65,.30)),var(--madloba-shared-hero-image)!important;
+}
+html:not(.mm-estate-category) body .top .city#langSelect,
+html:not(.mm-estate-category) body .top #cityMultiBtn{
+ background-color:rgba(62,94,132,.88)!important;
+ border-color:rgba(255,255,255,.32)!important;
+}
+html:not(.mm-estate-category) body .hero .search{
+ height:46px!important;min-height:46px!important;max-height:46px!important;
+ border-radius:15px!important;padding:0 10px!important;gap:6px!important;
+ background:#fff!important;border:1px solid #d7e4f3!important;
+ box-shadow:0 4px 14px rgba(10,35,65,.12)!important;
+}
+html:not(.mm-estate-category) body .hero .search #searchSubmit{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;max-width:44px!important;max-height:44px!important;flex:0 0 44px!important;
+}
+html:not(.mm-estate-category) body .hero .search #searchSubmit svg{width:22px!important;height:22px!important;}
+html:not(.mm-estate-category) body .hero .search #search{font-size:16px!important;min-width:0!important;}
+html:not(.mm-estate-category) body .hero .search #search::placeholder{color:#68778b!important;opacity:1!important;}
 </style>
 <script id="mm-startup-reveal">document.documentElement.classList.add("mm-first-paint-ready");</script>
 </body></html>'''
