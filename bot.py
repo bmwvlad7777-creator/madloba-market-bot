@@ -1211,6 +1211,38 @@ def _supabase_user_id(telegram_id):
     return user_id
 
 
+def _mm_publish_restriction(telegram_id, user_id=None):
+    """Return None if allowed, or an error code; fail closed on DB errors."""
+    try:
+        if user_id is None:
+            user_id = _supabase_user_id(telegram_id)
+        if user_id is None:
+            return "restriction_check_unavailable"
+        rows = supabase_request("GET", "mm_user_restrictions", params={
+            "select": "id", "user_id": f"eq.{int(user_id)}",
+            "restriction_type": "in.(publish_block,account_block)",
+            "revoked_at": "is.null",
+            "or": f"(expires_at.is.null,expires_at.gt.{_utc_now_iso()})",
+            "limit": "1",
+        })
+        if not isinstance(rows, list):
+            return "restriction_check_unavailable"
+        return "publication_restricted" if rows else None
+    except Exception:
+        return "restriction_check_unavailable"
+
+
+def _mm_publish_restriction_message(error):
+    if error == "publication_restricted":
+        return "Публикация объявлений ограничена. Обратитесь в поддержку."
+    return "Не удалось проверить доступ к публикации. Попробуйте позже."
+
+
+def _mm_publish_restriction_response(error):
+    return jsonify({"ok": False, "error": error,
+                    "message": _mm_publish_restriction_message(error)}), (403 if error == "publication_restricted" else 503)
+
+
 def _sync_supabase_user_profile(telegram_user):
     """Sync non-empty public Telegram profile fields for an authenticated user."""
     if not isinstance(telegram_user, dict) or not supabase_enabled():
@@ -5173,6 +5205,11 @@ def submit_for_moderation(
         chat_id
     ]["data"]
 
+    restriction_error = _mm_publish_restriction(chat_id)
+    if restriction_error:
+        send(chat_id, _mm_publish_restriction_message(restriction_error))
+        return
+
     # Нужен для связи объявления с пользователем в Supabase.
     data["_telegram_id"] = chat_id
 
@@ -5782,6 +5819,13 @@ def _moderate_publish_locked(
     # the durable marker prevents a restart from blindly sending a duplicate.
     result = item.get("_telegram_publish_result")
     if not isinstance(result, dict):
+        restriction_error = _mm_publish_restriction(user_chat_id)
+        if restriction_error:
+            message = _mm_publish_restriction_message(restriction_error)
+            _moderation_callback_answer(callback_id, message, True)
+            if callback_id:
+                send(admin_user_id, message)
+            return
         publish_state = str(item.get("_telegram_publish_state") or "")
         if publish_state in {"sending", "unknown", "sent"}:
             _moderation_callback_answer(
@@ -17560,6 +17604,9 @@ def mini_app_listing_submit():
     if found and isinstance(receipt, dict) and receipt.get("request_id"):
         return jsonify({"ok": True, "request_id": int(receipt["request_id"]),
                         "status": "pending", "duplicate": True}), 200
+    restriction_error = _mm_publish_restriction(telegram_id)
+    if restriction_error:
+        return _mm_publish_restriction_response(restriction_error)
     limited = _mm_rate_limit_guard("listing_submit", telegram_id, 5, 300)
     if limited:
         return limited
@@ -18628,6 +18675,10 @@ def mini_app_republish_listing(listing_id):
     row, user, user_id = _mini_app_owned_row(listing_id)
     if not user:
         return jsonify({"error":"invalid_init_data"}), 401
+    if row:
+        restriction_error = _mm_publish_restriction(user.get("id"), user_id)
+        if restriction_error:
+            return _mm_publish_restriction_response(restriction_error)
     rate_limit = _mm_rate_limit_guard("owner_listing_republish", user.get("id"), 3, 600)
     if rate_limit:
         return rate_limit
