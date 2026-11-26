@@ -16195,6 +16195,21 @@ async function loadAdminBrowserPage(){const st=adminBrowseState;const box=docume
 document.getElementById('adminBrowseSearch').addEventListener('click',()=>{adminBrowseState.q=document.getElementById('adminBrowseQuery').value.trim();adminBrowseState.page=0;loadAdminBrowserPage()});document.getElementById('adminBrowseQuery').addEventListener('keydown',e=>{if(e.key==='Enter'){adminBrowseState.q=e.currentTarget.value.trim();adminBrowseState.page=0;loadAdminBrowserPage()}});document.getElementById('adminBrowsePrev').addEventListener('click',()=>{if(adminBrowseState.page>0){adminBrowseState.page--;loadAdminBrowserPage()}});document.getElementById('adminBrowseNext').addEventListener('click',()=>{adminBrowseState.page++;loadAdminBrowserPage()});document.getElementById('closeAdminBrowse').addEventListener('click',()=>document.getElementById('adminBrowseModal').style.display='none');document.getElementById('adminBrowseModal').addEventListener('click',e=>{if(e.target.id==='adminBrowseModal')e.currentTarget.style.display='none'});function adminDetailDate(value){if(!value)return '—';const dt=new Date(value);return Number.isNaN(dt.getTime())?String(value):dt.toLocaleString('ru-RU',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Tbilisi'})}
 function adminDetailStatus(value){return ({published:'Опубликовано',pending:'На модерации',draft:'Черновик',archived:'В архиве',deleted:'Удалено',rejected:'Отклонено',active:'Активен',blocked:'Заблокирован'})[String(value||'').toLowerCase()]||String(value||'Не указан')}
 function adminDetailField(label,value){if(value===null||value===undefined||value==='')return '';return `<div class="admin-detail-field"><div class="admin-detail-label">${esc(label)}</div><div class="admin-detail-value">${esc(value)}</div></div>`}
+async function loadAdminUserRestrictions(panel,id,initData){
+ const url='/api/admin/user/'+encodeURIComponent(id)+'/restrictions', headers={'X-Telegram-Init-Data':initData};
+ panel.textContent='Проверяем ограничения…';
+ try{
+  const r=await fetch(url,{headers}), d=await r.json(); if(!r.ok)throw Error('Не удалось проверить ограничения');
+  const active=d.active||[], blocked=active.length>0;
+  panel.innerHTML=`<div style="font-weight:700;color:${blocked?'#b42318':'#16803d'}">${blocked?'Публикация ограничена':'Без запрета публикаций'}</div>${active.map(a=>`<div class="muted" style="overflow-wrap:anywhere">${esc(a.reason)} · ${a.expires_at?esc(adminDetailDate(a.expires_at)):'Бессрочно'}</div>`).join('')}
+  ${blocked?'':`<label style="display:block;margin-top:10px">Срок<select data-restrict-days style="width:100%;font-size:16px;padding:10px;border:1px solid #dce5ef;border-radius:10px;background:white"><option value="1">24 часа</option><option value="3">3 дня</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="0">Бессрочно</option></select></label>`}
+  <textarea data-restrict-reason maxlength="500" placeholder="Причина ${blocked?'снятия ограничения':'ограничения'}" style="box-sizing:border-box;width:100%;font-size:16px;min-height:64px;margin-top:10px;padding:10px;border:1px solid #dce5ef;border-radius:10px"></textarea>
+  <button type="button" data-restrict-action style="width:100%;padding:12px;border:0;border-radius:10px;font-weight:700;background:${blocked?'#e6f5eb':'#fdecec'};color:${blocked?'#16803d':'#b42318'}">${blocked?'Снять ограничение':'Ограничить публикацию'}</button><div data-restrict-status role="status" class="muted"></div>
+  <details class="admin-detail-technical"><summary>История ограничений · ${(d.history||[]).length}</summary>${(d.history||[]).map(a=>`<div style="padding:8px 0;overflow-wrap:anywhere;border-bottom:1px solid #e7edf5"><b>${esc(a.reason)}</b><div class="muted">${esc(adminDetailDate(a.created_at))} · ${a.revoked_at?'Снято':active.some(b=>b.id===a.id)?'Активно':'Истекло'} · ${a.expires_at?esc(adminDetailDate(a.expires_at)):'Бессрочно'}</div>${a.revoke_reason?`<div>Причина снятия: ${esc(a.revoke_reason)}</div>`:''}</div>`).join('')||'Нет ограничений'}</details>`;
+  const btn=panel.querySelector('[data-restrict-action]'), status=panel.querySelector('[data-restrict-status]');
+  btn.onclick=async()=>{if(btn.disabled)return;const reason=panel.querySelector('[data-restrict-reason]').value.trim();if(!reason){status.textContent='Укажите причину';return;}if(!window.confirm(blocked?'Снять запрет публикаций?':'Запретить публикацию этому пользователю?'))return;btn.disabled=true;try{const response=await fetch(url,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({action:blocked?'revoke':'block',reason,days:Number(panel.querySelector('[data-restrict-days]')?.value||0)})});const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error==='protected_admin'?'Администратор защищён от блокировки':'Результат не подтверждён. Обновите статус перед повтором.');await loadAdminUserRestrictions(panel,id,initData);}catch(e){status.textContent=e.message;const refresh=document.createElement('button');refresh.type='button';refresh.textContent='Обновить статус';refresh.onclick=()=>loadAdminUserRestrictions(panel,id,initData);status.append(refresh);}};
+ }catch(e){panel.textContent='Статус ограничений недоступен. Откройте карточку повторно.';}
+}
 async function showAdminDetail(kind,id,initData){const modal=document.getElementById('detailModal'),box=document.getElementById('detailContent');modal.querySelectorAll('.admin-detail-viewer').forEach(v=>v.remove());modal.classList.toggle('admin-listing-detail',kind==='listing');modal.style.display='block';modal.firstElementChild.scrollTop=0;box.innerHTML='<div class="admin-detail-loading">Загружаем подробности…</div>';try{const r=await fetch('/api/admin/data?kind='+encodeURIComponent(kind==='user'?'user':'listing')+'&id='+encodeURIComponent(id),{headers:{'X-Telegram-Init-Data':initData}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Не удалось загрузить');const x=d.item||{};let html='';
 if(kind==='listing'){
  const title=admin4Clean(x.display_title||x.title||x.listing_title)||'Объявление';
@@ -16220,10 +16235,12 @@ if(kind==='listing'){
  const statusCounts=userListings.reduce((acc,item)=>{const key=String(item.status||'other');acc[key]=(acc[key]||0)+1;return acc},{});
  html=`<div class="admin-detail-top"><div><div class="admin-detail-kicker">КАРТОЧКА ПОЛЬЗОВАТЕЛЯ</div><h2>${esc(fullName)}</h2></div><span class="admin-detail-status">ID #${esc(id)}</span></div>
  <section class="admin-detail-section"><h3>Профиль</h3><div class="admin-user-grid">${adminDetailField('Telegram ID',x.telegram_id||'')}${adminDetailField('Имя пользователя',x.username?'@'+String(x.username).replace(/^@/,''):'')}${adminDetailField('Телефон',x.phone||'')}${adminDetailField('Дата регистрации',adminDetailDate(x.created_at))}${x.updated_at?adminDetailField('Последнее обновление',adminDetailDate(x.updated_at)):''}</div></section>
+ <section class="admin-detail-section"><h3>Управление пользователем</h3><div id="adminUserRestrictions"></div></section>
  <section class="admin-detail-section"><h3>Объявления пользователя</h3><div class="admin-detail-count">Показано объявлений: ${userListings.length}${userListings.length===100?' · отображены первые 100':''}</div>${Object.keys(statusCounts).length?`<div class="admin-detail-chips">${Object.entries(statusCounts).map(([k,v])=>`<span>${esc(adminDetailStatus(k))}: ${v}</span>`).join('')}</div>`:''}${userListings.length?userListings.slice(0,20).map(y=>`<button type="button" class="admin-detail-listing" data-user-listing="${esc(y.id)}"><span class="admin-user-thumb">${y.has_photo&&y.status==='published'?`<img loading="lazy" decoding="async" src="/media/${esc(y.id)}/0?thumb=1" onerror="this.remove()" alt="">`:''}<small>${y.has_photo?'Фото':'Нет фото'}</small></span><span class="admin-user-list-info"><b>${esc(admin4Clean(y.display_title||y.title)||'Без названия')}</b><small>#${esc(y.id)} · ${esc(adminDetailStatus(y.status))}</small><strong>${esc(admin4Price(y))}</strong></span><span aria-hidden="true">↗</span></button>`).join(''):'<div class="admin-detail-empty">У пользователя пока нет объявлений</div>'}${userListings.length>20?`<div class="admin-detail-note">Показаны первые 20 объявлений из ${userListings.length} загруженных.</div>`:''}</section>
  <details class="admin-detail-technical"><summary>Дополнительная техническая информация</summary><div class="admin-detail-tech-grid">${[['Внутренний ID пользователя',x.id],['Дата последнего обновления',x.updated_at]].filter(([,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>adminDetailField(k,k.includes('Дата')?adminDetailDate(v):v)).join('')}</div></details>`;
 }
 box.innerHTML=html;
+if(kind==='user')loadAdminUserRestrictions(box.querySelector('#adminUserRestrictions'),id,initData);
 box.querySelectorAll('[data-admin-photo]').forEach(btn=>btn.addEventListener('click',()=>{const viewer=document.createElement('div');viewer.className='admin-detail-viewer';const close=document.createElement('button');close.textContent='Закрыть ✕';close.onclick=()=>viewer.remove();const img=document.createElement('img');img.src='/media/'+encodeURIComponent(id)+'/'+btn.dataset.adminPhoto;img.alt='Фотография объявления';img.onerror=()=>{img.alt='Фото недоступно'};viewer.append(close,img);viewer.addEventListener('click',e=>{if(e.target===viewer)viewer.remove()});modal.append(viewer);}));
 const copyPhone=document.getElementById('copyAdminPhone');if(copyPhone)copyPhone.addEventListener('click',async()=>{try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(String(x.phone||''));copyPhone.textContent='Скопировано'}else{copyPhone.textContent=String(x.phone||'Не удалось скопировать')}}catch(e){copyPhone.textContent='Не удалось скопировать'}});
 const unpublish=document.getElementById('adminUnpublishListing');if(unpublish)unpublish.addEventListener('click',async()=>{if(unpublish.disabled)return;if(!window.confirm('Снять объявление с публикации? Пост будет удалён из Telegram, а объявление переместится в архив.'))return;unpublish.disabled=true;unpublish.textContent='Выполняется…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Проверяем удаление публикации…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/unpublish',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||({channel_cleanup_failed:'Не удалось удалить пост из Telegram. Объявление не изменено.',channel_message_ids_missing:'Нет ID сообщения Telegram. Статус не изменён.',db_update_failed:'Пост удалён, но статус в каталоге не обновлён. Повтори действие.',admin_only:'Нет прав администратора.',invalid_status:'Это объявление сейчас нельзя снять с публикации.'}[result.error]||'Не удалось выполнить действие.'));if(statusBox)statusBox.textContent='Объявление снято с публикации и перемещено в архив.';await showAdminDetail('listing',id,initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка выполнения';unpublish.disabled=false;unpublish.textContent='Снять с публикации'}});const manualCleanup=document.getElementById('adminConfirmManualCleanup');if(manualCleanup)manualCleanup.addEventListener('click',async()=>{if(manualCleanup.disabled)return;if(!window.confirm('Подтверди: ты уже вручную удалил все указанные публикации из Telegram? Это действие позволит архивировать объявление.'))return;manualCleanup.disabled=true;manualCleanup.textContent='Подтверждаем…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Обновляем статус объявления…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/confirm-manual-cleanup',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||'Не удалось подтвердить ручную очистку.');if(statusBox)statusBox.textContent='Ручная очистка подтверждена. Статус: '+(result.status==='archived'?'в архиве':result.status);await showAdminDetail('listing',id,initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка';manualCleanup.disabled=false;manualCleanup.textContent='Подтвердить ручное удаление поста'}});const restore=document.getElementById('adminRestoreListing');if(restore)restore.addEventListener('click',async()=>{if(restore.disabled)return;if(!window.confirm('Восстановить объявление? Оно будет повторно опубликовано в каталоге и Telegram без создания новой записи.'))return;restore.disabled=true;restore.textContent='Публикуем…';const statusBox=document.getElementById('adminListingActionStatus');if(statusBox)statusBox.textContent='Проверяем данные и фотографии, затем публикуем…';try{const response=await fetch('/api/admin/listing/'+encodeURIComponent(id)+'/restore',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||({listing_data_incomplete:'Не хватает данных объявления для публикации.',channel_publish_failed:'Не удалось опубликовать объявление в Telegram.',republish_in_progress:'Восстановление уже выполняется.',invalid_status:'Это объявление сейчас нельзя восстановить.'}[result.error]||'Не удалось восстановить объявление.'));if(statusBox)statusBox.textContent='Объявление восстановлено и опубликовано.';await showAdminDetail('listing',id,initData);const archive=document.getElementById('adminArchivedListings');if(archive&&archive.style.display!=='none')await loadAdminArchivedListings(initData)}catch(error){if(statusBox)statusBox.textContent=error.message||'Ошибка восстановления';restore.disabled=false;restore.textContent='Восстановить из архива'}});box.querySelectorAll('[data-user-listing]').forEach(b=>b.addEventListener('click',()=>showAdminDetail('listing',b.dataset.userListing,initData)));
@@ -17266,6 +17283,59 @@ def mini_app_admin_support_replies(ticket_id):
         updated = supabase_request("PATCH","mm_support_replies",params={"request_id":f"eq.{rid}"},payload={"delivery_status":"failed"})
         return jsonify({"status":"failed" if updated else "pending"})
     return jsonify({"status":"pending"})
+
+
+@app.route("/api/admin/user/<int:user_id>/restrictions", methods=["GET", "POST"])
+def mini_app_admin_user_restrictions(user_id):
+    admin = _mini_app_authenticated_user()
+    if not admin:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(admin):
+        return jsonify({"error":"admin_only"}), 403
+    guard = _mm_rate_limit_guard("admin_user_restrictions", admin.get("id"), 60, 60)
+    if guard:
+        return guard
+    users = supabase_request("GET", "users", params={"id":f"eq.{user_id}", "select":"id,telegram_id", "limit":"1"})
+    if not isinstance(users, list):
+        return jsonify({"error":"db_unavailable"}), 503
+    if not users:
+        return jsonify({"error":"user_not_found"}), 404
+    base = {"user_id":f"eq.{user_id}", "restriction_type":"eq.publish_block"}
+    active = {**base, "revoked_at":"is.null", "or":f"(expires_at.is.null,expires_at.gt.{_utc_now_iso()})"}
+    rows = supabase_request("GET", "mm_user_restrictions", params={**active,"select":"*"})
+    if not isinstance(rows, list):
+        return jsonify({"error":"db_unavailable"}), 503
+    if request.method == "GET":
+        history = supabase_request("GET", "mm_user_restrictions", params={**base,"select":"*","order":"id.desc","limit":"100"})
+        if not isinstance(history, list):
+            return jsonify({"error":"db_unavailable"}), 503
+        return jsonify({"active":rows,"history":history})
+    if str(users[0].get("telegram_id")) in ADMIN_TELEGRAM_IDS:
+        return jsonify({"error":"protected_admin"}), 403
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error":"invalid_data"}), 400
+    reason = data.get("reason")
+    if not isinstance(reason, str) or not reason.strip() or len(reason)>500:
+        return jsonify({"error":"invalid_reason"}), 400
+    reason = reason.strip()
+    action = data.get("action")
+    if action == "block":
+        days = data.get("days")
+        if type(days) is not int or days not in (0,1,3,7,30):
+            return jsonify({"error":"invalid_duration"}), 400
+        if rows:
+            return jsonify({"error":"already_restricted"}), 409
+        result = supabase_request("POST", "mm_user_restrictions", payload={"user_id":user_id,"restriction_type":"publish_block","reason":reason,"created_by":int(admin["id"]),"expires_at":(datetime.now(timezone.utc)+timedelta(days=days)).isoformat() if days else None})
+    elif action == "revoke":
+        if not rows:
+            return jsonify({"error":"not_restricted"}), 409
+        result = supabase_request("PATCH", "mm_user_restrictions", params=active, payload={"revoked_at":_utc_now_iso(),"revoked_by":int(admin["id"]),"revoke_reason":reason})
+    else:
+        return jsonify({"error":"invalid_action"}), 400
+    if not result:
+        return jsonify({"error":"update_unconfirmed"}), 503
+    return jsonify({"ok":True})
 
 
 @app.post("/api/admin/support/<int:ticket_id>/action")
