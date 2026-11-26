@@ -15804,6 +15804,16 @@ async function loadAdminSupport(initData,view='active'){
   const statusLabels={new:'Новое',in_progress:'В работе',closed:'Закрыто'};
   const rows=Array.isArray(d.items)?d.items:[];if(view==='active')adminDashCount('dashSupport',rows.length);
   box.innerHTML=rows.length?rows.map(x=>`<div data-ticket-status="${esc(x.status)}" style="padding:12px 0;border-bottom:1px solid #e7edf5"><b>Обращение #${esc(x.id)} · ${esc(topicLabels[x.topic]||x.topic||'Другое')}</b><div class="muted">${esc(x.full_name||'Telegram пользователь')}${x.username?' (@'+esc(x.username)+')':''} · Telegram ID: ${esc(x.telegram_user_id||'—')}</div><div class="muted">${esc(x.city||'Город не указан')} · ${esc(statusLabels[x.status]||x.status||'—')} · ${esc(adminDate(x.created_at))}</div><div style="white-space:pre-wrap;margin-top:8px">${esc(x.message||'')}</div>${view==='active'?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">${x.status==='new'?`<button type="button" data-support-action="review" data-support-id="${esc(x.id)}">В работу</button>`:''}<button type="button" data-support-action="close" data-support-id="${esc(x.id)}">Закрыть обращение</button></div>`:`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button type="button" data-support-action="reopen" data-support-id="${esc(x.id)}">Открыть снова</button></div>`}</div>`).join(''):(view==='history'?'Закрытых обращений пока нет':'');if(view==='active'){box.insertAdjacentHTML('beforeend','<div class="muted support-empty" hidden>Нет обращений с этим статусом</div>');applySupportFilter();}
+  box.querySelectorAll('[data-ticket-status]').forEach(card=>{
+   const id=card.querySelector('[data-support-id]')?.dataset.supportId;if(!id)return;
+   const panel=document.createElement('div');panel.style.cssText='margin-top:10px;display:grid;gap:8px';
+   const history=document.createElement('div');const toggle=document.createElement('button');toggle.type='button';toggle.textContent='История ответов';panel.append(toggle,history);
+   const url='/api/admin/support/'+encodeURIComponent(id)+'/replies';const headers={'Content-Type':'application/json','X-Telegram-Init-Data':initData};
+   const load=async()=>{try{const r=await fetch(url,{headers});if(!r.ok)throw Error();const d=await r.json();history.replaceChildren();for(const x of d.items||[]){const line=document.createElement('div');line.style.cssText='white-space:pre-wrap;padding:8px;background:#f1f5fa;border-radius:8px;overflow-wrap:anywhere';line.textContent=(x.delivery_status==='sent'?'Отправлено':x.delivery_status==='failed'?'Не доставлено':'Доставка не подтверждена')+' · '+adminDate(x.created_at)+'\n'+x.message;history.append(line);}if(!history.childNodes.length)history.textContent='Ответов пока нет';}catch(e){history.textContent='Не удалось загрузить историю';}};
+   toggle.onclick=load;
+   if(view==='active'){const input=document.createElement('textarea');input.placeholder='Ответ пользователю…';input.maxLength=3500;input.style.cssText='font-size:16px;width:100%;box-sizing:border-box;min-height:80px;border:1px solid #dce5f0;border-radius:10px;padding:10px';const send=document.createElement('button');send.type='button';send.textContent='Отправить ответ';const note=document.createElement('div');note.setAttribute('role','status');panel.append(input,send,note);send.onclick=async()=>{const message=input.value.trim();if(!message||send.disabled)return;if(!confirm('Отправить ответ пользователю?'))return;send.disabled=true;input.disabled=true;try{const request_id=crypto.randomUUID();const r=await fetch(url,{method:'POST',headers,body:JSON.stringify({message,request_id})});if(!r.ok)throw Error();const d=await r.json();note.textContent=d.status==='sent'?'Ответ отправлен':d.status==='failed'?'Ответ не доставлен':'Доставка не подтверждена. Не отправляйте повторно.';if(d.status==='sent'){input.value='';input.disabled=false;send.disabled=false;}else if(d.status==='failed'){input.disabled=false;send.disabled=false;}await load();}catch(e){note.textContent='Результат не подтверждён. Проверьте историю перед повторной отправкой.';await load();}};}
+   card.append(panel);
+  });
   box.querySelectorAll('[data-support-action]').forEach(b=>b.addEventListener('click',async()=>{
    const action=b.dataset.supportAction,id=b.dataset.supportId;b.disabled=true;
    try{
@@ -17136,6 +17146,46 @@ def mini_app_submit_listing_report(listing_id):
             "detail": str(LAST_SUPABASE_ERROR or "Supabase returned no inserted row")[:500],
         }), 503
     return jsonify({"ok":True,"report_id":inserted[0].get("id")})
+
+
+@app.route("/api/admin/support/<int:ticket_id>/replies", methods=["GET", "POST"])
+def mini_app_admin_support_replies(ticket_id):
+    admin = _mini_app_authenticated_user()
+    if not admin:
+        return jsonify({"error":"invalid_init_data"}), 401
+    if not _is_admin_telegram_user(admin):
+        return jsonify({"error":"admin_only"}), 403
+    guard = _mm_rate_limit_guard("admin_support_replies", admin.get("id"), 60, 60)
+    if guard:
+        return guard
+    tickets = supabase_request("GET", "mm_support_tickets", params={"id":f"eq.{ticket_id}","select":"id,telegram_user_id,status","limit":"1"})
+    if tickets is None:
+        return jsonify({"error":"db_unavailable"}), 503
+    if not tickets:
+        return jsonify({"error":"ticket_not_found"}), 404
+    if request.method == "GET":
+        rows = supabase_request("GET", "mm_support_replies", params={"ticket_id":f"eq.{ticket_id}","select":"message,delivery_status,created_at,sender_role","order":"id.desc","limit":"100"})
+        return (jsonify({"items":rows}), 200) if isinstance(rows,list) else (jsonify({"error":"history_unavailable"}),503)
+    data = request.get_json(silent=True) or {}
+    message = str(data.get("message") or "").strip()
+    try:
+        rid = str(uuid.UUID(str(data.get("request_id") or "")))
+    except (ValueError, TypeError):
+        return jsonify({"error":"invalid_request_id"}),400
+    target = str(tickets[0].get("telegram_user_id") or "")
+    if not message or len(message)>3500 or not target.isdigit() or tickets[0].get("status")=="closed":
+        return jsonify({"error":"invalid_reply"}),400
+    saved = supabase_request("POST", "mm_support_replies", payload={"ticket_id":ticket_id,"sender_role":"admin","sender_telegram_id":str(admin.get("id")),"message":message,"request_id":rid,"delivery_status":"pending"})
+    if not saved:
+        return jsonify({"error":"not_reserved_or_duplicate"}),409
+    result = api("sendMessage", {"chat_id":target,"text":f"Madloba Market · Ответ поддержки #{ticket_id}\n\n"+message})
+    if isinstance(result,dict) and result.get("ok"):
+        updated = supabase_request("PATCH","mm_support_replies",params={"request_id":f"eq.{rid}"},payload={"delivery_status":"sent","telegram_message_id":(result.get("result") or {}).get("message_id")})
+        return jsonify({"status":"sent" if updated else "pending"})
+    if isinstance(result,dict) and isinstance(result.get("error_code"),int):
+        updated = supabase_request("PATCH","mm_support_replies",params={"request_id":f"eq.{rid}"},payload={"delivery_status":"failed"})
+        return jsonify({"status":"failed" if updated else "pending"})
+    return jsonify({"status":"pending"})
 
 
 @app.post("/api/admin/support/<int:ticket_id>/action")
