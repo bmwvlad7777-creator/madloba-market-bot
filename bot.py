@@ -13600,14 +13600,14 @@ function mmCompactSpecs(x,text){
   const norm=v.toLocaleLowerCase().replace(/\s+/g,'');
   if(k==='area'){areaShown=true;}
   else if(title.includes(norm)&&!['floor','year','mileage','size'].includes(k))continue;
-  if(k==='engine_volume'){v=v.replace(/\s*[лL]$/i,({ru:' л',uk:' л',ka:' ლ',en:' L'}[state.lang]||' L'));}
-  if(k==='year'&&cat!=='auto'&&/^\d{4}$/.test(v))v+=({ru:' г.',uk:' р.',ka:' წ.',en:''}[state.lang]||'');
+  if(k==='engine_volume'){if(['ru','uk'].includes(state.lang))v=v.replace(/(\d)\.(\d)/,'$1,$2');v=v.replace(/\s*[лLლ]$/i,({ru:' л',uk:' л',ka:' ლ',en:' L'}[state.lang]||' L'));}
+  if(k==='year'&&/^\d{4}$/.test(v))v+=({ru:' г.',uk:' р.',ka:' წ.',en:''}[state.lang]||'');
   if(k==='floor')v=({ru:v+' этаж',uk:v+' поверх',ka:v+' სართული',en:'Floor '+v}[state.lang]||'Floor '+v);
   if(k==='size')v=({ru:'Размер ',uk:'Розмір ',ka:'ზომა ',en:'Size '}[state.lang]||'Size ')+v;
   if(!values.includes(v))values.push(v);
  }
  if(!values.length)return '';
- return `<div class="mm-compact-specs${areaShown?' mm-compact-has-area':''}" title="${esc(values.join(' · '))}">${values.map((v,i)=>`<span class="mm-compact-value">${i?' · ':''}${esc(v)}</span>`).join('')}</div>`;
+ return `<div class="mm-compact-specs${areaShown?' mm-compact-has-area':''}" title="${esc(values.join(' · '))}">${values.map((v,i)=>`<span class="mm-compact-value">${i?'<span class="mm-compact-separator">·</span>':''}${esc(v)}</span>`).join('')}</div>`;
 }
 function mmCatalogTitle(x,text){
  const title=mmTitleUnits(localizeListingText(text.title||''));
@@ -15399,6 +15399,10 @@ html body #bestRow .best-body:has(>.mm-compact-has-area) .mm-wide-duplicate-area
 html body #list:not(.mm-catalog-wide) .cardbody:has(>.mm-compact-has-area) .mm-wide-duplicate-area{display:none!important}
 
 .mm-compact-value{display:inline-block;white-space:nowrap}
+.mm-compact-separator{display:inline-block;margin-inline:3px}
+html body #homeView :is(#bestRow,#list:not(.mm-catalog-wide)){align-content:start!important;grid-auto-rows:max-content!important;grid-template-rows:none!important;height:auto!important;min-height:0!important;flex:0 0 auto!important}
+html body #homeView :is(#bestRow,#list:not(.mm-catalog-wide)) .mm-premium-card.mm-premium-card>.cardbody,
+html body #homeView #bestRow .mm-premium-card.mm-premium-card>.best-body{flex:1 1 auto!important;flex-basis:auto!important}
 html body #detailView #detailContent{border-radius:14px!important}
 html body #detailView #detailContent .detail-photo{border-radius:13px 13px 0 0!important}
 </style>
