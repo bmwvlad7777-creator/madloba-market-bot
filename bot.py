@@ -13223,6 +13223,7 @@ function mmSyncCatalogView(){
  const group=$('mmCatalogView'),list=$('list');if(!group||!list)return;
  const active=!!state.category||!!state.q;
  group.hidden=!active;group.parentElement.classList.toggle('mm-view-enabled',active);list.classList.toggle('mm-catalog-wide',active&&mmCatalogView==='wide');
+ list.classList.toggle('mm-specific-category',!!state.category&&state.category!=='all');
  const labels=({ru:['Две колонки','Одна колонка'],en:['Two columns','One column'],ka:['ორი სვეტი','ერთი სვეტი'],uk:['Дві колонки','Одна колонка']})[state.lang]||['Two columns','One column'];
  group.setAttribute('aria-label',labels.join(' / '));
  group.querySelectorAll('button').forEach((b,i)=>{b.setAttribute('aria-label',labels[i]);b.title=labels[i];b.setAttribute('aria-pressed',String(b.dataset.view===mmCatalogView));b.onclick=()=>{mmCatalogView=b.dataset.view;try{localStorage.setItem('mm_catalog_view_v1',mmCatalogView)}catch(e){}mmSyncCatalogView()}});
@@ -15405,6 +15406,15 @@ html body #homeView :is(#bestRow,#list:not(.mm-catalog-wide)) .mm-premium-card.m
 html body #homeView #bestRow .mm-premium-card.mm-premium-card>.best-body{flex:1 1 auto!important;flex-basis:auto!important}
 html body #detailView #detailContent{border-radius:14px!important}
 html body #detailView #detailContent .detail-photo{border-radius:13px 13px 0 0!important}
+</style>
+<style id="mm-catalog-light-polish">
+:root{--bg:#f1f5f9!important}
+html,body{background:#f1f5f9!important}
+html body #homeView #list.mm-specific-category .mm-premium-card.mm-premium-card .card-kickers>.tag{display:none!important}
+html body #homeView #list.mm-specific-category .mm-premium-card.mm-premium-card>.cardbody>.card-kickers{height:0!important;min-height:0!important;max-height:0!important;margin:0!important;padding:0!important}
+html body #homeView #list.mm-specific-category.mm-catalog-wide .mm-premium-card.mm-premium-card>.cardbody:has(>.mm-wide-specs){grid-template-rows:0 auto 1fr auto!important;row-gap:3px!important}
+html body .mm-support-fab{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important}
+html body .mm-support-fab svg{width:19px;height:19px;flex-basis:19px}
 </style>
 <script id="mm-startup-reveal">document.documentElement.classList.add("mm-first-paint-ready");</script>
 </body></html>'''
