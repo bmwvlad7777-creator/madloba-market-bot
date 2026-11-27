@@ -13576,11 +13576,22 @@ function mmWideSpecs(x){
  if(!rows.length)return '';
  return `<div class="mm-wide-specs">${rows.map(([k,label,value])=>`<div class="mm-wide-spec">${mmDetailIcon(k)}<div><span class="mm-wide-label">${esc(label)}</span><span class="mm-wide-value">${esc(value)}</span></div></div>`).join('')}</div>`;
 }
+function mmCompactCategory(x){
+ const aliases={cars:'auto','real-estate':'realestate',real_estate:'realestate',property:'realestate',electronics:'tech'};
+ const keys=['auto','realestate','tech','fashion','home','kids','work','services','pets','sports','construction','give','other'];
+ const norm=v=>String(v||'').trim().toLocaleLowerCase();
+ for(const v of [x.category_key,x.category_slug,x.category_name,x.category]){
+  const raw=norm(v),key=aliases[raw]||raw;
+  if(keys.includes(key))return key;
+  const found=keys.find(k=>norm(localizedCategory(k))===norm(localizedCategory(v))&&raw);
+  if(found)return found;
+ }
+ return '';
+}
 function mmCompactSpecs(x,text){
  const d=x.details;if(!d||typeof d!=='object'||Array.isArray(d))return '';
- const raw=String(x.category_key||x.category_slug||'').toLowerCase();
- const cat=({cars:'auto','real-estate':'realestate',real_estate:'realestate',property:'realestate',electronics:'tech'})[raw]||raw;
- const fields={auto:['year','mileage'],realestate:['area','floor'],tech:['memory|storage','condition'],fashion:['size','condition'],home:['condition','dimensions'],kids:['age','condition'],work:['employment_type','schedule'],services:['work_format','experience'],pets:['breed','age'],sports:['condition'],construction:['condition'],give:['condition'],other:['condition']}[cat]||[];
+ const cat=mmCompactCategory(x);
+ const fields={auto:['year','engine_volume','mileage'],realestate:['area','floor'],tech:['memory|storage','condition'],fashion:['size','condition'],home:['condition','dimensions'],kids:['age','condition'],work:['employment_type','schedule'],services:['work_format','experience'],pets:['breed','age'],sports:['condition'],construction:['condition'],give:['condition'],other:['condition']}[cat]||[];
  const title=mmTitleUnits(localizeListingText(text.title||'')).toLocaleLowerCase().replace(/\s+/g,'');
  const values=[];let areaShown=false;
  for(const group of fields){
@@ -13589,18 +13600,19 @@ function mmCompactSpecs(x,text){
   const norm=v.toLocaleLowerCase().replace(/\s+/g,'');
   if(k==='area'){areaShown=true;}
   else if(title.includes(norm)&&!['floor','year','mileage','size'].includes(k))continue;
-  if(k==='year'&&/^\d{4}$/.test(v))v+=({ru:' г.',uk:' р.',ka:' წ.',en:''}[state.lang]||'');
+  if(k==='engine_volume'){v=v.replace(/\s*[лL]$/i,({ru:' л',uk:' л',ka:' ლ',en:' L'}[state.lang]||' L'));}
+  if(k==='year'&&cat!=='auto'&&/^\d{4}$/.test(v))v+=({ru:' г.',uk:' р.',ka:' წ.',en:''}[state.lang]||'');
   if(k==='floor')v=({ru:v+' этаж',uk:v+' поверх',ka:v+' სართული',en:'Floor '+v}[state.lang]||'Floor '+v);
   if(k==='size')v=({ru:'Размер ',uk:'Розмір ',ka:'ზომა ',en:'Size '}[state.lang]||'Size ')+v;
   if(!values.includes(v))values.push(v);
  }
  if(!values.length)return '';
- return `<div class="mm-compact-specs${areaShown?' mm-compact-has-area':''}" title="${esc(values.join(' · '))}">${esc(values.join(' · '))}</div>`;
+ return `<div class="mm-compact-specs${areaShown?' mm-compact-has-area':''}" title="${esc(values.join(' · '))}">${values.map((v,i)=>`<span class="mm-compact-value">${i?' · ':''}${esc(v)}</span>`).join('')}</div>`;
 }
 function mmCatalogTitle(x,text){
  const title=mmTitleUnits(localizeListingText(text.title||''));
  const d=x.details||{};
- const cat=String(x.category_key||x.category_slug||'').toLowerCase();
+ const cat=String(x.category_key||x.category_slug||mmCompactCategory(x)).toLowerCase();
  if(!['realestate','real-estate','real_estate','property'].includes(cat)||!['string','number'].includes(typeof d.area)||!String(d.area).trim())return esc(title);
  const suffix=title.match(/\s*·\s*([\d.,\s]+)\s*[мmმ][²2]\s*$/iu);
  const number=v=>String(v).replace(/\s/g,'').replace(',','.');
@@ -15253,7 +15265,7 @@ html .quick-actions-shell .quick-actions .quick-action .quick-label{display:bloc
 <style id="mm-premium-card-unified">
 html body :is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings):is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings){grid-auto-rows:auto!important;align-items:stretch!important;}
 html body :is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings) .fav-card{height:auto!important;min-height:0!important;max-height:none!important;display:flex!important;}
-html body :is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings) .mm-premium-card.mm-premium-card{position:relative!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;min-width:0!important;border-radius:15px!important;overflow:hidden!important;box-shadow:0 3px 12px rgba(24,48,80,.055)!important;}
+html body :is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings) .mm-premium-card.mm-premium-card{position:relative!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;min-width:0!important;border-radius:9px!important;overflow:hidden!important;box-shadow:0 3px 12px rgba(24,48,80,.055)!important;}
 html body :is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings) .mm-premium-card.mm-premium-card > :is(.photo,.best-photo){position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;aspect-ratio:16/10!important;flex:0 0 auto!important;overflow:hidden!important;margin:0!important;padding:0!important;}
 html body :is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings) .mm-premium-card.mm-premium-card > :is(.photo,.best-photo) img{width:100%!important;height:100%!important;object-fit:cover!important;position:absolute!important;inset:0!important;}
 html body :is(#bestRow,#list,#favoritesList,#mmSellerListings,#sellerListings) .mm-premium-card.mm-premium-card > :is(.cardbody,.best-body){display:flex!important;flex-direction:column!important;align-items:stretch!important;flex:1 0 auto!important;height:auto!important;min-height:0!important;max-height:none!important;min-width:0!important;overflow:visible!important;padding:6px 8px!important;gap:2px!important;box-sizing:border-box!important;}
@@ -15346,7 +15358,7 @@ html body #detailView #detailContent .seller-inline-card{min-height:64px!importa
 #homeView .results-head.mm-view-enabled .sort-select{margin-left:auto!important}
 @media(min-width:520px){#homeView .results-head.mm-view-enabled>.section-head{flex:1 1 0!important}}
 html body #homeView #list.list.mm-catalog-wide{grid-template-columns:minmax(0,1fr)!important;max-width:640px!important;margin-inline:auto!important;gap:12px!important}
-html body #homeView :is(#list,#bestRow) .mm-premium-card.mm-premium-card{border-radius:12px!important;border:1px solid #e7edf3!important;box-shadow:0 1px 4px rgba(24,48,80,.025)!important}
+html body #homeView :is(#list,#bestRow) .mm-premium-card.mm-premium-card{border-radius:9px!important;border:1px solid #e7edf3!important;box-shadow:0 1px 4px rgba(24,48,80,.025)!important}
 html body #homeView :is(#list,#bestRow) .mm-premium-card.mm-premium-card :is(.price,.best-price){font-weight:750!important}
 html body #homeView :is(#list,#bestRow) .mm-premium-card.mm-premium-card :is(.listing-name,.best-title){font-weight:600!important}
 html body #homeView :is(#list,#bestRow) .mm-premium-card.mm-premium-card .deal-badge{font-size:9px!important;padding:4px 6px!important;border-radius:6px!important}
@@ -15377,8 +15389,18 @@ html body #homeView #list.mm-catalog-wide .mm-wide-specs{display:grid!important;
 
 /* Compact catalog: one line of actual characteristics; wide view unchanged. */
 .mm-compact-specs{display:none!important}
-html body #homeView :is(#bestRow,#list:not(.mm-catalog-wide)) .mm-premium-card.mm-premium-card .mm-compact-specs{display:block!important;font-size:11px!important;line-height:1.3!important;color:#64748b!important;font-weight:400!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;min-width:0!important;flex:0 0 auto!important;margin:1px 0 0!important}
+html body #homeView :is(#bestRow,#list:not(.mm-catalog-wide)) .mm-premium-card.mm-premium-card .mm-compact-specs{display:block!important;font-size:11px!important;line-height:1.3!important;color:#64748b!important;font-weight:400!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;min-width:0!important;flex:0 0 auto!important;margin:1px 0 0!important}
 html body #homeView :is(#bestRow,#list:not(.mm-catalog-wide)) :is(.cardbody,.best-body):has(>.mm-compact-has-area) .mm-wide-duplicate-area{display:none!important}
+
+/* Home popular and fresh cards share the compact catalog presentation. */
+html body #bestRow .best-card.mm-premium-card .mm-compact-specs,
+html body #list:not(.mm-catalog-wide) .card.mm-premium-card .mm-compact-specs{display:block!important;font-size:11px!important;line-height:1.3!important;color:#64748b!important;font-weight:400!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;min-width:0!important;flex:0 0 auto!important;margin:1px 0 0!important}
+html body #bestRow .best-body:has(>.mm-compact-has-area) .mm-wide-duplicate-area,
+html body #list:not(.mm-catalog-wide) .cardbody:has(>.mm-compact-has-area) .mm-wide-duplicate-area{display:none!important}
+
+.mm-compact-value{display:inline-block;white-space:nowrap}
+html body #detailView #detailContent{border-radius:14px!important}
+html body #detailView #detailContent .detail-photo{border-radius:13px 13px 0 0!important}
 </style>
 <script id="mm-startup-reveal">document.documentElement.classList.add("mm-first-paint-ready");</script>
 </body></html>'''
