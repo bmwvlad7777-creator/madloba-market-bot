@@ -15379,13 +15379,13 @@ html body #homeView #list.mm-catalog-wide .mm-premium-card.mm-premium-card>.card
 html body #homeView #list.mm-catalog-wide .cardbody:has(>.mm-wide-specs)>.card-kickers{grid-column:1!important;grid-row:1!important}
 html body #homeView #list.mm-catalog-wide .cardbody:has(>.mm-wide-specs)>.price{grid-column:1!important;grid-row:2!important;overflow-wrap:anywhere!important}
 html body #homeView #list.mm-catalog-wide .cardbody:has(>.mm-wide-specs)>.listing-name{grid-column:1!important;grid-row:3!important}
-html body #homeView #list.mm-catalog-wide .cardbody:has(>.mm-wide-specs)>.card-meta{grid-column:1/-1!important;grid-row:4!important;margin-top:5px!important}
-html body #homeView #list.mm-catalog-wide .mm-wide-specs{display:grid!important;grid-column:2;grid-row:1/4;align-self:center;gap:5px;min-width:0;padding-left:10px;border-left:1px solid #e8edf3}
+html body #homeView #list.mm-catalog-wide .cardbody:has(>.mm-wide-specs)>.card-meta{grid-column:1/-1!important;grid-row:4!important;margin-top:2px!important}
+html body #homeView #list.mm-catalog-wide .mm-wide-specs{display:grid!important;grid-column:2;grid-row:1/4;align-self:start;gap:3px;min-width:0;padding-left:10px;border-left:1px solid #e8edf3}
 .mm-wide-spec{display:flex;align-items:center;gap:6px;min-width:0;color:#63758b}
 .mm-wide-spec>svg{width:15px;height:15px;flex:0 0 15px;color:#8295ac}
-.mm-wide-spec>div{min-width:0;display:flex;flex-direction:column;gap:1px}
-.mm-wide-label{font-size:10px;line-height:1.15;color:#718096;overflow-wrap:anywhere}
-.mm-wide-value{font-size:12px;line-height:1.25;font-weight:600;color:#344155;overflow-wrap:anywhere}
+.mm-wide-spec>div{min-width:0;display:flex;flex-direction:column;gap:0}
+.mm-wide-label{font-size:10px;line-height:1.1;color:#718096;overflow-wrap:anywhere}
+.mm-wide-value{font-size:12px;line-height:1.15;font-weight:600;color:#344155;overflow-wrap:anywhere}
 @media(max-width:350px){html body #homeView #list.mm-catalog-wide .mm-premium-card.mm-premium-card>.cardbody:has(>.mm-wide-specs){column-gap:7px!important}html body #homeView #list.mm-catalog-wide .mm-wide-specs{padding-left:6px}.mm-wide-spec{gap:4px}.mm-wide-spec>svg{width:12px;height:12px;flex-basis:12px}}
 
 /* Compact catalog: one line of actual characteristics; wide view unchanged. */
