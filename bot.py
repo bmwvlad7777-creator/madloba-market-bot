@@ -16231,6 +16231,26 @@ async function openAdminModerationDetail(id,initData){
     <button type="button" data-moderation-action="approve" style="flex:1;min-width:130px;background:#16834a;color:white;border:0;border-radius:12px;padding:13px;font-weight:750">✓ Одобрить и опубликовать</button>
     <button type="button" data-moderation-action="reject" style="flex:1;min-width:110px;background:#fff0f0;color:#b42318;border:1px solid #f2caca;border-radius:12px;padding:13px;font-weight:750">Отклонить</button>
    </div>`;
+  const screening=document.createElement('div');
+  screening.style.cssText='margin:12px 0;padding:12px;border:1px solid #dbe5f0;border-radius:12px;background:#f8fafc';
+  screening.innerHTML='<strong>Автоматическая проверка описания</strong><div class="muted" data-text-result role="status" style="margin:8px 0">Ожидает проверки</div><button type="button" data-text-recheck style="padding:9px 12px;border:1px solid #cbd5e1;border-radius:9px;background:white;color:#176fda">Проверить сохранённое описание</button>';
+  box.querySelector('#adminModerationDescriptionText').after(screening);
+  const screenResult=screening.querySelector('[data-text-result]'),screenButton=screening.querySelector('[data-text-recheck]');
+  let screeningVersion=0;
+  async function runTextScreen(){
+   const version=++screeningVersion;screenButton.disabled=true;screenResult.textContent='Проверяем сохранённое описание…';
+   try{
+    const rr=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/text-check',{method:'POST',headers:{'X-Telegram-Init-Data':initData}});
+    const result=await rr.json();if(!rr.ok)throw Error('check_failed');
+    if(version!==screeningVersion)return;
+    const labels={not_configured:'API проверки не настроен. Решение принимает модератор.',not_flagged:'Сервис не выявил нарушений безопасности. Требуется ручное решение.',manual_review:'Требуется ручная проверка описания.',unavailable:'Сервис недоступен. Требуется ручная проверка.'};
+    screenResult.textContent=(labels[result.status]||labels.unavailable)+(Array.isArray(result.categories)&&result.categories.length?' '+result.categories.join(', '):'');
+   }catch(e){if(version===screeningVersion)screenResult.textContent='Проверка недоступна. Требуется ручное решение.';}
+   finally{screenButton.disabled=false;}
+  }
+  screenButton.addEventListener('click',runTextScreen);
+  box.querySelector('#adminModerationDescriptionText').addEventListener('input',()=>{screeningVersion++;screenResult.textContent='Описание изменено. Сохраните и повторите проверку.';});
+  runTextScreen();
   const priceInput=box.querySelector('#adminModerationPriceText');
   const descriptionText=box.querySelector('#adminModerationDescriptionText');
   priceInput.value=String(x.price??'').replace(/[^0-9., ]/g,'').trim();
@@ -16966,6 +16986,46 @@ def mini_app_admin_moderation_detail(request_id):
             "photos_count": len(photos),
         }
     })
+
+
+# Stage 3: advisory text screening; never changes publication status.
+@app.post("/api/admin/moderation/<int:request_id>/text-check")
+def mini_app_admin_moderation_text_check(request_id):
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error": "invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error": "admin_only"}), 403
+    item = dict(load_pending_moderation_queue()).get(request_id)
+    if not isinstance(item, dict):
+        return jsonify({"error": "request_not_found"}), 404
+    data = item.get("data") or {}
+    description = str(data.get("description") or "")
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not key:
+        return jsonify({"status": "not_configured"})
+    if not description.strip():
+        return jsonify({"status": "manual_review", "reason": "empty_description"})
+    limited = _mm_rate_limit_guard("admin_text_check", str(user.get("id")), 20, 60)
+    if limited:
+        return limited
+    try:
+        response = requests.post(
+            "https://api.openai.com/v1/moderations",
+            headers={"Authorization": "Bearer " + key},
+            json={"model": "omni-moderation-latest", "input": description},
+            timeout=(4, 12),
+        )
+        response.raise_for_status()
+        result = response.json()["results"][0]
+        if type(result.get("flagged")) is not bool or not isinstance(result.get("categories"), dict):
+            raise ValueError("invalid moderation response")
+        categories = [k for k, v in result["categories"].items() if v is True]
+        return jsonify({"status": "manual_review" if result["flagged"] or categories else "not_flagged",
+                        "categories": categories,
+                        "description_hash": hashlib.sha256(description.encode("utf-8")).hexdigest()})
+    except (requests.RequestException, ValueError, KeyError, IndexError, TypeError):
+        return jsonify({"status": "unavailable"})
 
 
 @app.get("/api/admin/moderation/<int:request_id>/photo/<int:photo_index>")
