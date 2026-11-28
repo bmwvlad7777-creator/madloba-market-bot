@@ -16312,6 +16312,36 @@ async function openAdminModerationDetail(id,initData){
    }catch(e){status.textContent='Ошибка: '+(e.message||'не удалось сохранить')+'. Данные в форме сохранены для повторной попытки.'}
    finally{moderationSaveInProgress=false;save.disabled=false}
   });
+  const photoHeading=Array.from(box.querySelectorAll('h3')).find(el=>el.textContent.startsWith('Фотографии ('));
+  if(photoHeading){
+   const panel=document.createElement('div');
+   panel.style.cssText='margin:12px 0;padding:12px;border:1px solid #dbe5f0;border-radius:12px;background:#f8fafc';
+   panel.innerHTML='<strong>Автоматическая проверка фотографий</strong><div class="muted" data-photo-result role="status" style="margin:8px 0">Ожидает проверки</div><button type="button" data-photo-check style="padding:9px 12px;border:1px solid #cbd5e1;border-radius:9px;background:white;color:#176fda">Проверить все фотографии</button>';
+   photoHeading.after(panel);
+   const button=panel.querySelector('[data-photo-check]'), output=panel.querySelector('[data-photo-result]');
+   button.addEventListener('click',async()=>{
+    button.disabled=true;
+    const deletes=Array.from(box.querySelectorAll('[data-remove-moderation-photo]'));
+    if(deletes.some(b=>b.disabled)){output.textContent='Дождитесь удаления фотографии.';button.disabled=false;return;}
+    deletes.forEach(b=>b.disabled=true);
+    const actions=Array.from(box.querySelectorAll('[data-moderation-action]'));
+    const prior=actions.map(b=>b.disabled);actions.forEach(b=>b.disabled=true);
+    const lines=[];let clean=0;
+    try{
+     for(let i=0;i<deletes.length;i++){
+      output.textContent='Проверяем фото '+(i+1)+' из '+deletes.length+'…';
+      try{
+       const r=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photo-check/'+i,{method:'POST',headers:{'X-Telegram-Init-Data':initData}});
+       const v=await r.json();
+       if(r.ok&&v.status==='not_flagged'){clean++;lines.push('Фото '+(i+1)+': нарушений безопасности не выявлено');}
+       else lines.push('Фото '+(i+1)+': требуется ручная проверка'+(Array.isArray(v.categories)&&v.categories.length?' ('+v.categories.join(', ')+')':''));
+      }catch(e){lines.push('Фото '+(i+1)+': проверка недоступна');}
+     }
+     output.style.whiteSpace='pre-line';output.textContent='Без выявленных нарушений: '+clean+' из '+deletes.length+'. Решение принимает модератор.'+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
+    }finally{button.disabled=false;deletes.forEach(b=>b.disabled=false);actions.forEach((b,i)=>b.disabled=prior[i]);}
+   });
+   box.addEventListener('click',e=>{if(e.target.closest('[data-remove-moderation-photo]'))output.textContent='Состав фотографий может измениться. Повторите проверку после удаления.';},true);
+  }
   box.querySelectorAll('[data-remove-moderation-photo]').forEach(btn=>btn.addEventListener('click',async()=>{
    const index=Number(btn.dataset.removeModerationPhoto);
    if(!window.confirm('Удалить только фотографию №'+(index+1)+'? Остальные останутся на месте.'))return;
@@ -17147,6 +17177,47 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
     except (requests.RequestException, ValueError) as error:
         print("ADMIN MODERATION PHOTO ERROR:", request_id, photo_index, repr(error))
         return jsonify({"error":"photo_download_failed","message":str(error)[:180]}), 502
+
+
+# Advisory photo screening: no publication or database mutations.
+@app.post("/api/admin/moderation/<int:request_id>/photo-check/<int:photo_index>")
+def mini_app_admin_moderation_photo_check(request_id, photo_index):
+    user = _mini_app_authenticated_user()
+    if not user:
+        return jsonify({"error": "invalid_init_data"}), 401
+    if not _is_admin_telegram_user(user):
+        return jsonify({"error": "admin_only"}), 403
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not key:
+        return jsonify({"status": "not_configured"})
+    limited = _mm_rate_limit_guard("admin_photo_check", str(user.get("id")), 30, 60)
+    if limited:
+        return limited
+    try:
+        photo = mini_app_admin_moderation_photo(request_id, photo_index)
+        if not isinstance(photo, Response) or photo.status_code != 200:
+            return jsonify({"status": "unavailable"})
+        raw = photo.get_data()
+        mime = photo.mimetype
+        if mime not in ("image/jpeg", "image/png", "image/webp") or not raw or len(raw) > 10 * 1024 * 1024:
+            return jsonify({"status": "manual_review", "reason": "unsupported_image"})
+        encoded = base64.b64encode(raw).decode("ascii")
+        response = requests.post(
+            "https://api.openai.com/v1/moderations",
+            headers={"Authorization": "Bearer " + key},
+            json={"model": "omni-moderation-latest", "input": [{"type": "image_url", "image_url": {"url": "data:" + mime + ";base64," + encoded}}]},
+            timeout=(4, 20),
+        )
+        response.raise_for_status()
+        result = response.json()["results"][0]
+        if type(result.get("flagged")) is not bool or not isinstance(result.get("categories"), dict):
+            raise ValueError("invalid moderation response")
+        categories = [k for k, v in result["categories"].items() if v is True]
+        print(f"MOD_PHOTO_CHECK request_id={request_id} index={photo_index} upstream_status=200 flagged={result['flagged']}", flush=True)
+        return jsonify({"status": "manual_review" if result["flagged"] or categories else "not_flagged", "categories": categories})
+    except Exception as exc:
+        print(f"MOD_PHOTO_CHECK request_id={request_id} index={photo_index} error_type={type(exc).__name__}", flush=True)
+        return jsonify({"status": "unavailable"})
 
 
 @app.post("/api/admin/moderation/<int:request_id>/photos/remove")
