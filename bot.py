@@ -5287,6 +5287,7 @@ def submit_for_moderation(
 
     # Keep one administrator queue card updated; don't send a new queue message per listing.
     refresh_admin_moderation_queue()
+    _mm_schedule_hybrid(request_id)
 
 
 
@@ -5719,6 +5720,18 @@ def _moderation_callback_answer(callback_id, *args):
 # Telegram send path for the same moderation request. Durable publication state
 # remains the protection across restarts; a database-level atomic claim is
 # still needed before scaling to multiple worker processes/instances.
+# HYBRID-01: serialize final decisions with administrator edits and Telegram state sync.
+import functools as _mm_functools
+_MM_HYBRID_DECISION_LOCK = threading.RLock()
+_MM_HYBRID_SLOTS = threading.BoundedSemaphore(4)
+
+def _mm_moderation_serialized(fn):
+    @_mm_functools.wraps(fn)
+    def wrapped(*args, **kwargs):
+        with _MM_HYBRID_DECISION_LOCK:
+            return fn(*args, **kwargs)
+    return wrapped
+
 _MODERATION_PUBLISH_LOCKS = [threading.Lock() for _ in range(128)]
 
 
@@ -6447,6 +6460,7 @@ def process_text(
 # ============================================================
 
 
+@_mm_moderation_serialized
 def handle(update):
     """Restore this chat's durable state, process the update, then save changes."""
     loaded, chat_id, callback_from_id, request_id = _load_runtime_for_update(update)
@@ -16312,36 +16326,6 @@ async function openAdminModerationDetail(id,initData){
    }catch(e){status.textContent='Ошибка: '+(e.message||'не удалось сохранить')+'. Данные в форме сохранены для повторной попытки.'}
    finally{moderationSaveInProgress=false;save.disabled=false}
   });
-  const photoHeading=Array.from(box.querySelectorAll('h3')).find(el=>el.textContent.startsWith('Фотографии ('));
-  if(photoHeading){
-   const panel=document.createElement('div');
-   panel.style.cssText='margin:12px 0;padding:12px;border:1px solid #dbe5f0;border-radius:12px;background:#f8fafc';
-   panel.innerHTML='<strong>Автоматическая проверка фотографий</strong><div class="muted" data-photo-result role="status" style="margin:8px 0">Ожидает проверки</div><button type="button" data-photo-check style="padding:9px 12px;border:1px solid #cbd5e1;border-radius:9px;background:white;color:#176fda">Проверить все фотографии</button>';
-   photoHeading.after(panel);
-   const button=panel.querySelector('[data-photo-check]'), output=panel.querySelector('[data-photo-result]');
-   button.addEventListener('click',async()=>{
-    button.disabled=true;
-    const deletes=Array.from(box.querySelectorAll('[data-remove-moderation-photo]'));
-    if(deletes.some(b=>b.disabled)){output.textContent='Дождитесь удаления фотографии.';button.disabled=false;return;}
-    deletes.forEach(b=>b.disabled=true);
-    const actions=Array.from(box.querySelectorAll('[data-moderation-action]'));
-    const prior=actions.map(b=>b.disabled);actions.forEach(b=>b.disabled=true);
-    const lines=[];let clean=0;
-    try{
-     for(let i=0;i<deletes.length;i++){
-      output.textContent='Проверяем фото '+(i+1)+' из '+deletes.length+'…';
-      try{
-       const r=await fetch('/api/admin/moderation/'+encodeURIComponent(id)+'/photo-check/'+i,{method:'POST',headers:{'X-Telegram-Init-Data':initData}});
-       const v=await r.json();
-       if(r.ok&&v.status==='not_flagged'){clean++;lines.push('Фото '+(i+1)+': нарушений безопасности не выявлено');}
-       else lines.push('Фото '+(i+1)+': требуется ручная проверка'+(Array.isArray(v.categories)&&v.categories.length?' ('+v.categories.join(', ')+')':''));
-      }catch(e){lines.push('Фото '+(i+1)+': проверка недоступна');}
-     }
-     output.style.whiteSpace='pre-line';output.textContent='Без выявленных нарушений: '+clean+' из '+deletes.length+'. Решение принимает модератор.'+String.fromCharCode(10)+lines.join(String.fromCharCode(10));
-    }finally{button.disabled=false;deletes.forEach(b=>b.disabled=false);actions.forEach((b,i)=>b.disabled=prior[i]);}
-   });
-   box.addEventListener('click',e=>{if(e.target.closest('[data-remove-moderation-photo]'))output.textContent='Состав фотографий может измениться. Повторите проверку после удаления.';},true);
-  }
   box.querySelectorAll('[data-remove-moderation-photo]').forEach(btn=>btn.addEventListener('click',async()=>{
    const index=Number(btn.dataset.removeModerationPhoto);
    if(!window.confirm('Удалить только фотографию №'+(index+1)+'? Остальные останутся на месте.'))return;
@@ -16479,7 +16463,7 @@ document.addEventListener('touchend',e=>{
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function adminDate(value){const d=new Date(value);return value&&!Number.isNaN(d.getTime())?new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Tbilisi',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d):String(value||'');}
 function adminDashCount(id,n){const el=document.getElementById(id);if(el){el.textContent=String(n);el.toggleAttribute('data-empty',Number(n)===0);}const map={dashModeration:'modCount0',dashReports:'modCount1',dashChanges:'modCount2'};const count=document.getElementById(map[id]);if(count)count.textContent=String(n);}
-(function(){const content=document.getElementById('content');let group=0;const sections={'Пользователи и объявления':0,'Посещения за период':3,'Активность за период':3,'Будущие платные услуги':4,'Изменения описаний':1,'Жалобы на объявления':1,'Обращения в поддержку':4};const starts={topListingsToggle:3,adminUsersToggle:4,adminListingsToggle:2,adminArchivedToggle:2,adminModerationToggle:1};for(const el of content.children){if(el.id==='adminNav'||el.matches('.refresh,#detailModal,#adminBrowseModal'))continue;if(el.classList.contains('section')&&Object.prototype.hasOwnProperty.call(sections,el.textContent))group=sections[el.textContent];if(Object.prototype.hasOwnProperty.call(starts,el.id))group=starts[el.id];el.dataset.adminGroup=String(group);}const support=document.getElementById('adminSupport');const supportTitle=support.previousElementSibling;const usersToggle=document.getElementById('adminUsersToggle');const usersPanel=document.getElementById('adminUsersPanel');const orders=document.getElementById('orderStats');const orderTitle=orders.previousElementSibling;const orderNote=orders.nextElementSibling;const historyToggle=document.getElementById('adminSupportHistoryToggle');const history=document.getElementById('adminSupportHistory');const supportTabs=document.createElement('div');supportTabs.id='supportTabs';supportTabs.dataset.adminGroup='4';supportTabs.className='analytics-periods';supportTabs.innerHTML='<button type="button" data-support-filter="new" aria-pressed="true">Новые <span id="supportNewCount"></span></button><button type="button" data-support-filter="in_progress" aria-pressed="false">В работе <span id="supportWorkCount"></span></button><button type="button" data-support-filter="closed" aria-pressed="false">Закрытые<span id="supportClosedCount"></span></button>';const anchor=content.querySelector(':scope > .refresh');for(const el of [supportTitle,supportTabs,support,historyToggle,history,usersToggle,usersPanel])content.insertBefore(el,anchor);const paid=document.createElement('details');paid.dataset.adminGroup='4';paid.className='card';paid.innerHTML='<summary style="font-weight:700;color:#1769d4;cursor:pointer">Платные услуги · не подключены</summary>';for(const el of [orders,orderNote]){delete el.dataset.adminGroup;paid.appendChild(el);}orderTitle.remove();content.insertBefore(paid,anchor);const policy=document.createElement('details');policy.dataset.adminGroup='4';policy.className='card';policy.innerHTML='<summary style="font-weight:700;color:#1769d4;cursor:pointer">Настройки модерации</summary><p class="muted">Активный режим: ручной. Автоматическая проверка пока не подключена.</p><label for="mmDesiredMode">Планируемый режим</label><select id="mmDesiredMode" style="display:block;width:100%;padding:10px;margin:8px 0;font-size:16px" disabled><option value="manual">Ручной</option><option value="hybrid">Гибридный</option><option value="automatic">Автоматический</option></select><label for="mmManualCount">Обязательных ручных проверок для новых продавцов</label><select id="mmManualCount" style="display:block;width:100%;padding:10px;margin:8px 0;font-size:16px" disabled><option value="0">0 — с первого объявления</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select><p class="muted">При 0 первое объявление сможет пройти автопубликацию после всех проверок. Пока публикация ручная.</p><button type="button" id="mmSaveMode" class="refresh" disabled>Сохранить настройку</button><p id="mmPolicyStatus" class="muted" role="status"></p>';content.insertBefore(policy,anchor);const mode=policy.querySelector('#mmDesiredMode'),manualCount=policy.querySelector('#mmManualCount'),save=policy.querySelector('button'),status=policy.querySelector('[role=status]');let policyBusy=false;async function policyRequest(write){if(policyBusy)return;policyBusy=true;mode.disabled=manualCount.disabled=save.disabled=true;status.textContent='Загрузка…';try{const r=await fetch('/api/admin/moderation-settings',{method:write?'POST':'GET',headers:{'X-Telegram-Init-Data':tg?.initData||'','Content-Type':'application/json'},...(write?{body:JSON.stringify({mode:mode.value,manual_checks:Number(manualCount.value)})}:{})});const d=await r.json();if(!r.ok||!['manual','hybrid','automatic'].includes(d.desired_mode))throw Error('settings');if(![0,1,2,3].includes(d.manual_checks))throw Error('settings');mode.value=d.desired_mode;manualCount.value=String(d.manual_checks);status.textContent=write?'Настройка сохранена. Публикация остаётся ручной.':'Настройка загружена.';mode.disabled=manualCount.disabled=save.disabled=false;}catch(e){status.textContent='Настройки недоступны. Закройте и откройте раздел для повторной загрузки.';}finally{policyBusy=false;}}policy.addEventListener('toggle',()=>{if(policy.open)policyRequest(false);});save.onclick=()=>policyRequest(true);historyToggle.style.display='none';supportTabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{supportTabs.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));applySupportFilter();if(b.dataset.supportFilter==='closed')loadAdminSupport(tg?.initData||'','history');}));const tabs=document.createElement('div');tabs.id='adminModTabs';tabs.dataset.adminGroup='1';tabs.innerHTML='<button type="button" data-mod-tab="0">Новые · <span id="modCount0">…</span></button><button type="button" data-mod-tab="1">Жалобы · <span id="modCount1">…</span></button><button type="button" data-mod-tab="2">Правки · <span id="modCount2">…</span></button>';content.insertBefore(tabs,document.getElementById('adminModerationToggle'));let sub=0;for(const el of content.children){if(el.dataset.adminGroup!=='1'||el===tabs)continue;if(el.id==='adminModerationToggle')sub=0;if(el.classList.contains('section')&&el.textContent==='Изменения описаний')sub=2;if(el.classList.contains('section')&&el.textContent==='Жалобы на объявления')sub=1;el.dataset.modGroup=String(sub);}function showMod(n){for(const el of content.querySelectorAll(':scope > [data-mod-group]'))el.toggleAttribute('data-mod-hidden',el.dataset.modGroup!==String(n));tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modTab===String(n))));if(String(n)==='0')setAdminModerationOpen(true);}tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>showMod(b.dataset.modTab)));const modRefresh=document.createElement('button');modRefresh.id='adminModRefresh';modRefresh.className='admin-open-list';modRefresh.type='button';modRefresh.textContent='Обновить';modRefresh.dataset.adminGroup='1';content.insertBefore(modRefresh,content.querySelector(':scope > .refresh'));modRefresh.addEventListener('click',async()=>{modRefresh.disabled=true;try{const n=tabs.querySelector('[aria-pressed="true"]')?.dataset.modTab;const initData=window.Telegram?.WebApp?.initData||'';if(n==='1'){await loadAdminReports(initData,'active');}else if(n==='2'){await loadAdminDescriptionChanges();}else{await loadAdminModerationQueue(initData,adminModerationPage);}}finally{modRefresh.disabled=false;}});showMod(0);function show(tab){content.dataset.currentAdminTab=String(tab);for(const el of content.querySelectorAll(':scope > [data-admin-group]'))el.toggleAttribute('data-admin-hidden',el.dataset.adminGroup!==String(tab));for(const btn of document.querySelectorAll('#adminNav button'))btn.setAttribute('aria-pressed',String(btn.dataset.adminTab===String(tab)));window.scrollTo(0,0);}document.querySelectorAll('#adminNav button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.adminTab)));document.querySelectorAll('[data-admin-jump]').forEach(b=>b.addEventListener('click',()=>{show(b.dataset.adminJump);const el=document.getElementById(b.dataset.target);if(b.dataset.adminJump==='1'){showMod(b.dataset.target==='adminReports'?1:b.dataset.target==='adminDescriptionChanges'?2:0);return;}requestAnimationFrame(()=>el?.scrollIntoView({block:'center'}));}));const listingPanel=document.createElement('div');listingPanel.id='admin4panel';listingPanel.dataset.adminGroup='2';listingPanel.innerHTML=`<div class="admin4filters"><input id="admin4q" placeholder="Название или ID" maxlength="80"><select id="admin4status"><option value="active">Текущие</option><option value="published">Опубликованные</option><option value="pending">На модерации</option><option value="archived">Архив</option></select><select id="admin4category"><option value="">Все категории</option></select><select id="admin4city"><option value="">Все города</option></select><button type="button" id="admin4search">Найти</button></div><div id="admin4meta" class="muted"></div><div id="admin4items"></div><div class="admin4pager"><button id="admin4prev">← Назад</button><span id="admin4page"></span><button id="admin4next">Далее →</button></div><button type="button" class="admin-open-list" id="admin4refresh">Обновить</button>`;content.insertBefore(listingPanel,document.getElementById('adminListingsToggle'));for(const id of ['adminListingsToggle','adminListingsPanel','adminArchivedToggle','adminArchivedListings']){const el=document.getElementById(id);if(el)el.classList.add('admin4legacy');}let a4page=0,a4seq=0;const a4=id=>document.getElementById('admin4'+id);async function a4load(){const seq=++a4seq;const params=new URLSearchParams({kind:'listings',page:String(a4page),per_page:'20',view:a4('status').value,q:a4('q').value.trim(),category:a4('category').value,city:a4('city').value});a4('prev').disabled=a4('next').disabled=true;a4('meta').textContent='Загрузка…';try{const r=await fetch('/api/admin/data?'+params,{headers:{'X-Telegram-Init-Data':tg?.initData||''}});const d=await r.json();if(seq!==a4seq)return;if(!r.ok)throw Error(d.error);const rows=d.items||[];a4('items').innerHTML=rows.length?rows.map(admin4ListingCard).join(''):'<div class="card">Объявлений не найдено</div>';bindAdminRows(a4('items'),'listings',tg?.initData||'');a4('meta').textContent=d.total==null?'На странице: '+rows.length:'Найдено: '+d.total;a4('page').textContent='Страница '+(a4page+1);a4('prev').disabled=a4page===0;a4('next').disabled=d.total==null?rows.length<20:(a4page+1)*20>=d.total;}catch(e){if(seq===a4seq)a4('meta').textContent='Не удалось загрузить. Нажмите «Найти».';}}function a4reset(){a4page=0;a4load();}a4('search').onclick=a4reset;a4('refresh').onclick=a4load;a4('q').onkeydown=e=>{if(e.key==='Enter')a4reset();};for(const id of ['status','category','city'])a4(id).onchange=a4reset;a4('prev').onclick=()=>{if(a4page>0){a4page--;a4load();}};a4('next').onclick=()=>{a4page++;a4load();};document.querySelector('#adminNav [data-admin-tab="2"]')?.addEventListener('click',a4load);fetch('/api/admin/data?kind=listing_filters',{headers:{'X-Telegram-Init-Data':tg?.initData||''}}).then(r=>r.ok?r.json():null).then(d=>{if(d){for(const c of d.cities||[])a4('city').add(new Option(c.label,c.slug));a4('category').replaceChildren(new Option('Все категории',''));for(const c of d.categories||[])a4('category').add(new Option(c.label,c.slug));}}).catch(()=>{});show(0);const safe=()=>document.documentElement.style.setProperty('--admin-tg-top',((Number(tg?.safeAreaInset?.top)||0)+(Number(tg?.contentSafeAreaInset?.top)||0))+'px');safe();tg?.onEvent?.('safeAreaChanged',safe);tg?.onEvent?.('contentSafeAreaChanged',safe);})();
+(function(){const content=document.getElementById('content');let group=0;const sections={'Пользователи и объявления':0,'Посещения за период':3,'Активность за период':3,'Будущие платные услуги':4,'Изменения описаний':1,'Жалобы на объявления':1,'Обращения в поддержку':4};const starts={topListingsToggle:3,adminUsersToggle:4,adminListingsToggle:2,adminArchivedToggle:2,adminModerationToggle:1};for(const el of content.children){if(el.id==='adminNav'||el.matches('.refresh,#detailModal,#adminBrowseModal'))continue;if(el.classList.contains('section')&&Object.prototype.hasOwnProperty.call(sections,el.textContent))group=sections[el.textContent];if(Object.prototype.hasOwnProperty.call(starts,el.id))group=starts[el.id];el.dataset.adminGroup=String(group);}const support=document.getElementById('adminSupport');const supportTitle=support.previousElementSibling;const usersToggle=document.getElementById('adminUsersToggle');const usersPanel=document.getElementById('adminUsersPanel');const orders=document.getElementById('orderStats');const orderTitle=orders.previousElementSibling;const orderNote=orders.nextElementSibling;const historyToggle=document.getElementById('adminSupportHistoryToggle');const history=document.getElementById('adminSupportHistory');const supportTabs=document.createElement('div');supportTabs.id='supportTabs';supportTabs.dataset.adminGroup='4';supportTabs.className='analytics-periods';supportTabs.innerHTML='<button type="button" data-support-filter="new" aria-pressed="true">Новые <span id="supportNewCount"></span></button><button type="button" data-support-filter="in_progress" aria-pressed="false">В работе <span id="supportWorkCount"></span></button><button type="button" data-support-filter="closed" aria-pressed="false">Закрытые<span id="supportClosedCount"></span></button>';const anchor=content.querySelector(':scope > .refresh');for(const el of [supportTitle,supportTabs,support,historyToggle,history,usersToggle,usersPanel])content.insertBefore(el,anchor);const paid=document.createElement('details');paid.dataset.adminGroup='4';paid.className='card';paid.innerHTML='<summary style="font-weight:700;color:#1769d4;cursor:pointer">Платные услуги · не подключены</summary>';for(const el of [orders,orderNote]){delete el.dataset.adminGroup;paid.appendChild(el);}orderTitle.remove();content.insertBefore(paid,anchor);const policy=document.createElement('details');policy.dataset.adminGroup='4';policy.className='card';policy.innerHTML='<summary style="font-weight:700;color:#1769d4;cursor:pointer">Настройки модерации</summary><p class="muted">Активный режим указан ниже после загрузки настроек.</p><label for="mmDesiredMode">Режим модерации</label><select id="mmDesiredMode" style="display:block;width:100%;padding:10px;margin:8px 0;font-size:16px" disabled><option value="manual">Ручной</option><option value="hybrid">Гибридный</option><option value="automatic">Автоматический</option></select><label for="mmManualCount">Обязательных ручных проверок для новых продавцов</label><select id="mmManualCount" style="display:block;width:100%;padding:10px;margin:8px 0;font-size:16px" disabled><option value="0">0 — с первого объявления</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select><p class="muted">При 0 автопубликация доступна с первого объявления. При 1–3 пока действует ручная модерация.</p><button type="button" id="mmSaveMode" class="refresh" disabled>Сохранить настройку</button><p id="mmPolicyStatus" class="muted" role="status"></p>';content.insertBefore(policy,anchor);const mode=policy.querySelector('#mmDesiredMode'),manualCount=policy.querySelector('#mmManualCount'),save=policy.querySelector('button'),status=policy.querySelector('[role=status]');let policyBusy=false;async function policyRequest(write){if(policyBusy)return;policyBusy=true;mode.disabled=manualCount.disabled=save.disabled=true;status.textContent='Загрузка…';try{const r=await fetch('/api/admin/moderation-settings',{method:write?'POST':'GET',headers:{'X-Telegram-Init-Data':tg?.initData||'','Content-Type':'application/json'},...(write?{body:JSON.stringify({mode:mode.value,manual_checks:Number(manualCount.value)})}:{})});const d=await r.json();if(!r.ok||!['manual','hybrid','automatic'].includes(d.desired_mode))throw Error('settings');if(![0,1,2,3].includes(d.manual_checks))throw Error('settings');mode.value=d.desired_mode;manualCount.value=String(d.manual_checks);status.textContent=(write?'Настройка сохранена. ':'')+'Активный режим: '+(d.effective_mode==='hybrid'?'гибридный':'ручной')+(d.automation_ready?'':' · API не настроен');mode.disabled=manualCount.disabled=save.disabled=false;}catch(e){status.textContent='Настройки недоступны. Закройте и откройте раздел для повторной загрузки.';}finally{policyBusy=false;}}policy.addEventListener('toggle',()=>{if(policy.open)policyRequest(false);});save.onclick=()=>policyRequest(true);historyToggle.style.display='none';supportTabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{supportTabs.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));applySupportFilter();if(b.dataset.supportFilter==='closed')loadAdminSupport(tg?.initData||'','history');}));const tabs=document.createElement('div');tabs.id='adminModTabs';tabs.dataset.adminGroup='1';tabs.innerHTML='<button type="button" data-mod-tab="0">Новые · <span id="modCount0">…</span></button><button type="button" data-mod-tab="1">Жалобы · <span id="modCount1">…</span></button><button type="button" data-mod-tab="2">Правки · <span id="modCount2">…</span></button>';content.insertBefore(tabs,document.getElementById('adminModerationToggle'));let sub=0;for(const el of content.children){if(el.dataset.adminGroup!=='1'||el===tabs)continue;if(el.id==='adminModerationToggle')sub=0;if(el.classList.contains('section')&&el.textContent==='Изменения описаний')sub=2;if(el.classList.contains('section')&&el.textContent==='Жалобы на объявления')sub=1;el.dataset.modGroup=String(sub);}function showMod(n){for(const el of content.querySelectorAll(':scope > [data-mod-group]'))el.toggleAttribute('data-mod-hidden',el.dataset.modGroup!==String(n));tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.modTab===String(n))));if(String(n)==='0')setAdminModerationOpen(true);}tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>showMod(b.dataset.modTab)));const modRefresh=document.createElement('button');modRefresh.id='adminModRefresh';modRefresh.className='admin-open-list';modRefresh.type='button';modRefresh.textContent='Обновить';modRefresh.dataset.adminGroup='1';content.insertBefore(modRefresh,content.querySelector(':scope > .refresh'));modRefresh.addEventListener('click',async()=>{modRefresh.disabled=true;try{const n=tabs.querySelector('[aria-pressed="true"]')?.dataset.modTab;const initData=window.Telegram?.WebApp?.initData||'';if(n==='1'){await loadAdminReports(initData,'active');}else if(n==='2'){await loadAdminDescriptionChanges();}else{await loadAdminModerationQueue(initData,adminModerationPage);}}finally{modRefresh.disabled=false;}});showMod(0);function show(tab){content.dataset.currentAdminTab=String(tab);for(const el of content.querySelectorAll(':scope > [data-admin-group]'))el.toggleAttribute('data-admin-hidden',el.dataset.adminGroup!==String(tab));for(const btn of document.querySelectorAll('#adminNav button'))btn.setAttribute('aria-pressed',String(btn.dataset.adminTab===String(tab)));window.scrollTo(0,0);}document.querySelectorAll('#adminNav button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.adminTab)));document.querySelectorAll('[data-admin-jump]').forEach(b=>b.addEventListener('click',()=>{show(b.dataset.adminJump);const el=document.getElementById(b.dataset.target);if(b.dataset.adminJump==='1'){showMod(b.dataset.target==='adminReports'?1:b.dataset.target==='adminDescriptionChanges'?2:0);return;}requestAnimationFrame(()=>el?.scrollIntoView({block:'center'}));}));const listingPanel=document.createElement('div');listingPanel.id='admin4panel';listingPanel.dataset.adminGroup='2';listingPanel.innerHTML=`<div class="admin4filters"><input id="admin4q" placeholder="Название или ID" maxlength="80"><select id="admin4status"><option value="active">Текущие</option><option value="published">Опубликованные</option><option value="pending">На модерации</option><option value="archived">Архив</option></select><select id="admin4category"><option value="">Все категории</option></select><select id="admin4city"><option value="">Все города</option></select><button type="button" id="admin4search">Найти</button></div><div id="admin4meta" class="muted"></div><div id="admin4items"></div><div class="admin4pager"><button id="admin4prev">← Назад</button><span id="admin4page"></span><button id="admin4next">Далее →</button></div><button type="button" class="admin-open-list" id="admin4refresh">Обновить</button>`;content.insertBefore(listingPanel,document.getElementById('adminListingsToggle'));for(const id of ['adminListingsToggle','adminListingsPanel','adminArchivedToggle','adminArchivedListings']){const el=document.getElementById(id);if(el)el.classList.add('admin4legacy');}let a4page=0,a4seq=0;const a4=id=>document.getElementById('admin4'+id);async function a4load(){const seq=++a4seq;const params=new URLSearchParams({kind:'listings',page:String(a4page),per_page:'20',view:a4('status').value,q:a4('q').value.trim(),category:a4('category').value,city:a4('city').value});a4('prev').disabled=a4('next').disabled=true;a4('meta').textContent='Загрузка…';try{const r=await fetch('/api/admin/data?'+params,{headers:{'X-Telegram-Init-Data':tg?.initData||''}});const d=await r.json();if(seq!==a4seq)return;if(!r.ok)throw Error(d.error);const rows=d.items||[];a4('items').innerHTML=rows.length?rows.map(admin4ListingCard).join(''):'<div class="card">Объявлений не найдено</div>';bindAdminRows(a4('items'),'listings',tg?.initData||'');a4('meta').textContent=d.total==null?'На странице: '+rows.length:'Найдено: '+d.total;a4('page').textContent='Страница '+(a4page+1);a4('prev').disabled=a4page===0;a4('next').disabled=d.total==null?rows.length<20:(a4page+1)*20>=d.total;}catch(e){if(seq===a4seq)a4('meta').textContent='Не удалось загрузить. Нажмите «Найти».';}}function a4reset(){a4page=0;a4load();}a4('search').onclick=a4reset;a4('refresh').onclick=a4load;a4('q').onkeydown=e=>{if(e.key==='Enter')a4reset();};for(const id of ['status','category','city'])a4(id).onchange=a4reset;a4('prev').onclick=()=>{if(a4page>0){a4page--;a4load();}};a4('next').onclick=()=>{a4page++;a4load();};document.querySelector('#adminNav [data-admin-tab="2"]')?.addEventListener('click',a4load);fetch('/api/admin/data?kind=listing_filters',{headers:{'X-Telegram-Init-Data':tg?.initData||''}}).then(r=>r.ok?r.json():null).then(d=>{if(d){for(const c of d.cities||[])a4('city').add(new Option(c.label,c.slug));a4('category').replaceChildren(new Option('Все категории',''));for(const c of d.categories||[])a4('category').add(new Option(c.label,c.slug));}}).catch(()=>{});show(0);const safe=()=>document.documentElement.style.setProperty('--admin-tg-top',((Number(tg?.safeAreaInset?.top)||0)+(Number(tg?.contentSafeAreaInset?.top)||0))+'px');safe();tg?.onEvent?.('safeAreaChanged',safe);tg?.onEvent?.('contentSafeAreaChanged',safe);})();
 document.getElementById('analyticsPeriod')?.addEventListener('change',loadStats);document.querySelectorAll('[data-analytics-days]').forEach(btn=>btn.addEventListener('click',async()=>{const select=document.getElementById('analyticsPeriod');if(select.value===btn.dataset.analyticsDays)return;const buttons=[...document.querySelectorAll('[data-analytics-days]')];buttons.forEach(b=>{b.disabled=true;b.setAttribute('aria-pressed',String(b===btn))});select.value=btn.dataset.analyticsDays;try{await loadStats()}finally{buttons.forEach(b=>b.disabled=false)}}));loadStats();</script><style id="madloba-card-title-location-fix-v1">
 /* Show the actual seller-provided listing title, then a compact description line. */
 #list .card .listing-name, #bestRow .best-title {
@@ -16544,13 +16528,14 @@ document.getElementById('analyticsPeriod')?.addEventListener('change',loadStats)
 
 
 @app.route("/api/admin/moderation-settings", methods=["GET", "POST"])
+@_mm_moderation_serialized
 def mini_app_admin_moderation_settings():
     user = _mini_app_authenticated_user()
     if not user:
         return jsonify({"error": "invalid_init_data"}), 401
     if not _is_admin_telegram_user(user):
         return jsonify({"error": "admin_only"}), 403
-    # Stage 1: persist desired policy only. Existing manual queue remains authoritative.
+    # HYBRID-01: persisted policy controls new submissions.
     if request.method == "POST":
         data = request.get_json(silent=True)
         if not isinstance(data, dict) or data.get("mode") not in ("manual", "hybrid", "automatic"):
@@ -16565,7 +16550,9 @@ def mini_app_admin_moderation_settings():
         return jsonify({"error": "settings_unavailable", "effective_mode": "manual"}), 503
     if type(rows[0].get("manual_checks")) is not int or rows[0]["manual_checks"] not in (0, 1, 2, 3):
         return jsonify({"error": "settings_unavailable", "effective_mode": "manual"}), 503
-    return jsonify({"desired_mode": rows[0]["desired_mode"], "manual_checks": rows[0]["manual_checks"], "effective_mode": "manual", "automation_ready": False})
+    ready = bool(os.environ.get("OPENAI_API_KEY", "").strip())
+    effective = _mm_effective_moderation_mode(rows[0])
+    return jsonify({"desired_mode": rows[0]["desired_mode"], "manual_checks": rows[0]["manual_checks"], "effective_mode": effective, "automation_ready": ready})
 
 
 @app.get("/api/admin/stats")
@@ -16877,6 +16864,7 @@ def mini_app_admin_data():
 
 
 @app.get("/api/admin/moderation")
+@_mm_moderation_serialized
 def mini_app_admin_moderation():
     """Read-only Mini App view of the existing durable Telegram moderation queue."""
     user = _mini_app_authenticated_user()
@@ -16942,6 +16930,7 @@ def mini_app_admin_moderation():
 
 
 @app.get("/api/admin/moderation/<int:request_id>")
+@_mm_moderation_serialized
 def mini_app_admin_moderation_detail(request_id):
     user = _mini_app_authenticated_user()
     if not user:
@@ -17016,6 +17005,135 @@ def mini_app_admin_moderation_detail(request_id):
             "photos_count": len(photos),
         }
     })
+
+
+# HYBRID-01: fail-closed screening of the immutable submission snapshot.
+# No publication side effects. The existing admin text/preview routes stay intact.
+def _mm_hybrid_screen(data):
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not key or not isinstance(data, dict):
+        return "unavailable"
+    description = str(data.get("description") or "").strip()
+    photos = data.get("photos", [])
+    if not description or not isinstance(photos, list) or len(photos) > MAX_PHOTOS:
+        return "manual_review"
+    def check(value):
+        response = requests.post(
+            "https://api.openai.com/v1/moderations",
+            headers={"Authorization": "Bearer " + key},
+            json={"model": "omni-moderation-latest", "input": value},
+            timeout=(4, 12),
+        )
+        response.raise_for_status()
+        results = response.json()["results"]
+        if not isinstance(results, list) or len(results) != 1:
+            raise ValueError("invalid moderation results")
+        result = results[0]
+        categories = result.get("categories")
+        if type(result.get("flagged")) is not bool or not isinstance(categories, dict) or not categories or any(type(v) is not bool for v in categories.values()):
+            raise ValueError("invalid moderation response")
+        return not result["flagged"] and not any(categories.values())
+    try:
+        if not check(build_listing(data)):
+            return "manual_review"
+        for ref in photos:
+            if not isinstance(ref, str) or not ref.strip():
+                return "manual_review"
+            if _storage_object_from_url(ref):
+                parsed = urllib.parse.urlparse(ref)
+                origin = urllib.parse.urlparse(SUPABASE_URL or "")
+                if parsed.scheme != "https" or not origin.hostname or parsed.hostname != origin.hostname or parsed.username is not None or parsed.password is not None or parsed.port not in (None, 443):
+                    return "manual_review"
+                url = ref
+            else:
+                if not re.fullmatch(r"[A-Za-z0-9_-]+", ref):
+                    return "manual_review"
+                info = api("getFile", {"file_id": ref})
+                path = (info.get("result") or {}).get("file_path") if isinstance(info, dict) and info.get("ok") else None
+                if not isinstance(path, str) or not re.fullmatch(r"[A-Za-z0-9_./-]+", path) or path.startswith("/") or ".." in path.split("/"):
+                    return "unavailable"
+                url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}"
+            with HTTP_SESSION.get(url, timeout=(5, 15), allow_redirects=False, stream=True) as response:
+                if response.status_code != 200:
+                    return "unavailable"
+                content = bytearray()
+                for chunk in response.iter_content(65536):
+                    content.extend(chunk)
+                    if len(content) > 5 * 1024 * 1024:
+                        return "manual_review"
+            if content.startswith(b"\xff\xd8\xff"):
+                mime = "image/jpeg"
+            elif content.startswith(b"\x89PNG\r\n\x1a\n"):
+                mime = "image/png"
+            elif content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+                mime = "image/webp"
+            else:
+                return "manual_review"
+            encoded = base64.b64encode(content).decode("ascii")
+            if not check([{"type": "image_url", "image_url": {"url": f"data:{mime};base64,{encoded}"}}]):
+                return "manual_review"
+        return "not_flagged"
+    except Exception as exc:
+        print("HYBRID_SCREEN unavailable", type(exc).__name__, flush=True)
+        return "unavailable"
+
+
+def _mm_effective_moderation_mode(row):
+    # Nonzero trust thresholds are not implemented: fail closed rather than
+    # infer prior manual approvals from published listings.
+    if not isinstance(row, dict) or not os.environ.get("OPENAI_API_KEY", "").strip():
+        return "manual"
+    if type(row.get("manual_checks")) is not int or row["manual_checks"] != 0:
+        return "manual"
+    return "hybrid" if row.get("desired_mode") in ("hybrid", "automatic") else "manual"
+
+
+def _mm_hybrid_enabled():
+    rows = supabase_request("GET", "mm_moderation_settings", params={"id": "eq.1", "select": "desired_mode,manual_checks"})
+    return isinstance(rows, list) and len(rows) == 1 and _mm_effective_moderation_mode(rows[0]) == "hybrid"
+
+
+def _mm_hybrid_worker(request_id):
+    try:
+        key = _runtime_key("moderation", request_id)
+        with _MM_HYBRID_DECISION_LOCK:
+            if not _mm_hybrid_enabled():
+                return
+            found, item, ok = runtime_state_load(key)
+            if not ok or not found or not isinstance(item, dict) or item.get("status", "pending") != "pending" or item.get("_telegram_publish_state") or item.get("_telegram_publish_result"):
+                return
+            snapshot = json.loads(json.dumps(item.get("data"), ensure_ascii=False))
+            author = item.get("user_chat_id")
+        verdict = _mm_hybrid_screen(snapshot)
+        print("HYBRID_SCREEN", request_id, verdict, flush=True)
+        if verdict != "not_flagged":
+            return
+        with _MM_HYBRID_DECISION_LOCK:
+            # Re-read policy and durable snapshot immediately before publishing.
+            # An administrator's edit/reject/approval during screening wins.
+            if not _mm_hybrid_enabled():
+                return
+            found, current, ok = runtime_state_load(key)
+            if not ok or not found or not isinstance(current, dict) or current.get("status", "pending") != "pending" or current.get("user_chat_id") != author or current.get("data") != snapshot or current.get("_telegram_publish_state") or current.get("_telegram_publish_result"):
+                return
+            moderation_requests[request_id] = current
+            moderate_publish(request_id, int(ADMIN_CHAT_ID), None)
+    except Exception as exc:
+        print("HYBRID_WORKER", request_id, type(exc).__name__, flush=True)
+    finally:
+        _MM_HYBRID_SLOTS.release()
+
+
+def _mm_schedule_hybrid(request_id):
+    # Bounded background work; on overload or restart the durable manual queue
+    # remains authoritative. Never retry an ambiguous Telegram send.
+    if not _MM_HYBRID_SLOTS.acquire(blocking=False):
+        print("HYBRID_QUEUE_FULL", request_id, flush=True)
+        return
+    try:
+        threading.Thread(target=_mm_hybrid_worker, args=(int(request_id),), daemon=True).start()
+    except Exception:
+        _MM_HYBRID_SLOTS.release()
 
 
 # Stage 3: advisory text screening; never changes publication status.
@@ -17179,48 +17297,8 @@ def mini_app_admin_moderation_photo(request_id, photo_index):
         return jsonify({"error":"photo_download_failed","message":str(error)[:180]}), 502
 
 
-# Advisory photo screening: no publication or database mutations.
-@app.post("/api/admin/moderation/<int:request_id>/photo-check/<int:photo_index>")
-def mini_app_admin_moderation_photo_check(request_id, photo_index):
-    user = _mini_app_authenticated_user()
-    if not user:
-        return jsonify({"error": "invalid_init_data"}), 401
-    if not _is_admin_telegram_user(user):
-        return jsonify({"error": "admin_only"}), 403
-    key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not key:
-        return jsonify({"status": "not_configured"})
-    limited = _mm_rate_limit_guard("admin_photo_check", str(user.get("id")), 30, 60)
-    if limited:
-        return limited
-    try:
-        photo = mini_app_admin_moderation_photo(request_id, photo_index)
-        if not isinstance(photo, Response) or photo.status_code != 200:
-            return jsonify({"status": "unavailable"})
-        raw = photo.get_data()
-        mime = photo.mimetype
-        if mime not in ("image/jpeg", "image/png", "image/webp") or not raw or len(raw) > 10 * 1024 * 1024:
-            return jsonify({"status": "manual_review", "reason": "unsupported_image"})
-        encoded = base64.b64encode(raw).decode("ascii")
-        response = requests.post(
-            "https://api.openai.com/v1/moderations",
-            headers={"Authorization": "Bearer " + key},
-            json={"model": "omni-moderation-latest", "input": [{"type": "image_url", "image_url": {"url": "data:" + mime + ";base64," + encoded}}]},
-            timeout=(4, 20),
-        )
-        response.raise_for_status()
-        result = response.json()["results"][0]
-        if type(result.get("flagged")) is not bool or not isinstance(result.get("categories"), dict):
-            raise ValueError("invalid moderation response")
-        categories = [k for k, v in result["categories"].items() if v is True]
-        print(f"MOD_PHOTO_CHECK request_id={request_id} index={photo_index} upstream_status=200 flagged={result['flagged']}", flush=True)
-        return jsonify({"status": "manual_review" if result["flagged"] or categories else "not_flagged", "categories": categories})
-    except Exception as exc:
-        print(f"MOD_PHOTO_CHECK request_id={request_id} index={photo_index} error_type={type(exc).__name__}", flush=True)
-        return jsonify({"status": "unavailable"})
-
-
 @app.post("/api/admin/moderation/<int:request_id>/photos/remove")
+@_mm_moderation_serialized
 def mini_app_admin_moderation_remove_photo(request_id):
     """Remove one reference from a pending request; do not re-upload other photos."""
     user = _mini_app_authenticated_user()
@@ -17264,6 +17342,7 @@ def mini_app_admin_moderation_remove_photo(request_id):
 
 
 @app.post("/api/admin/moderation/<int:request_id>/edit")
+@_mm_moderation_serialized
 def mini_app_admin_moderation_edit(request_id):
     """Atomically update existing fields of a pending request, with admin authorization."""
     user = _mini_app_authenticated_user()
@@ -17347,6 +17426,7 @@ def mini_app_admin_moderation_edit(request_id):
 
 
 @app.post("/api/admin/moderation/<int:request_id>/price")
+@_mm_moderation_serialized
 def mini_app_admin_moderation_price(request_id):
     """Edit a pending listing's numeric price without recreating its modal."""
     user = _mini_app_authenticated_user()
@@ -17384,6 +17464,7 @@ def mini_app_admin_moderation_price(request_id):
 
 
 @app.post("/api/admin/moderation/<int:request_id>/description")
+@_mm_moderation_serialized
 def mini_app_admin_moderation_description(request_id):
     """Edit a pending moderation description without altering publication state."""
     user = _mini_app_authenticated_user()
@@ -17421,6 +17502,7 @@ def mini_app_admin_moderation_description(request_id):
 
 
 @app.post("/api/admin/moderation/<int:request_id>/action")
+@_mm_moderation_serialized
 def mini_app_admin_moderation_action(request_id):
     user = _mini_app_authenticated_user()
     if not user:
@@ -17972,6 +18054,7 @@ def _mini_app_authenticated_user():
 _MM_MODERATION_SUBMIT_LOCK = threading.Lock()
 
 @app.post("/api/listing-submit")
+@_mm_moderation_serialized
 def mini_app_listing_submit():
     """Create a durable pending moderation request from the Mini App."""
     global next_moderation_id
@@ -18105,6 +18188,8 @@ def mini_app_listing_submit():
     # does not change the committed database result.
     with _MM_MODERATION_SUBMIT_LOCK:
         next_moderation_id = max(next_moderation_id, request_id + 1)
+    if not result.get("duplicate"):
+        _mm_schedule_hybrid(request_id)
     return jsonify({"ok": True, "request_id": request_id,
                     "status": "pending", "duplicate": bool(result.get("duplicate"))}), (200 if result.get("duplicate") else 201)
 
