@@ -17021,10 +17021,26 @@ def mini_app_admin_moderation_text_check(request_id):
         if type(result.get("flagged")) is not bool or not isinstance(result.get("categories"), dict):
             raise ValueError("invalid moderation response")
         categories = [k for k, v in result["categories"].items() if v is True]
+        print(f"MOD_TEXT_CHECK request_id={request_id} upstream_status={response.status_code} flagged={result['flagged']}", flush=True)
         return jsonify({"status": "manual_review" if result["flagged"] or categories else "not_flagged",
                         "categories": categories,
                         "description_hash": hashlib.sha256(description.encode("utf-8")).hexdigest()})
-    except (requests.RequestException, ValueError, KeyError, IndexError, TypeError):
+    except requests.HTTPError as exc:
+        upstream = exc.response
+        status = upstream.status_code if upstream is not None else None
+        error_code = "unknown"
+        if upstream is not None:
+            try:
+                error = upstream.json().get("error", {})
+                candidate = error.get("code") if isinstance(error, dict) else None
+                if candidate in ("invalid_api_key", "insufficient_quota", "rate_limit_exceeded", "model_not_found", "invalid_request_error", "permission_denied", "unsupported_country_region_territory", "missing_scope", "billing_hard_limit_reached", "account_deactivated"):
+                    error_code = candidate
+            except (ValueError, TypeError, AttributeError):
+                pass
+        print(f"MOD_TEXT_CHECK request_id={request_id} upstream_status={status} error_code={error_code}", flush=True)
+        return jsonify({"status": "unavailable"})
+    except (requests.RequestException, ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+        print(f"MOD_TEXT_CHECK request_id={request_id} error_type={type(exc).__name__}", flush=True)
         return jsonify({"status": "unavailable"})
 
 
