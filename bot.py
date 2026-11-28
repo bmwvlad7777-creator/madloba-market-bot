@@ -17064,15 +17064,19 @@ def _mm_hybrid_screen(data):
         if type(result.get("flagged")) is not bool or not isinstance(categories, dict) or not categories or any(type(v) is not bool for v in categories.values()):
             raise ValueError("invalid moderation response")
         return not result["flagged"] and not any(categories.values())
+    stage = "general_text"
+    photo_index = 0
     try:
         if not check(build_listing(data)):
             print("HYBRID_POLICY general_text_review", flush=True)
             return "manual_review"
+        stage = "marketplace_text"
         if not _mm_marketplace_policy(key, data):
             print("HYBRID_POLICY marketplace_text_review", flush=True)
             return "manual_review"
         print("HYBRID_POLICY text_pass photos_expected", len(photos), flush=True)
-        for ref in photos:
+        for photo_index, ref in enumerate(photos, 1):
+            stage = "photo_download"
             if not isinstance(ref, str) or not ref.strip():
                 return "manual_review"
             if _storage_object_from_url(ref):
@@ -17107,17 +17111,32 @@ def _mm_hybrid_screen(data):
                 return "manual_review"
             encoded = base64.b64encode(content).decode("ascii")
             image_url = f"data:{mime};base64,{encoded}"
+            stage = "general_photo"
             if not check([{"type": "image_url", "image_url": {"url": image_url}}]):
-                print("HYBRID_POLICY general_photo_review", flush=True)
+                print("HYBRID_POLICY general_photo_review", photo_index, flush=True)
                 return "manual_review"
+            stage = "marketplace_photo"
             if not _mm_marketplace_policy(key, data, image_url):
-                print("HYBRID_POLICY marketplace_photo_review", flush=True)
+                print("HYBRID_POLICY marketplace_photo_review", photo_index, flush=True)
                 return "manual_review"
-            print("HYBRID_POLICY photo_pass", flush=True)
+            print("HYBRID_POLICY photo_pass", photo_index, flush=True)
         print("HYBRID_POLICY all_pass photos_checked", len(photos), flush=True)
         return "not_flagged"
+    except requests.HTTPError as exc:
+        upstream = exc.response
+        status = upstream.status_code if upstream is not None else None
+        code = "unknown"
+        if upstream is not None and stage != "photo_download":
+            try:
+                candidate = upstream.json().get("error", {}).get("code")
+                if isinstance(candidate, str) and candidate in ("invalid_api_key", "insufficient_quota", "rate_limit_exceeded", "model_not_found", "invalid_request_error", "permission_denied", "missing_scope", "billing_hard_limit_reached", "unsupported_value", "invalid_image", "invalid_image_url", "content_policy_violation", "unsupported_parameter", "account_deactivated"):
+                    code = candidate
+            except (ValueError, TypeError, AttributeError):
+                pass
+        print("HYBRID_SCREEN unavailable", "stage=" + stage, "photo=" + str(photo_index), "http=" + str(status), "code=" + code, flush=True)
+        return "unavailable"
     except Exception as exc:
-        print("HYBRID_SCREEN unavailable", type(exc).__name__, flush=True)
+        print("HYBRID_SCREEN unavailable", "stage=" + stage, "photo=" + str(photo_index), type(exc).__name__, flush=True)
         return "unavailable"
 
 
